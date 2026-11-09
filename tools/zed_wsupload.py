@@ -139,7 +139,7 @@ def main():
             # Prepend id= into workshop.txt
             txt = open(ws_txt, encoding="utf-8").read()
             txt = txt.replace("NEW_WORKSHOP_ID", str(item_id))
-            if "id=" not in txt:
+            if "\nid=" not in ("\n" + txt):
                 txt = f"id={item_id}\n" + txt
             open(ws_txt, "w", encoding="utf-8").write(txt)
             for p in glob.glob(os.path.join(stage, "workshop_*.txt")):
