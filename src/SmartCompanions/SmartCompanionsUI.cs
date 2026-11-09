@@ -13,6 +13,7 @@ namespace ZedZone.SmartCompanions
         private static Vector2 _scrollSquad;
         private static Vector2 _scrollBoxes;
         private static Vector2 _scrollChatter;
+        private static Vector2 _scrollSettings;
 
         private static bool _stylesBuilt = false;
         private static GUIStyle _winStyle;
@@ -55,7 +56,8 @@ namespace ZedZone.SmartCompanions
         private static void EnsureStyles()
         {
             if (_stylesBuilt && _texWinBg != null) return;
-            _stylesBuilt = true;
+            DestroyStyleTextures();
+
 
             _texWinBg    = MakeTex(new Color(0.08f, 0.10f, 0.12f, 0.96f));
             _texCardBg   = MakeTex(new Color(0.13f, 0.16f, 0.20f, 0.94f));
@@ -65,20 +67,7 @@ namespace ZedZone.SmartCompanions
             _texCatOff   = MakeTex(new Color(0.18f, 0.20f, 0.24f, 0.90f));
             _texBannerBg = MakeTex(new Color(0.10f, 0.28f, 0.18f, 0.95f));
 
-            Font dynFont = null;
-            try
-            {
-                var fontNames = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStringArray(4);
-                fontNames[0] = "Microsoft YaHei";
-                fontNames[1] = "Segoe UI";
-                fontNames[2] = "SimHei";
-                fontNames[3] = "Arial";
-                dynFont = Font.CreateDynamicFontFromOSFont(fontNames, 14);
-                if (dynFont == null) dynFont = Font.CreateDynamicFontFromOSFont("Microsoft YaHei", 14);
-                if (dynFont == null) dynFont = Font.CreateDynamicFontFromOSFont("Segoe UI", 14);
-                if (dynFont == null) dynFont = Font.CreateDynamicFontFromOSFont("Arial", 14);
-            }
-            catch { }
+            Font dynFont = GetInterfaceFont();
 
             _winStyle = new GUIStyle(GUI.skin.box)
             {
@@ -95,6 +84,8 @@ namespace ZedZone.SmartCompanions
             _headerStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 15,
+                wordWrap = false,
+                clipping = TextClipping.Clip,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
             };
@@ -104,6 +95,8 @@ namespace ZedZone.SmartCompanions
             _subHeaderStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 13,
+                wordWrap = false,
+                clipping = TextClipping.Clip,
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
             };
@@ -151,12 +144,41 @@ namespace ZedZone.SmartCompanions
             _bannerStyle.normal.background = _texBannerBg;
             _bannerStyle.normal.textColor = new Color(0.85f, 1f, 0.88f);
             if (dynFont != null) _bannerStyle.font = dynFont;
+            _stylesBuilt = true;
         }
 
         public static void DrawAllGUI()
         {
+            // Other IMGUI behaviours can leave tint, scale or disabled state behind.
+            // Our rectangles and mouse hit-testing both use unscaled screen pixels.
+            var oldMatrix = GUI.matrix;
+            var oldColor = GUI.color;
+            var oldContentColor = GUI.contentColor;
+            var oldBackgroundColor = GUI.backgroundColor;
+            bool oldEnabled = GUI.enabled;
+            try
+            {
+                GUI.matrix = Matrix4x4.identity;
+                GUI.color = Color.white;
+                GUI.contentColor = Color.white;
+                GUI.backgroundColor = Color.white;
+                GUI.enabled = true;
+                DrawAllGuiContent();
+            }
+            finally
+            {
+                GUI.matrix = oldMatrix;
+                GUI.color = oldColor;
+                GUI.contentColor = oldContentColor;
+                GUI.backgroundColor = oldBackgroundColor;
+                GUI.enabled = oldEnabled;
+            }
+        }
+
+        private static void DrawAllGuiContent()
+        {
             var gc = GameController.instance;
-            if (gc == null || gc.playerCharacter == null) return;
+            if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter)) return;
 
             EnsureStyles();
 
@@ -205,18 +227,18 @@ namespace ZedZone.SmartCompanions
 
             GUI.Box(new Rect(x, y, w, h), GUIContent.none, _boxStyle);
             string label = CompanionConfigStore.L(
-                $"🤖 Напарники ({teammates.Count}) [F8]",
-                $"🤖 Squad ({teammates.Count}) [F8]",
-                $"🤖 队友 ({teammates.Count}) [F8]");
+                $" Напарники ({teammates.Count}) [F8]",
+                $" Squad ({teammates.Count}) [F8]",
+                $" 队友 ({teammates.Count}) [F8]");
             if (GUI.Button(new Rect(x + 4f, y + 4f, 152f, 26f), label, _btnStyle))
             {
                 ShowMainWindow = !ShowMainWindow;
             }
-            if (GUI.Button(new Rect(x + 160f, y + 4f, 72f, 26f), CompanionConfigStore.L("📦 Сорт.", "📦 Sort", "📦 整理"), _btnStyle))
+            if (GUI.Button(new Rect(x + 160f, y + 4f, 72f, 26f), CompanionConfigStore.L(" Сорт.", " Sort", " 整理"), _btnStyle))
             {
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
             }
-            if (GUI.Button(new Rect(x + 236f, y + 4f, 70f, 26f), CompanionConfigStore.L("🎒 Лут", "🎒 Loot", "🎒 搜刮"), _btnStyle))
+            if (GUI.Button(new Rect(x + 236f, y + 4f, 70f, 26f), CompanionConfigStore.L(" Лут", " Loot", " 搜刮"), _btnStyle))
             {
                 AutoLootSystem.CommandSweepNearbyLoot(null, 20f);
             }
@@ -244,9 +266,9 @@ namespace ZedZone.SmartCompanions
                 GUI.Box(miniRect, GUIContent.none, _winStyle);
                 if (GUI.Button(new Rect(miniRect.x + 6f, miniRect.y + 4f, 368f, 24f),
                     CompanionConfigStore.L(lang,
-                        $"📦 Категории ящика «{boxTitle}» (Развернуть ▼)",
-                        $"📦 Categories: {boxTitle} (Expand ▼)",
-                        $"📦 储物箱分类：「{boxTitle}」（展开 ▼）"), _btnStyle))
+                        $" Категории ящика «{boxTitle}» (Развернуть v)",
+                        $" Categories: {boxTitle} (Expand v)",
+                        $" 储物箱分类：「{boxTitle}」（展开 v）"), _btnStyle))
                 {
                     CollapseChestBar = false;
                 }
@@ -263,34 +285,34 @@ namespace ZedZone.SmartCompanions
 
             GUI.Label(new Rect(rx, ry, 250f, 24f),
                 CompanionConfigStore.L(lang,
-                    $"📦 КАТЕГОРИИ ЯЩИКА: {boxTitle}",
-                    $"📦 CHEST CATEGORIES: {boxTitle}",
-                    $"📦 储物箱分类：{boxTitle}"), _headerStyle);
+                    $" КАТЕГОРИИ ЯЩИКА: {boxTitle}",
+                    $" CHEST CATEGORIES: {boxTitle}",
+                    $" 储物箱分类：{boxTitle}"), _headerStyle);
 
             var dropStyle = rule.IsDropoffSource ? _catOnStyle : _catOffStyle;
-            string dropLabel = (rule.IsDropoffSource ? "☑ " : "☐ ") +
-                CompanionConfigStore.L(lang, "📥 Ящик-приёмник (Сброс)", "📥 Drop-off Box", "📥 收货中转箱");
+            string dropLabel = (rule.IsDropoffSource ? "[x] " : "[ ] ") +
+                CompanionConfigStore.L(lang, " Ящик-приёмник (Сброс)", " Drop-off Box", " 收货中转箱");
             if (GUI.Button(new Rect(rx + 255f, ry, 185f, 24f), dropLabel, dropStyle))
             {
                 rule.IsDropoffSource = !rule.IsDropoffSource;
                 CompanionConfigStore.Save();
             }
 
-            string prioLabel = CompanionConfigStore.L(lang, $"Приоритет: ★{rule.Priority}", $"Priority: ★{rule.Priority}", $"优先级: ★{rule.Priority}");
+            string prioLabel = CompanionConfigStore.L(lang, $"Приоритет: *{rule.Priority}", $"Priority: *{rule.Priority}", $"优先级: *{rule.Priority}");
             if (GUI.Button(new Rect(rx + 446f, ry, 110f, 24f), prioLabel, _btnStyle))
             {
                 rule.Priority = (rule.Priority % 5) + 1;
                 CompanionConfigStore.Save();
             }
 
-            if (GUI.Button(new Rect(rx + 562f, ry, 118f, 24f), CompanionConfigStore.L(lang, "⚙ Все ящики [F8]", "⚙ All Boxes [F8]", "⚙ 全部箱子 [F8]"), _btnStyle))
+            if (GUI.Button(new Rect(rx + 562f, ry, 118f, 24f), CompanionConfigStore.L(lang, " Все ящики [F8]", " All Boxes [F8]", " 全部箱子 [F8]"), _btnStyle))
             {
                 ShowMainWindow = true;
                 _activeTab = 1;
                 _selectedBoxIdInHub = boxId;
             }
 
-            if (GUI.Button(new Rect(rect.xMax - 76f, ry, 66f, 24f), CompanionConfigStore.L(lang, "Свернуть▲", "Hide▲", "收起▲"), _btnStyle))
+            if (GUI.Button(new Rect(rect.xMax - 76f, ry, 66f, 24f), CompanionConfigStore.L(lang, "Свернуть^", "Hide^", "收起^"), _btnStyle))
             {
                 CollapseChestBar = true;
             }
@@ -302,38 +324,38 @@ namespace ZedZone.SmartCompanions
             // Row 4: Quick Presets & Companion Sort Actions
             ry += 62f;
             float bw = (panelW - 20f - 36f) / 7f;
-            if (GUI.Button(new Rect(rx, ry, bw, 24f), CompanionConfigStore.L(lang, "⚔ Арсенал", "⚔ Arsenal", "⚔ 军火库"), _btnStyle))
+            if (GUI.Button(new Rect(rx, ry, bw, 24f), CompanionConfigStore.L(lang, " Арсенал", " Arsenal", " 军火库"), _btnStyle))
             {
                 rule.Categories = StorageCategory.MeleeWeapons | StorageCategory.RangedWeapons | StorageCategory.AmmoAndMags;
                 rule.IsDropoffSource = false;
                 CompanionConfigStore.Save();
             }
-            if (GUI.Button(new Rect(rx + (bw + 6f) * 1, ry, bw, 24f), CompanionConfigStore.L(lang, "🍖 Провизия", "🍖 Food/Drink", "🍖 食品饮水"), _btnStyle))
+            if (GUI.Button(new Rect(rx + (bw + 6f) * 1, ry, bw, 24f), CompanionConfigStore.L(lang, " Провизия", " Food/Drink", " 食品饮水"), _btnStyle))
             {
                 rule.Categories = StorageCategory.FreshFood | StorageCategory.CannedAndDrinks;
                 rule.IsDropoffSource = false;
                 CompanionConfigStore.Save();
             }
-            if (GUI.Button(new Rect(rx + (bw + 6f) * 2, ry, bw, 24f), CompanionConfigStore.L(lang, "💉 Медицина", "💉 Medical", "💉 医疗品"), _btnStyle))
+            if (GUI.Button(new Rect(rx + (bw + 6f) * 2, ry, bw, 24f), CompanionConfigStore.L(lang, " Медицина", " Medical", " 医疗品"), _btnStyle))
             {
                 rule.Categories = StorageCategory.Medicine;
                 rule.IsDropoffSource = false;
                 CompanionConfigStore.Save();
             }
-            if (GUI.Button(new Rect(rx + (bw + 6f) * 3, ry, bw, 24f), CompanionConfigStore.L(lang, "🔧 Мастерская", "🔧 Workshop", "🔧 工坊材料"), _btnStyle))
+            if (GUI.Button(new Rect(rx + (bw + 6f) * 3, ry, bw, 24f), CompanionConfigStore.L(lang, " Мастерская", " Workshop", " 工坊材料"), _btnStyle))
             {
                 rule.Categories = StorageCategory.Materials | StorageCategory.ToolsAndRepair | StorageCategory.VehicleAndPower;
                 rule.IsDropoffSource = false;
                 CompanionConfigStore.Save();
             }
-            if (GUI.Button(new Rect(rx + (bw + 6f) * 4, ry, bw, 24f), CompanionConfigStore.L(lang, "✖ Сбросить", "✖ Clear", "✖ 清空"), _btnStyle))
+            if (GUI.Button(new Rect(rx + (bw + 6f) * 4, ry, bw, 24f), CompanionConfigStore.L(lang, " Сбросить", " Clear", " 清空"), _btnStyle))
             {
                 rule.Categories = StorageCategory.None;
                 rule.IsDropoffSource = false;
                 CompanionConfigStore.Save();
             }
             if (GUI.Button(new Rect(rx + (bw + 6f) * 5, ry, bw * 2f + 6f, 24f),
-                CompanionConfigStore.L(lang, "🤖 Приказать NPC разобрать по базе!", "🤖 Order NPC to Sort Base Now!", "🤖 命令队友立即整理基地仓库！"), _catOnStyle))
+                CompanionConfigStore.L(lang, " Приказать NPC разобрать по базе!", " Order NPC to Sort Base Now!", " 命令队友立即整理基地仓库！"), _catOnStyle))
             {
                 BaseSortingSystem.CommandSortBase(null, openInv, instant: false);
             }
@@ -364,7 +386,7 @@ namespace ZedZone.SmartCompanions
                 float cy = area.y + r * (cellH + gapY);
 
                 bool isOn = (rule.Categories & cat) != 0;
-                string prefix = isOn ? "☑ " : "☐ ";
+                string prefix = isOn ? "[x] " : "[ ] ";
                 string text = prefix + ItemCategorizer.GetCategoryName(cat, lang);
 
                 if (GUI.Button(new Rect(cx, cy, cellW, cellH), text, isOn ? _catOnStyle : _catOffStyle))

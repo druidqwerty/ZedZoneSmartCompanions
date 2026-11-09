@@ -2,6 +2,8 @@ backups/
 dist/
 tools/InspectApi/bin/
 tools/InspectApi/obj/
+tools/UiSmoke/bin/
+tools/UiSmoke/obj/
 src/*/bin/
 src/*/obj/
 *.user

@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "1.3.0";
+        public const string PluginVersion = "1.3.1";
 
         internal static ManualLogSource Logs;
 
@@ -28,7 +28,7 @@ namespace ZedZone.SmartCompanions
             try
             {
                 var harmony = new Harmony(PluginGuid);
-                harmony.PatchAll(typeof(HarmonyPatches));
+                harmony.PatchAll(typeof(SmartCompanionsPlugin).Assembly);
                 int patchCount = harmony.GetPatchedMethods().Count();
                 LogInfo($"Patched {patchCount} game method(s) via Harmony.");
             }
@@ -184,6 +184,8 @@ namespace ZedZone.SmartCompanions
 
         private float _lastCombatTickTime = 0f;
         private float _lastSortTickTime = 0f;
+        private float _lastGuiErrorTime = -60f;
+        private string _lastGuiError = "";
 
         private void Update()
         {
@@ -247,7 +249,15 @@ namespace ZedZone.SmartCompanions
             }
             catch (Exception e)
             {
-                SmartCompanionsPlugin.LogWarning("SmartCompanionsController.OnGUI exception: " + e.Message);
+                // An IMGUI failure may occur several times per frame. Keep the first
+                // stack trace useful without flooding the log or hiding the cause.
+                string detail = e.ToString();
+                if (detail != _lastGuiError || Time.unscaledTime - _lastGuiErrorTime >= 30f)
+                {
+                    _lastGuiError = detail;
+                    _lastGuiErrorTime = Time.unscaledTime;
+                    SmartCompanionsPlugin.LogWarning("SmartCompanionsController.OnGUI exception: " + detail);
+                }
             }
         }
     }

@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.0"><strong>Release v1.3.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.1"><strong>Release v1.3.1 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Fixed in v1.3.1
+
+- F8 companion cards, base containers and settings no longer go blank at the scrolling area.
+- Russian and Simplified Chinese labels use a glyph-checked font instead of missing-character squares; unsupported emoji buttons use readable text.
+- Clicking F8 or the mod's chest/HUD controls is isolated from world input, including the closing click.
+- GUI errors retain their full stack trace without flooding the log.
+- No save migration or reset required. See [verification and limitations](docs/verification-1.3.1.md).
+
 
 **ZED ZONE: Smart Companions** is a BepInEx 6 (IL2CPP) code mod for **ZED ZONE** (`Unity 2023.1.18f1 x64`) that overhauls recruited survivor companions with tactical combat intelligence against both zombies and hostile human NPCs, an automated base chest sorting system with a 12-category container UI, 50 contextual speech topics (**987 unique lines across Russian, English, and Simplified Chinese: 495 RU / 229 EN / 263 ZH**), automatic + manual in-game language switching (`Auto / RU / EN / 中文`), 6 real-time combat doctrines, and emergency field support.
 
@@ -75,8 +84,8 @@
 
 ## Requirements & Installation
 
-1. Subscribe to **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3836614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)) and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.3.0.zip` into `<ZED ZONE>\Mods\SmartCompanions\`).
+1. Subscribe to **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)) and run its `install.cmd` once.
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.3.1.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 

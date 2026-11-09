@@ -39,3 +39,21 @@
 - [x] Master and final 512px preview visually inspected via view_image; all required text correctly spelled and readable.
 - Gotcha: provider ignored aspectRatio override; actual generated output is square, so no crop required.
 - Next: no remaining cover tasks. No upload or publication performed by this artwork task.
+
+## 1.3.1 UI repair — 2026-11-09 (in progress)
+- User reports: F8 has blank companion content on every language; Chinese labels are squares; LMB in F8 attacks and destroys base objects.
+- Starting state: clean git HEAD 4046a60, released plugin 1.3.0 (csproj incorrectly still 1.2.0). No running ZEDZONE process.
+- Existing log repeats `SmartCompanionsController.OnGUI exception: Method unstripping failed`; quick row renders before stripped scroll view aborts.
+- Owners: UI font/scroll repair; gameplay input gate; public Steam feedback read; root integration/live regression/release.
+- [x] Plugin/assembly version unified at 1.3.1; GUI failures retain full exception and throttle duplicates to 30s.
+- Next: complete UI and game input fixes, live graphical verification (startup tests alone did not exercise GUI), package and synchronize GitHub/Steam/Boosty.
+- [x] First graphical run (not release acceptance): native YaHei glyph checks passed, real populated cards rendered in RU/EN/ZH. Found settings tab unguarded player access in main menu; fixed and settings column made scrollable. Re-run must fail on any UI fallback (first probe had counted fallback as repaint).
+- [x] Steam public feedback: all 7 comments + 2 pinned empty discussions, archived docs/feedback-1.3.1.md. Independent material-gathering trip is a separate feature suggestion, not part of this hotfix.
+- [x] Backups before verification/install: backups/ui131-before (old DLL/manifest/config/logs plus full GameData). No save opened in menu-only UI fixture tests.
+- [x] CompanionModels JSON summary now takes version from PluginVersion (removed hardcoded 1.3.0); both Workshop content layouts must receive identical final 1.3.1 DLL/manifest.
+- [x] FINAL graphical run backups/ui131-final8: PID 66408 exited 0, `[UiSmoke] PASS 15/15`, font Latin/Cyrillic/Chinese coverage verified, native player Fire/Fire_Gun/MeleeAttack/held-melee blocked while modal, companions allowed, closing-frame quarantine and full release restoration PASS; 0 error entries, 0 mod warning entries.
+- [x] Removed temporary probe from game Mods by moving exact verified directory to backups/ZUiSmoke-verified. Source harness remains tools/UiSmoke, not release content.
+- [x] 8,355 GameData files matched backup SHA256s; player saves never loaded. Tests use inert native fixtures in graphical engine; no damage/physics test on loaded base is claimed.
+- [x] Final DLL SHA256 1d1f58ed2d4375c216555a2c882d832f6a759cc0587d35116c56ac9b7c1ac932. ZIP126795 bytes SHA2564d861a2f9f30ba9f1758dd66ea1ba1c3becc452dbb96713d4d6a8fbb5a51886f. Both staging layouts and game/kit synchronized.
+- Gotcha: patch concrete Human weapon overrides only. Additional Basic Fire_Gun/Melee merged/no-op stubs caused early native exit; removed. Fixture movement setter needs animation rig, so native CharacterInput own field is used. GUI color tests compare engine-normalized readback, not raw hardcoded color components.
+- Next: GitHub commit/push/release, Steam upload EN/RU/ZH visibility0 and dependencies/topics verification, Boosty queue.

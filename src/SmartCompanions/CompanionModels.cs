@@ -470,12 +470,12 @@ namespace ZedZone.SmartCompanions
         {
             return arch switch
             {
-                CompanionArchetype.Veteran         => L(lang, "🎖 Бывалый ветеран", "🎖 Grizzled Veteran", "🎖 铁血老兵"),
-                CompanionArchetype.StreetPunk      => L(lang, "🔥 Дерзкий гопник", "🔥 Street Punk", "🔥 街头混混"),
-                CompanionArchetype.ParanoidPrepper => L(lang, "👁 Параноик-выживальщик", "👁 Paranoid Prepper", "👁 末日偏执狂"),
-                CompanionArchetype.CombatMedic     => L(lang, "💉 Полевой врач", "💉 Combat Medic", "💉 战地医官"),
-                CompanionArchetype.JollyScavenger  => L(lang, "🎒 Весельчак-мародёр", "🎒 Jolly Scavenger", "🎒 乐天拾荒客"),
-                _                                  => L(lang, "🌐 Авто-характер", "🌐 Auto Personality", "🌐 自动性格")
+                CompanionArchetype.Veteran         => L(lang, "Бывалый ветеран", "Grizzled Veteran", "铁血老兵"),
+                CompanionArchetype.StreetPunk      => L(lang, "Дерзкий гопник", "Street Punk", "街头混混"),
+                CompanionArchetype.ParanoidPrepper => L(lang, "Параноик-выживальщик", "Paranoid Prepper", "末日偏执狂"),
+                CompanionArchetype.CombatMedic     => L(lang, "Полевой врач", "Combat Medic", "战地医官"),
+                CompanionArchetype.JollyScavenger  => L(lang, "Весельчак-мародёр", "Jolly Scavenger", "乐天拾荒客"),
+                _                                  => L(lang, "Авто-характер", "Auto Personality", "自动性格")
             };
         }
 
@@ -580,7 +580,7 @@ namespace ZedZone.SmartCompanions
                 File.WriteAllText(SaveFilePath, sb.ToString(), Encoding.UTF8);
 
                 string json = "{\n" +
-                    $"  \"Version\": \"1.3.0\",\n" +
+                    $"  \"Version\": \"{SmartCompanionsPlugin.PluginVersion}\",\n" +
                     $"  \"LanguageMode\": \"{LanguageMode}\",\n" +
                     $"  \"LanguageModeId\": {(int)LanguageMode},\n" +
                     $"  \"EffectiveLanguage\": \"{EffectiveLanguage}\",\n" +
