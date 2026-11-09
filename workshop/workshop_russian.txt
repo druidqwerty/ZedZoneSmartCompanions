@@ -3,7 +3,7 @@ visibility=public
 description=[h1]ZED ZONE: Smart Companions — Умные напарники 1.0.0[/h1]
 description=Превратите нанятых выживших в умных и живых напарников: они грамотно ведут бой против зомби и вражеских NPC, уходят с вашей линии огня, раскладывают хабар на базе по категориям ящиков, собирают трофеи вокруг, перевязывают вас в бою и комментируют происходящее (более 170 живых фраз на русском языке).
 description=
-description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ALifeAirwaves/d2357132d52c903c5dadddb80fb66f64a32aff35/docs/banner.png[/img][/url]
+description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Нравится мод? Поддержите его развитие на Boosty.
 description=
 description=[h2]Что умеют напарники[/h2]

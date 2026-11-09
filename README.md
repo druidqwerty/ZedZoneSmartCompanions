@@ -1,6 +1,6 @@
 # ZED ZONE: Smart Companions — Tactical AI, Base Sorting & Live Chatter
 
-<p align="center"><a href="https://boosty.to/lrgpp"><img src="docs/banner.png" alt="LrgPP mods on Boosty" width="640"></a></p>
+<p align="center"><a href="https://boosty.to/lrgpp"><img src="https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png" alt="LrgPP mods on Boosty" width="640"></a></p>
 <p align="center"><em>Enjoy the mod? Support its development on <a href="https://boosty.to/lrgpp">Boosty</a>.</em></p>
 
 <p align="center"><img src="docs/preview.png" alt="ZED ZONE: Smart Companions cover" width="420"></p>

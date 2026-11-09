@@ -4,7 +4,7 @@ visibility=public
 description=[h1]ZED ZONE: Smart Companions 1.0.0[/h1]
 description=Turn your recruited survivors into smart, responsive teammates who kite zombies, step out of your line of fire, sort base chests by category, scavenge nearby loot, patch you up in combat, and react to everything you do with 170+ lively lines.
 description=
-description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ALifeAirwaves/d2357132d52c903c5dadddb80fb66f64a32aff35/docs/banner.png[/img][/url]
+description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Enjoy the mod? Support its development on Boosty.
 description=
 description=[h2]What you get[/h2]
