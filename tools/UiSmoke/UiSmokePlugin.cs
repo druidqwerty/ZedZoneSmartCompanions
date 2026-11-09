@@ -41,6 +41,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
         private int _case = -1, _repaints, _passed;
         private float _nextAt;
         private bool _initialized, _failed;
+        private bool _nativeOnly;
+        private float _menuSceneAt = -1f;
         private float _closingAt = -1f;
         private const int Cases = 15;
 
@@ -51,11 +53,33 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 if (!_initialized)
                 {
                     if (Time.realtimeSinceStartup < 5f) return;
+                    if (Environment.GetCommandLineArgs().Contains("--sc-native-menu-only"))
+                    {
+                        if (!GameController.initFinishFlag || Time.realtimeSinceStartup < 9f) return;
+                        if (_menuSceneAt < 0f)
+                        {
+                            _menuSceneAt=Time.realtimeSinceStartup;
+                            Application.runInBackground=true;
+                            GameController.instance.LoadScene("MainMenu");
+                            return;
+                        }
+                        if(Time.realtimeSinceStartup-_menuSceneAt < 4f) return;
+                    }
                     _initialized = true;
                     _originalLanguage = CompanionConfigStore.LanguageMode;
                     _output = Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith("--sc-ui-smoke-output="));
                     _output = _output == null ? Path.Combine(BepInEx.Paths.BepInExRootPath, "UiSmoke") : _output.Substring(21);
                     Directory.CreateDirectory(_output);
+                    if (Environment.GetCommandLineArgs().Contains("--sc-native-menu-only"))
+                    {
+                        NativeMenuRegression.VerifyAllLanguages();
+                        NativeMenuRegression.DumpStoredCommands();
+                        InventoryRegression.Run();
+                        for(int i=0;i<UnityEngine.SceneManagement.SceneManager.sceneCountInBuildSettings;i++)
+                            UiSmokePlugin.Logger.LogInfo("[Scenes] "+UnityEngine.SceneManagement.SceneUtility.GetScenePathByBuildIndex(i));
+                        _nativeOnly=true;
+                        return;
+                    }
                     SmokeFixtures.Create();
                     SmartCompanionsUI.ShowMainWindow = true;
                     if (!SmartCompanionsInput.BlockPlayerControls || !SmartCompanionsInput.BlockPlayerMouse)
@@ -64,6 +88,11 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     SmokeFixtures.VerifyNativeInputGates();
                     InputRegression.VerifyOpen();
                     _nextAt = Time.realtimeSinceStartup;
+                }
+                if(_nativeOnly)
+                {
+                    if(NativeMenuScreenshots.Tick()) { enabled=false;Application.Quit(); }
+                    return;
                 }
                 if (_failed || Time.realtimeSinceStartup < _nextAt) return;
                 if (_case >= Cases - 1)

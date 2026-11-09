@@ -1,13 +1,13 @@
 version=1
 id=3836613312
-title=ZED ZONE: Smart Companions 1.3.1
+title=ZED ZONE: Smart Companions 1.3.2
 visibility=public
-description=[h1]Smart Companions 1.3.1[/h1]
+description=[h1]Smart Companions 1.3.2[/h1]
 description=Smarter recruited companions: tactical combat, base sorting and live chatter in English, Russian and Simplified Chinese.
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Enjoy the mod? Support development on Boosty.
-description=[h2]Fixed in 1.3.1[/h2]
-description=[list][*]F8 no longer shows blank companion, chest or settings panels.[*]Readable Russian and Chinese labels instead of missing-character squares.[*]Clicking the mod's panels no longer makes your character attack the base.[/list]
+description=[h2]Fixed in 1.3.2[/h2]
+description=[list][*]Fixed blank categories and commands in the game's native companion menu.[*]Repaired combat orders and quicker threat checks, respecting visibility, weapon range and Hold Fire.[*]Companions stop sorting when threatened; less unnecessary sidestepping and firing interruptions.[*]Companion-centered looting and safer transfers into full inventories; XP progress saves between rank-ups and on exit.[*]Manual rations now consume food and have a separate cooldown per companion.[/list]
 description=[h2]Your squad and base[/h2]
 description=6 combat doctrines, companion personalities and veteran ranks, field aid, camp chores, vehicle unloading, 12-category chest sorting and RU/EN/ZH chatter with 18+, Mixed or Clean modes. All settings change in-game.
 description=[h2]Install and controls[/h2]

@@ -28,7 +28,9 @@ namespace ZedZone.SmartCompanions
 
                 if (workers.Count == 0) return 0;
 
-                Vector2 center = gc.playerCharacter.transform.position;
+                Vector2 center = Il2CppSafe.IsAliveUnity(specificAgent) && Il2CppSafe.IsAliveUnity(specificAgent.humanCharacter)
+                    ? (Vector2)specificAgent.humanCharacter.transform.position
+                    : (Vector2)gc.playerCharacter.transform.position;
                 float rSqr = radius * radius;
                 float now = Time.unscaledTime;
 
@@ -61,9 +63,8 @@ namespace ZedZone.SmartCompanions
                         if (!PassesSmartOverweightFilter(agent, bi.itemData, now))
                             continue;
 
-                        if (TryGiveItemToCompanionOrPlayer(agent, bi.itemData))
+                        if (TryCollectGroundItem(agent, bi.itemData, gc))
                         {
-                            gc.RemoveItemDataFromGround(bi.itemData, true);
                             totalCollected++;
                             var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID);
                             st.LootedItemsThisSession++;
@@ -106,10 +107,8 @@ namespace ZedZone.SmartCompanions
                             if (!PassesSmartOverweightFilter(agent, item, now))
                                 continue;
 
-                            var copy = item.CopyItemData(null);
-                            if (Il2CppSafe.IsAlive(copy) && TryGiveItemToCompanionOrPlayer(agent, copy))
+                            if (TryTransferToCompanion(agent, inv, item))
                             {
-                                inv.RemoveItem(item, true);
                                 totalCollected++;
                                 var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID);
                                 st.LootedItemsThisSession++;
@@ -205,7 +204,7 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        private static bool TryGiveItemToCompanionOrPlayer(GOAPAgent agent, ItemData item)
+        private static bool TryTransferToCompanion(GOAPAgent agent, InventoryData source, ItemData item)
         {
             if (!Il2CppSafe.IsAlive(item)) return false;
             try
@@ -213,15 +212,37 @@ namespace ZedZone.SmartCompanions
                 if (Il2CppSafe.IsAliveUnity(agent) && Il2CppSafe.IsAlive(agent.npcData))
                 {
                     var shared = agent.npcData.GetOrCreateSharedInventory();
-                    if (Il2CppSafe.IsAlive(shared) && shared.TryAddItem(item, true, true))
+                    if (Il2CppSafe.IsAlive(shared) && InventoryTransfers.TryMoveWhole(source, shared, item))
                         return true;
 
                     var npcInv = agent.npcData.characterData?.inventoryData;
-                    if (Il2CppSafe.IsAlive(npcInv) && npcInv.TryAddItem(item, true, true))
+                    if (Il2CppSafe.IsAlive(npcInv) && InventoryTransfers.TryMoveWhole(source, npcInv, item))
                         return true;
                 }
             }
             catch { }
+            return false;
+        }
+
+        private static bool TryCollectGroundItem(GOAPAgent agent, ItemData item, GameController gc)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData)) return false;
+            var destinations = new[] { agent.npcData.GetOrCreateSharedInventory(), agent.npcData.characterData?.inventoryData };
+            foreach (var destination in destinations)
+            {
+                ItemData added = null;
+                try
+                {
+                    if (!InventoryTransfers.TryAddWholeCopy(destination, item, out added)) continue;
+                    gc.RemoveItemDataFromGround(item, true);
+                    return true;
+                }
+                catch
+                {
+                    if (added != null && InventoryTransfers.Contains(destination, added)) destination.RemoveItem(added, true);
+                    return false;
+                }
+            }
             return false;
         }
 

@@ -1,3 +1,5 @@
+> UNRELEASED 1.3.2 candidate: native menu checks passed, ranged-combat acceptance FAILED. See docs/verification-1.3.2.md. Published/installed stable version remains 1.3.1.
+
 # ZED ZONE: Smart Companions — Tactical AI, Base Sorting & Live Chatter
 
 <p align="center"><a href="https://boosty.to/lrgpp"><img src="https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png" alt="LrgPP mods on Boosty" width="640"></a></p>
@@ -7,12 +9,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.1"><strong>Release v1.3.1 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.2"><strong>Release v1.3.2 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Fixed in v1.3.2
+
+- **Native NPC command menus:** restored the missing category/command labels in the game's own companion menu, separately from the F8 window fixed in 1.3.1. Existing vanilla commands remain available.
+- **Threat response:** repaired stored combat/weapon orders and refresh threat perception every 0.3 seconds, bounded by weapon range and native visibility checks. The mod does not force shots through walls or override Hold Fire.
+- **Less combat interference:** threats interrupt sorting; line-of-fire sidesteps require the player to aim; kiting interferes less with firing.
+- **Loot and inventory fixes:** searches are centered on the companion, transfers move whole items only when the destination can accept them, and XP progress is saved between rank-ups with debounced writes and a final save on exit.
+- **Rations:** manually sharing consumes one food item per served companion and has a separate 30-second cooldown for each companion; automatic sharing uses the meal the player already ate.
+- No save reset or new chatter lines. Close the game once to install the update; in-game settings remain changeable without restarting. [Verification and limitations](docs/verification-1.3.2.md).
+
 
 ## Fixed in v1.3.1
 
@@ -23,7 +35,7 @@
 - No save migration or reset required. See [verification and limitations](docs/verification-1.3.1.md).
 
 
-**ZED ZONE: Smart Companions** is a BepInEx 6 (IL2CPP) code mod for **ZED ZONE** (`Unity 2023.1.18f1 x64`) that overhauls recruited survivor companions with tactical combat intelligence against both zombies and hostile human NPCs, an automated base chest sorting system with a 12-category container UI, 50 contextual speech topics (**987 unique lines across Russian, English, and Simplified Chinese: 495 RU / 229 EN / 263 ZH**), automatic + manual in-game language switching (`Auto / RU / EN / 中文`), 6 real-time combat doctrines, and emergency field support.
+**ZED ZONE: Smart Companions** is a BepInEx 6 (IL2CPP) code mod for **ZED ZONE** (`Unity 2023.1.18f1 x64`) that overhauls recruited survivor companions with tactical combat intelligence against both zombies and hostile human NPCs, an automated base chest sorting system with a 12-category container UI, 60 contextual speech topics (**1,179 unique lines across Russian, English, and Simplified Chinese: 565 RU / 290 EN / 324 ZH**), automatic + manual in-game language switching (`Auto / RU / EN / 中文`), 6 real-time combat doctrines, and emergency field support.
 
 ## New in v1.3.0
 
@@ -85,7 +97,7 @@
 ## Requirements & Installation
 
 1. Subscribe to **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)) and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.3.1.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.3.2.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 

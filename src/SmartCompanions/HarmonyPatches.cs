@@ -6,17 +6,17 @@ namespace ZedZone.SmartCompanions
 {
     public static class CustomNpcCommands
     {
-        public const string SortBase      = "NPCCommand:Basic.SortBaseContainers";
-        public const string SweepLoot     = "NPCCommand:Basic.SweepNearbyLoot";
-        public const string DocAssault    = "NPCCommand:Combat.DoctrineAssault";
-        public const string DocBodyguard  = "NPCCommand:Combat.DoctrineBodyguard";
-        public const string DocSniper     = "NPCCommand:Combat.DoctrineSniper";
-        public const string DocStealth    = "NPCCommand:Combat.DoctrineStealth";
-        public const string OpenHub       = "NPCCommand:OneTime.OpenSmartHub";
-        public const string EmergencyAid  = "NPCCommand:OneTime.EmergencyAid";
-        public const string ShareRation   = "NPCCommand:OneTime.ShareRationWithSquad";
-        public const string UnloadVehicle = "NPCCommand:OneTime.UnloadVehicleToBase";
-        public const string BattleCry     = "NPCCommand:OneTime.SquadBattleCry";
+        public const string SortBase      = "Basic.SortBaseContainers";
+        public const string SweepLoot     = "Basic.SweepNearbyLoot";
+        public const string DocAssault    = "Combat.DoctrineAssault";
+        public const string DocBodyguard  = "Combat.DoctrineBodyguard";
+        public const string DocSniper     = "Combat.DoctrineSniper";
+        public const string DocStealth    = "Combat.DoctrineStealth";
+        public const string OpenHub       = "OneTime.OpenSmartHub";
+        public const string EmergencyAid  = "OneTime.EmergencyAid";
+        public const string ShareRation   = "OneTime.ShareRationWithSquad";
+        public const string UnloadVehicle = "OneTime.UnloadVehicleToBase";
+        public const string BattleCry     = "OneTime.SquadBattleCry";
 
         public static readonly string[] AllCustomCommands = new[]
         {
@@ -40,51 +40,54 @@ namespace ZedZone.SmartCompanions
 
         public static bool TryGetDisplayName(string cmd, ModLanguage lang, out string label)
         {
+            if (cmd != null && cmd.StartsWith("NPCCommand:", StringComparison.Ordinal))
+                cmd = cmd.Substring("NPCCommand:".Length);
+            // BuildPanelUI asks for a bare node.name; callers may also pass a full path.
             switch (cmd)
             {
-                case "Basic.SortBaseContainers":
+                case "SortBaseContainers":
                 case SortBase:
-                    label = CompanionConfigStore.L(lang, "📦 Сортировать ящики базы", "📦 Sort Base Containers", "📦 整理基地储物箱");
+                    label = CompanionConfigStore.L(lang, "Сортировка базы", "Sort Base", "基地整理");
                     return true;
-                case "Basic.SweepNearbyLoot":
+                case "SweepNearbyLoot":
                 case SweepLoot:
-                    label = CompanionConfigStore.L(lang, "🎒 Собрать трофеи вокруг", "🎒 Sweep Nearby Loot", "🎒 搜刮附近战利品");
+                    label = CompanionConfigStore.L(lang, "Сбор трофеев", "Collect Loot", "搜刮战利品");
                     return true;
-                case "Combat.DoctrineAssault":
+                case "DoctrineAssault":
                 case DocAssault:
-                    label = CompanionConfigStore.L(lang, "⚔ Доктрина: Штурм", "⚔ Doctrine: Assault", "⚔ 战术：突击强攻");
+                    label = CompanionConfigStore.L(lang, "Штурм", "Assault", "突击");
                     return true;
-                case "Combat.DoctrineBodyguard":
+                case "DoctrineBodyguard":
                 case DocBodyguard:
-                    label = CompanionConfigStore.L(lang, "🛡 Доктрина: Телохранитель", "🛡 Doctrine: Bodyguard", "🛡 战术：贴身护卫");
+                    label = CompanionConfigStore.L(lang, "Телохранитель", "Bodyguard", "护卫");
                     return true;
-                case "Combat.DoctrineSniper":
+                case "DoctrineSniper":
                 case DocSniper:
-                    label = CompanionConfigStore.L(lang, "🎯 Доктрина: Снайпер (кайтинг)", "🎯 Doctrine: Sniper / Kite", "🎯 战术：狙击风筝");
+                    label = CompanionConfigStore.L(lang, "Снайпер", "Sniper", "狙击");
                     return true;
-                case "Combat.DoctrineStealth":
+                case "DoctrineStealth":
                 case DocStealth:
-                    label = CompanionConfigStore.L(lang, "🗡 Доктрина: Тихий режим", "🗡 Doctrine: Stealth Melee", "🗡 战术：潜行近战");
+                    label = CompanionConfigStore.L(lang, "Тихий режим", "Stealth", "潜行");
                     return true;
-                case "OneTime.OpenSmartHub":
+                case "OpenSmartHub":
                 case OpenHub:
-                    label = CompanionConfigStore.L(lang, "⚙ Панель напарников и базы [F8]", "⚙ Smart Companions & Base UI [F8]", "⚙ 智能队友与基地面板 [F8]");
+                    label = CompanionConfigStore.L(lang, "Панель [F8]", "Squad Panel [F8]", "队友面板 [F8]");
                     return true;
-                case "OneTime.EmergencyAid":
+                case "EmergencyAid":
                 case EmergencyAid:
-                    label = CompanionConfigStore.L(lang, "💉 Полевая помощь / Патроны", "💉 Field Aid & Ammo Resupply", "💉 战地急救与弹药补给");
+                    label = CompanionConfigStore.L(lang, "Помощь и патроны", "Aid & Ammo", "急救与弹药");
                     return true;
-                case "OneTime.ShareRationWithSquad":
+                case "ShareRationWithSquad":
                 case ShareRation:
-                    label = CompanionConfigStore.L(lang, "🍖 Подогреть братву пайком (Бафф)", "🍖 Share Ration (Fed & Fierce Buff)", "🍖 分享口粮（饱腹狂暴增益）");
+                    label = CompanionConfigStore.L(lang, "Поделиться пайком", "Share Ration", "分享口粮");
                     return true;
-                case "OneTime.UnloadVehicleToBase":
+                case "UnloadVehicleToBase":
                 case UnloadVehicle:
-                    label = CompanionConfigStore.L(lang, "🚗 Разгрузить багажник машины на склад", "🚗 Unload Vehicle Trunk to Base", "🚗 卸载汽车后备箱至基地仓库");
+                    label = CompanionConfigStore.L(lang, "Разгрузить машину", "Unload Vehicle", "卸载车辆");
                     return true;
-                case "OneTime.SquadBattleCry":
+                case "SquadBattleCry":
                 case BattleCry:
-                    label = CompanionConfigStore.L(lang, "📣 Боевой клич и Штурм [F9]", "📣 Squad Battle Cry & Assault [F9]", "📣 小队战吼与集火突击 [F9]");
+                    label = CompanionConfigStore.L(lang, "Боевой клич [F9]", "Battle Cry [F9]", "战吼 [F9]");
                     return true;
                 default:
                     label = null;
@@ -94,7 +97,7 @@ namespace ZedZone.SmartCompanions
 
         public static bool ExecuteCustomCommand(GOAPNPCData npcData, string commandStr)
         {
-            if (string.IsNullOrEmpty(commandStr)) return false;
+            if (string.IsNullOrEmpty(commandStr) || !TryGetDisplayName(commandStr, out _)) return false;
 
             GOAPAgent agent = npcData?.agentCache;
             if (agent == null && npcData != null && GOAPNPCManager.instance?.activeNPCs != null)
@@ -346,6 +349,13 @@ namespace ZedZone.SmartCompanions
             try
             {
                 if (__result == null) return;
+                // Remove only our old envelope-form paths if a cached list still has them.
+                for (int i = __result.Count - 1; i >= 0; i--)
+                {
+                    string old = __result[i];
+                    if (old != null && old.StartsWith("NPCCommand:", StringComparison.Ordinal) &&
+                        CustomNpcCommands.TryGetDisplayName(old, out _)) __result.RemoveAt(i);
+                }
                 foreach (var cmd in CustomNpcCommands.AllCustomCommands)
                 {
                     if (!__result.Contains(cmd))

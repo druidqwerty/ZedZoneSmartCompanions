@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "1.3.1";
+        public const string PluginVersion = "1.3.2";
 
         internal static ManualLogSource Logs;
 
@@ -54,6 +54,7 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
+                CombatResponse.SelfVerifyCommandStorage();
                 var topics = (ChatterTopic[])Enum.GetValues(typeof(ChatterTopic));
                 int rudeRuCount = 0, cleanRuCount = 0;
                 int rudeEnCount = 0, cleanEnCount = 0;
@@ -144,6 +145,11 @@ namespace ZedZone.SmartCompanions
                     {
                         if (!CustomNpcCommands.TryGetDisplayName(cmd, lang, out var label) || string.IsNullOrEmpty(label))
                             throw new Exception($"Custom command missing label for {lang}: " + cmd);
+                        string leaf = cmd.Substring(cmd.LastIndexOf('.') + 1);
+                        if (cmd.StartsWith("NPCCommand:") ||
+                            !CustomNpcCommands.TryGetDisplayName(leaf, lang, out var bare) || bare != label ||
+                            !CustomNpcCommands.TryGetDisplayName("NPCCommand:" + cmd, lang, out var legacy) || legacy != label)
+                            throw new Exception("Native menu path/leaf compatibility failed: " + cmd);
                     }
                 }
 
@@ -218,6 +224,7 @@ namespace ZedZone.SmartCompanions
                 }
 
                 float now = Time.unscaledTime;
+                CompanionConfigStore.FlushPendingProgress();
 
                 if (now - _lastCombatTickTime >= 0.15f)
                 {
@@ -240,6 +247,9 @@ namespace ZedZone.SmartCompanions
                 SmartCompanionsPlugin.LogWarning("SmartCompanionsController.Update exception: " + e.Message);
             }
         }
+
+        private void OnApplicationQuit() => CompanionConfigStore.FlushPendingProgress(force: true);
+        private void OnDestroy() => CompanionConfigStore.FlushPendingProgress(force: true);
 
         private void OnGUI()
         {

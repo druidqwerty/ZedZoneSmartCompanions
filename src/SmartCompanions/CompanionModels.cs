@@ -220,6 +220,7 @@ namespace ZedZone.SmartCompanions
 
         // Buff: "Сытый и злой" (Fed & Fierce) from sharing rations
         public float FedAndFierceUntil = -999f;
+        public float LastRationTime = -999f;
         // Buff: "Боевой кураж / Штурм" (Battle Cry & Focus Assault) [F9]
         public float BattleCryBuffUntil = -999f;
 
@@ -269,6 +270,7 @@ namespace ZedZone.SmartCompanions
             if (deltaXp <= 0) return false;
             var prevRank = Rank;
             ExperiencePoints = Mathf.Clamp(ExperiencePoints + deltaXp, 0, 999999);
+            CompanionConfigStore.MarkProgressDirty();
             var newRank = Rank;
             if (newRank > prevRank)
             {
@@ -304,6 +306,24 @@ namespace ZedZone.SmartCompanions
 
     public static class CompanionConfigStore
     {
+        private static bool _progressDirty;
+        private static float _nextProgressSaveAt;
+
+        public static void MarkProgressDirty()
+        {
+            if (!_progressDirty) _nextProgressSaveAt = Time.unscaledTime + 5f;
+            _progressDirty = true;
+        }
+
+        public static void FlushPendingProgress(bool force = false)
+        {
+            if (_progressDirty && (force || Time.unscaledTime >= _nextProgressSaveAt))
+            {
+                _nextProgressSaveAt = Time.unscaledTime + 5f;
+                Save();
+            }
+        }
+
         public static readonly Dictionary<string, ContainerRuleProfile> ContainerRules =
             new Dictionary<string, ContainerRuleProfile>(StringComparer.OrdinalIgnoreCase);
 
@@ -593,6 +613,7 @@ namespace ZedZone.SmartCompanions
                     $"  \"AutoShareFoodOnEat\": {AutoShareFoodOnEat.ToString().ToLowerInvariant()}\n" +
                     "}\n";
                 File.WriteAllText(JsonConfigFilePath, json, Encoding.UTF8);
+                _progressDirty = false;
             }
             catch (Exception e)
             {

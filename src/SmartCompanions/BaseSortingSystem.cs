@@ -521,21 +521,7 @@ namespace ZedZone.SmartCompanions
 
         private static bool TransferSingleItem(InventoryData source, InventoryData dest, ItemData item)
         {
-            if (source == null || dest == null || item == null) return false;
-            try
-            {
-                // First check if destination has space or can merge stack
-                var copy = item.CopyItemData(null);
-                if (copy == null) return false;
-
-                if (dest.TryAddItem(copy, out bool partiallyAdded, true, true))
-                {
-                    source.RemoveItem(item, true);
-                    return true;
-                }
-            }
-            catch { }
-            return false;
+            return InventoryTransfers.TryMoveWhole(source, dest, item);
         }
 
         private static void SpeakCategoryDeposit(GOAPAgent agent, StorageCategory cat)

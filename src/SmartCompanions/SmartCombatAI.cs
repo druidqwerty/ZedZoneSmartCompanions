@@ -14,33 +14,36 @@ namespace ZedZone.SmartCompanions
             if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData) || st == null) return;
             try
             {
+                CombatResponse.NormalizeNativeCommands(agent);
+                string combat = "FireAtWill";
+                string weapon = "NoWeaponPreference";
                 switch (st.Doctrine)
                 {
                     case TacticalDoctrine.Assault:
-                        agent.npcData.combatCommand = "NPCCommand:Combat.FireAtWill";
-                        agent.npcData.weaponPreference = "NPCCommand:WeaponPreference.NoWeaponPreference";
                         break;
                     case TacticalDoctrine.Bodyguard:
-                        agent.npcData.combatCommand = "NPCCommand:Combat.ProtectPlayer";
-                        agent.npcData.weaponPreference = "NPCCommand:WeaponPreference.NoWeaponPreference";
+                        combat = "ProtectPlayer";
                         break;
                     case TacticalDoctrine.SniperKite:
-                        agent.npcData.combatCommand = "NPCCommand:Combat.FireAtWill";
-                        agent.npcData.weaponPreference = "NPCCommand:WeaponPreference.RangedWeaponOnly";
+                        weapon = "RangedWeaponOnly";
                         break;
                     case TacticalDoctrine.StealthMelee:
-                        agent.npcData.combatCommand = "NPCCommand:Combat.ProtectPlayer";
-                        agent.npcData.weaponPreference = "NPCCommand:WeaponPreference.MeleeWeaponOnly";
+                        combat = "ProtectPlayer";
+                        weapon = "MeleeWeaponOnly";
                         break;
                     case TacticalDoctrine.Passive:
-                        agent.npcData.combatCommand = "NPCCommand:Combat.StopFire";
+                        combat = "StopFire";
+                        weapon = null; // Cease-fire does not silently change weapon preference.
                         break;
                     case TacticalDoctrine.Balanced:
                     default:
-                        if (string.IsNullOrEmpty(agent.npcData.combatCommand) || agent.npcData.combatCommand.Contains("StopFire"))
-                            agent.npcData.combatCommand = "NPCCommand:Combat.FireAtWill";
                         break;
                 }
+                // The dispatcher accepts Category.Leaf and performs native action/state
+                // cancellation. It writes bare Leaf to npcData/agentState itself.
+                agent.npcData.ExecuteNPCCommand("Combat." + combat);
+                if (weapon != null) agent.npcData.ExecuteNPCCommand("WeaponPreference." + weapon);
+                agent.executeSelectPriorityGoalFlag = true;
             }
             catch { }
         }
@@ -196,7 +199,6 @@ namespace ZedZone.SmartCompanions
 
         public static void TickAllCompanionsCombat()
         {
-            if (!CompanionConfigStore.EnableSmartCombat) return;
             float now = Time.unscaledTime;
             if (now - _lastEngageDictCleanupTime > 60f)
             {
@@ -218,6 +220,10 @@ namespace ZedZone.SmartCompanions
                     continue;
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID, agent.npcData.characterData?.characterName);
+                // Repair invalid legacy save commands even when smart combat is disabled.
+                CombatResponse.NormalizeNativeCommands(agent);
+                if (!CompanionConfigStore.EnableSmartCombat) continue;
+                CombatResponse.Refresh(agent, st, now);
                 if (st.IsSortingActive) continue;
 
                 TickSingleCompanionCombat(agent, st, player, now);
@@ -267,10 +273,9 @@ namespace ZedZone.SmartCompanions
                 TickFieldSupport(agent, st, player, now);
 
                 // Anti-Friendly-Fire Corridor
-                if (CompanionConfigStore.EnableAntiFriendlyFire && (player.isRangedWeaponAiming || Il2CppSafe.IsAliveUnity(player.rangedWeapon)))
+                if (CompanionConfigStore.EnableAntiFriendlyFire && player.isRangedWeaponAiming)
                 {
-                    if (TryStepOutOfPlayerFireLine(agent, st, player, selfPos, now))
-                        return;
+                    TryStepOutOfPlayerFireLine(agent, st, player, selfPos, now);
                 }
 
                 // Rear Flank Radar: warn player if an enemy sneaks behind player's back
@@ -290,6 +295,9 @@ namespace ZedZone.SmartCompanions
                 }
                 return;
             }
+
+            // Respect both mod doctrines and the native cease-fire command.
+            if (st.Doctrine == TacticalDoctrine.Passive || agent.IsTeammateCombatSuppressed()) return;
 
             int targetId = target.GetInstanceID();
             RecentTargetEngageOwner[targetId] = st.NpcGuid;
@@ -346,12 +354,13 @@ namespace ZedZone.SmartCompanions
                 TrySmartWeaponSwitch(agent, st, distToTarget, now);
             }
 
-            if (CompanionConfigStore.EnableKiting && st.Doctrine != TacticalDoctrine.Assault)
+            if (CompanionConfigStore.EnableKiting && st.Doctrine != TacticalDoctrine.Assault &&
+                CombatResponse.AllowsRangedResponse(st, agent.npcData.weaponPreference))
             {
                 float kiteThreshold = st.Doctrine == TacticalDoctrine.SniperKite ? 4.8f : 3.2f;
                 bool usingRanged = Il2CppSafe.IsAliveUnity(hc.rangedWeapon) || hc.reloadingMagazineFlag;
 
-                if (usingRanged && distToTarget < kiteThreshold && distToTarget > 0.1f && now - st.LastKiteStepTime > 0.32f)
+                if (usingRanged && distToTarget < kiteThreshold && distToTarget > 0.1f && now - st.LastKiteStepTime > 1.0f)
                 {
                     st.LastKiteStepTime = now;
                     Vector2 awayDir = (selfPos - targetPos).normalized;
@@ -372,7 +381,8 @@ namespace ZedZone.SmartCompanions
 
                     SmartChatterSystem.Speak(agent, ChatterTopic.CombatKiting, minCooldown: 7.5f);
                 }
-                else if (target.TryCast<HumanCharacterController>() != null && distToTarget < 11.5f && now - st.LastKiteStepTime > 0.85f)
+                else if (target.TryCast<HumanCharacterController>() != null && distToTarget < 11.5f &&
+                    !CombatResponse.HasNativeRangedAction(agent) && now - st.LastKiteStepTime > 1.5f)
                 {
                     st.LastKiteStepTime = now;
                     Vector2 toEnemy = (targetPos - selfPos).normalized;
@@ -466,7 +476,7 @@ namespace ZedZone.SmartCompanions
 
         private static bool TryStepOutOfPlayerFireLine(GOAPAgent agent, CompanionRuntimeState st, HumanCharacterController player, Vector2 selfPos, float now)
         {
-            if (now - st.LastFireLineStepTime < 0.38f) return false;
+            if (now - st.LastFireLineStepTime < 1.0f) return false;
             try
             {
                 Vector2 playerPos = player.transform.position;
@@ -507,6 +517,8 @@ namespace ZedZone.SmartCompanions
             try
             {
                 var hc = agent.humanCharacter;
+                if (st.Doctrine == TacticalDoctrine.Passive || agent.IsTeammateCombatSuppressed()) return;
+                bool allowRanged = CombatResponse.AllowsRangedResponse(st, agent.npcData.weaponPreference);
                 if (Il2CppSafe.IsAliveUnity(hc.rangedWeapon) && Il2CppSafe.IsAlive(hc.rangedWeapon.weaponData))
                 {
                     int loaded = BasicRangedWeapon.GetLoadedAmmo(hc.rangedWeapon.weaponData);
@@ -530,8 +542,9 @@ namespace ZedZone.SmartCompanions
                             SmartChatterSystem.Speak(agent, ChatterTopic.CombatLowAmmo, minCooldown: 12f);
                     }
                 }
-                else if (Il2CppSafe.IsAliveUnity(hc.meleeWeapon) && st.Doctrine != TacticalDoctrine.StealthMelee && distToTarget > 3.8f)
+                else if (allowRanged && distToTarget > 3.8f && !hc.reloadingMagazineFlag)
                 {
+                    st.LastWeaponSwitchTime = now; // Bound failed inventory/equip attempts too.
                     if (GOAPAction_RangeAttack.EquipBestRangedWeapon(agent))
                     {
                         st.LastWeaponSwitchTime = now;

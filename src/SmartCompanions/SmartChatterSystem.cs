@@ -201,25 +201,31 @@ namespace ZedZone.SmartCompanions
             {
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData)) continue;
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
-                st.FedAndFierceUntil = now + 180f;
+                if (now - st.LastRationTime < 30f) continue;
 
                 try
                 {
-                    ag.npcData.hunger = Mathf.Clamp(ag.npcData.hunger + 35f, 0f, 100f);
-                    ag.npcData.thirst = Mathf.Clamp(ag.npcData.thirst + 35f, 0f, 100f);
-                    ag.npcData.fatigue = Mathf.Clamp(ag.npcData.fatigue + 25f, 0f, 100f);
+                    if (!fromAutoShare && !RationSharing.TryConsumePlayerPortion()) continue;
+                    st.LastRationTime = now;
+                    st.FedAndFierceUntil = now + 180f;
+                    // The auto-share action already consumed one meal. Divide its benefit
+                    // across the squad instead of consuming that food a second time.
+                    float portion = fromAutoShare ? 1f / targets.Count : 1f;
+                    ag.npcData.hunger = Mathf.Clamp(ag.npcData.hunger + 35f * portion, 0f, 100f);
+                    ag.npcData.thirst = Mathf.Clamp(ag.npcData.thirst + 35f * portion, 0f, 100f);
+                    ag.npcData.fatigue = Mathf.Clamp(ag.npcData.fatigue + 25f * portion, 0f, 100f);
                     ag.npcData.hireAffinity = Mathf.Clamp(ag.npcData.hireAffinity + 0.15f, 0f, 100f);
 
                     var status = ag.npcData.characterData?.characterStatusData;
                     if (Il2CppSafe.IsAlive(status))
                     {
-                        status.hunger = Mathf.Min(status.maxHunger > 0 ? status.maxHunger : 100f, status.hunger + 35f);
-                        status.thirst = Mathf.Min(status.maxThirst > 0 ? status.maxThirst : 100f, status.thirst + 35f);
-                        status.fatigue = Mathf.Min(status.maxFatigue > 0 ? status.maxFatigue : 100f, status.fatigue + 25f);
-                        status.energy = Mathf.Min(status.maxEnergy > 0 ? status.maxEnergy : 100f, status.energy + 40f);
+                        status.hunger = Mathf.Min(status.maxHunger > 0 ? status.maxHunger : 100f, status.hunger + 35f * portion);
+                        status.thirst = Mathf.Min(status.maxThirst > 0 ? status.maxThirst : 100f, status.thirst + 35f * portion);
+                        status.fatigue = Mathf.Min(status.maxFatigue > 0 ? status.maxFatigue : 100f, status.fatigue + 25f * portion);
+                        status.energy = Mathf.Min(status.maxEnergy > 0 ? status.maxEnergy : 100f, status.energy + 40f * portion);
                     }
                 }
-                catch { }
+                catch { continue; }
 
                 if (speaker == null) speaker = ag;
                 buffedCount++;
@@ -238,6 +244,11 @@ namespace ZedZone.SmartCompanions
                     $"🍖 已向小队（{buffedCount} 人）分享口粮！队友获得 3 分钟「饱腹狂暴」战斗增益！"));
             }
 
+            if (!fromAutoShare && buffedCount == 0)
+                BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                    "Нужен съедобный паёк на каждого напарника. Между пайками — 30 секунд.",
+                    "One edible ration per companion is required. Wait 30 seconds between rations.",
+                    "每名队友需要一份可食用口粮。两次分享间隔为30秒。"));
             return buffedCount;
         }
 

@@ -1,0 +1,254 @@
+[Message: Preloader] BepInEx 6.0.0-be.793 - ZEDZONE (07.11.2026 23:46:52)
+[Message: Preloader] Built from commit dbc82f05b8ea34833de5b6a723eb60dd8398e0b1
+[Info   :   BepInEx] System platform: Windows 10 64-bit
+[Info   :   BepInEx] Process bitness: 64-bit (x64)
+[Info   :   BepInEx] Running under Unity 2023.1.18f1
+[Info   :   BepInEx] Runtime version: 6.0.7
+[Info   :   BepInEx] Runtime information: .NET 6.0.7
+[Info   : Preloader] 0 patcher plugins loaded
+[Info   : Preloader] 0 assemblies discovered
+[Message:AssemblyPatcher] Executing 0 patch(es)
+[Message:   BepInEx] Chainloader initialized
+[Warning:Il2CppInterop] Class::Init signatures have been exhausted, using a substitute!
+[Info   :Il2CppInterop] Registered mono type Il2CppInterop.Runtime.DelegateSupport+Il2CppToMonoDelegateReference in il2cpp domain
+[Info   :   BepInEx] 1 plugin to load
+[Info   :   BepInEx] Loading [ZED ZONE Code Mod Loader 1.1.0]
+[Info   :ZED ZONE Code Mod Loader]   + [game] G:\Steam\steamapps\common\ZED ZONE\Mods
+[Info   :ZED ZONE Code Mod Loader]   + [workshop] G:\Steam\steamapps\workshop\content\1211600
+[Info   :ZED ZONE Code Mod Loader] Code mod directories:
+[Info   :ZED ZONE Code Mod Loader]   G:\Steam\steamapps\common\ZED ZONE\Mods
+[Info   :ZED ZONE Code Mod Loader]   G:\Steam\steamapps\workshop\content\1211600
+[Warning:   BepInEx] Skipping [ZED ZONE Smart Companions 1.3.0] because a newer version exists (ZED ZONE Smart Companions 1.3.2)
+[Warning:   BepInEx] Skipping [ZED ZONE Smart Companions 1.2.0] because a newer version exists (ZED ZONE Smart Companions 1.3.2)
+[Warning:   BepInEx] Skipping [zedzone.zedmodsloader] because a plugin with a similar GUID ([ZED ZONE Code Mod Loader 1.1.0]) has been already loaded.
+[Info   :   BepInEx] Loading [ZED ZONE Smart Companions 1.3.2]
+[Info   :ZED ZONE Smart Companions] ZED ZONE Smart Companions v1.3.2 initializing...
+[Info   :ZED ZONE Smart Companions] Patched 24 game method(s) via Harmony.
+[Info   :Il2CppInterop] Registered mono type ZedZone.SmartCompanions.SmartCompanionsController in il2cpp domain
+[Info   :ZED ZONE Smart Companions] Registered SmartCompanionsController MonoBehaviour in IL2CPP domain.
+[Info   :ZED ZONE Smart Companions] [SelfVerify] PASS v1.3.2: 60 chatter topics (565 unique RU lines [Rude=349, Clean=216], 290 unique EN lines [Rude=194, Clean=134], 324 unique ZH lines [Rude=190, Clean=134]), 12 storage categories (RU/EN/ZH), 11 custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, ModLanguage Auto/RU/EN/ZH verified.
+[Info   :   BepInEx] Loading [Smart Companions Live Lab 1.0.0]
+[Info   :   BepInEx] Loading [Smart Companions UI Smoke 1.0.0]
+[Info   :Il2CppInterop] Registered mono type ZedZone.SmartCompanions.UiSmoke.UiSmokeRunner in il2cpp domain
+[Info   :Smart Companions UI Smoke] [UiSmoke] Enabled. Main-menu fixtures only; no save is loaded or written.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3834614258\payload\ZedModsLoader.dll': an assembly named 'ZedModsLoader' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3836613312\Mods\SmartCompanions\SmartCompanions.dll': an assembly named 'SmartCompanions' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3836613312\SmartCompanions\SmartCompanions.dll': an assembly named 'SmartCompanions' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Code mods loaded: 3
+[Info   :ZED ZONE Code Mod Loader]   - ZED ZONE Smart Companions 1.3.2 [BepInEx plugin] G:\Steam\steamapps\common\ZED ZONE\Mods\SmartCompanions\SmartCompanions.dll
+[Info   :ZED ZONE Code Mod Loader]   - Smart Companions Live Lab 1.0.0 [BepInEx plugin] G:\Steam\steamapps\common\ZED ZONE\Mods\ZLiveSmoke\SmartCompanions.LiveSmoke.dll
+[Info   :ZED ZONE Code Mod Loader]   - Smart Companions UI Smoke 1.0.0 [BepInEx plugin] G:\Steam\steamapps\common\ZED ZONE\Mods\ZUiSmoke\SmartCompanions.UiSmoke.dll
+[Info   :Il2CppInterop] Registered mono type ZedZone.ZedModsLoader.ModsLoadedNotifier in il2cpp domain
+[Message:   BepInEx] Chainloader startup complete
+[Info   :Smart Companions UI Smoke] [NativeMenu] Built native command tree with 24 commands.
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=0 leaf=False name='ROOT' path='' displayName=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Basic' path='Basic' displayName='Базовые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FollowPlayer' path='Basic.FollowPlayer' displayName='Следуй за мной'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StayAtPosition' path='Basic.StayAtPosition' displayName='Оставайся здесь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectResource' path='Basic.CollectResource' displayName='Собирать ресурсы самостоятельно'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectSpecifiedItem' path='Basic.CollectSpecifiedItem' displayName='Собирать указанные предметы'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SortBaseContainers' path='Basic.SortBaseContainers' displayName='Сортировать ящики базы'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SweepNearbyLoot' path='Basic.SweepNearbyLoot' displayName='Собрать трофеи вокруг'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Combat' path='Combat' displayName='Боевые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FireAtWill' path='Combat.FireAtWill' displayName='Огонь по готовности'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StopFire' path='Combat.StopFire' displayName='Не стрелять'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ProtectPlayer' path='Combat.ProtectPlayer' displayName='Защищай меня'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineAssault' path='Combat.DoctrineAssault' displayName='Доктрина: Штурм'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineBodyguard' path='Combat.DoctrineBodyguard' displayName='Доктрина: Телохранитель'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineSniper' path='Combat.DoctrineSniper' displayName='Доктрина: Снайпер (кайтинг)'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineStealth' path='Combat.DoctrineStealth' displayName='Доктрина: Тихий режим'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='WeaponPreference' path='WeaponPreference' displayName='Предпочтение оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='NoWeaponPreference' path='WeaponPreference.NoWeaponPreference' displayName='Холодное и дальнобойное оружие'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='MeleeWeaponOnly' path='WeaponPreference.MeleeWeaponOnly' displayName='Приоритет холодного оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='RangedWeaponOnly' path='WeaponPreference.RangedWeaponOnly' displayName='Приоритет огнестрела'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='OneTime' path='OneTime' displayName='Тактическая команда'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ThrowGrenade' path='OneTime.ThrowGrenade' displayName='Бросить гранату'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='HealPlayer' path='OneTime.HealPlayer' displayName='Мне нужна медпомощь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSharedInventory' path='OneTime.OpenSharedInventory' displayName='Открыть Общий инвентарь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSmartHub' path='OneTime.OpenSmartHub' displayName='Панель напарников и базы [F8]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='EmergencyAid' path='OneTime.EmergencyAid' displayName='Полевая помощь / Патроны'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ShareRationWithSquad' path='OneTime.ShareRationWithSquad' displayName='Подогреть братву пайком (Бафф)'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='UnloadVehicleToBase' path='OneTime.UnloadVehicleToBase' displayName='Разгрузить багажник машины на склад'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SquadBattleCry' path='OneTime.SquadBattleCry' displayName='Боевой клич и Штурм [F9]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] PASS four native groups, 13 vanilla + 11 custom commands; bare/path/legacy labels.
+[Info   :Smart Companions UI Smoke] [NativeMenu] PASS actual native BuildPanelUI/CreateButton Text labels: Russian
+[Info   :Smart Companions UI Smoke] [NativeMenu] Built native command tree with 24 commands.
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=0 leaf=False name='ROOT' path='' displayName=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Basic' path='Basic' displayName='Базовые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FollowPlayer' path='Basic.FollowPlayer' displayName='Следуй за мной'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StayAtPosition' path='Basic.StayAtPosition' displayName='Оставайся здесь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectResource' path='Basic.CollectResource' displayName='Собирать ресурсы самостоятельно'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectSpecifiedItem' path='Basic.CollectSpecifiedItem' displayName='Собирать указанные предметы'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SortBaseContainers' path='Basic.SortBaseContainers' displayName='Sort Base Containers'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SweepNearbyLoot' path='Basic.SweepNearbyLoot' displayName='Sweep Nearby Loot'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Combat' path='Combat' displayName='Боевые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FireAtWill' path='Combat.FireAtWill' displayName='Огонь по готовности'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StopFire' path='Combat.StopFire' displayName='Не стрелять'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ProtectPlayer' path='Combat.ProtectPlayer' displayName='Защищай меня'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineAssault' path='Combat.DoctrineAssault' displayName='Doctrine: Assault'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineBodyguard' path='Combat.DoctrineBodyguard' displayName='Doctrine: Bodyguard'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineSniper' path='Combat.DoctrineSniper' displayName='Doctrine: Sniper / Kite'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineStealth' path='Combat.DoctrineStealth' displayName='Doctrine: Stealth Melee'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='WeaponPreference' path='WeaponPreference' displayName='Предпочтение оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='NoWeaponPreference' path='WeaponPreference.NoWeaponPreference' displayName='Холодное и дальнобойное оружие'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='MeleeWeaponOnly' path='WeaponPreference.MeleeWeaponOnly' displayName='Приоритет холодного оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='RangedWeaponOnly' path='WeaponPreference.RangedWeaponOnly' displayName='Приоритет огнестрела'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='OneTime' path='OneTime' displayName='Тактическая команда'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ThrowGrenade' path='OneTime.ThrowGrenade' displayName='Бросить гранату'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='HealPlayer' path='OneTime.HealPlayer' displayName='Мне нужна медпомощь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSharedInventory' path='OneTime.OpenSharedInventory' displayName='Открыть Общий инвентарь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSmartHub' path='OneTime.OpenSmartHub' displayName='Smart Companions & Base UI [F8]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='EmergencyAid' path='OneTime.EmergencyAid' displayName='Field Aid & Ammo Resupply'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ShareRationWithSquad' path='OneTime.ShareRationWithSquad' displayName='Share Ration (Fed & Fierce Buff)'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='UnloadVehicleToBase' path='OneTime.UnloadVehicleToBase' displayName='Unload Vehicle Trunk to Base'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SquadBattleCry' path='OneTime.SquadBattleCry' displayName='Squad Battle Cry & Assault [F9]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] PASS four native groups, 13 vanilla + 11 custom commands; bare/path/legacy labels.
+[Info   :Smart Companions UI Smoke] [NativeMenu] PASS actual native BuildPanelUI/CreateButton Text labels: English
+[Info   :Smart Companions UI Smoke] [NativeMenu] Built native command tree with 24 commands.
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=0 leaf=False name='ROOT' path='' displayName=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Basic' path='Basic' displayName='Базовые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FollowPlayer' path='Basic.FollowPlayer' displayName='Следуй за мной'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StayAtPosition' path='Basic.StayAtPosition' displayName='Оставайся здесь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectResource' path='Basic.CollectResource' displayName='Собирать ресурсы самостоятельно'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectSpecifiedItem' path='Basic.CollectSpecifiedItem' displayName='Собирать указанные предметы'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SortBaseContainers' path='Basic.SortBaseContainers' displayName='整理基地储物箱'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SweepNearbyLoot' path='Basic.SweepNearbyLoot' displayName='搜刮附近战利品'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Combat' path='Combat' displayName='Боевые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FireAtWill' path='Combat.FireAtWill' displayName='Огонь по готовности'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StopFire' path='Combat.StopFire' displayName='Не стрелять'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ProtectPlayer' path='Combat.ProtectPlayer' displayName='Защищай меня'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineAssault' path='Combat.DoctrineAssault' displayName='战术：突击强攻'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineBodyguard' path='Combat.DoctrineBodyguard' displayName='战术：贴身护卫'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineSniper' path='Combat.DoctrineSniper' displayName='战术：狙击风筝'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineStealth' path='Combat.DoctrineStealth' displayName='战术：潜行近战'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='WeaponPreference' path='WeaponPreference' displayName='Предпочтение оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='NoWeaponPreference' path='WeaponPreference.NoWeaponPreference' displayName='Холодное и дальнобойное оружие'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='MeleeWeaponOnly' path='WeaponPreference.MeleeWeaponOnly' displayName='Приоритет холодного оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='RangedWeaponOnly' path='WeaponPreference.RangedWeaponOnly' displayName='Приоритет огнестрела'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='OneTime' path='OneTime' displayName='Тактическая команда'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ThrowGrenade' path='OneTime.ThrowGrenade' displayName='Бросить гранату'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='HealPlayer' path='OneTime.HealPlayer' displayName='Мне нужна медпомощь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSharedInventory' path='OneTime.OpenSharedInventory' displayName='Открыть Общий инвентарь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSmartHub' path='OneTime.OpenSmartHub' displayName='智能队友与基地面板 [F8]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='EmergencyAid' path='OneTime.EmergencyAid' displayName='战地急救与弹药补给'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ShareRationWithSquad' path='OneTime.ShareRationWithSquad' displayName='分享口粮（饱腹狂暴增益）'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='UnloadVehicleToBase' path='OneTime.UnloadVehicleToBase' displayName='卸载汽车后备箱至基地仓库'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SquadBattleCry' path='OneTime.SquadBattleCry' displayName='小队战吼与集火突击 [F9]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] PASS four native groups, 13 vanilla + 11 custom commands; bare/path/legacy labels.
+[Info   :Smart Companions UI Smoke] [NativeMenu] PASS actual native BuildPanelUI/CreateButton Text labels: Chinese
+[Info   :Smart Companions UI Smoke] [NativeMenu] PARSE 'Combat.FireAtWill' type='Combat' command='FireAtWill' parameter=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] STORED after 'Combat.FireAtWill': combat='FireAtWill', weapon=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] PARSE 'NPCCommand:Combat.FireAtWill' type='NPCCommand:Combat' command='FireAtWill' parameter=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] STORED after 'NPCCommand:Combat.FireAtWill': combat='', weapon=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] PARSE 'WeaponPreference.RangedWeaponOnly' type='WeaponPreference' command='RangedWeaponOnly' parameter=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] STORED after 'WeaponPreference.RangedWeaponOnly': combat='', weapon='RangedWeaponOnly'
+[Info   :Smart Companions UI Smoke] [NativeMenu] PARSE 'NPCCommand:WeaponPreference.RangedWeaponOnly' type='NPCCommand:WeaponPreference' command='RangedWeaponOnly' parameter=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] STORED after 'NPCCommand:WeaponPreference.RangedWeaponOnly': combat='', weapon=''
+[Info   :Smart Companions UI Smoke] [InventoryRegression] Native merge item=220: accepted=True, partial=False, destinationDelta=1, remainder=1.
+[Info   :Smart Companions UI Smoke] [InventoryRegression] Native merge item=232: accepted=True, partial=False, destinationDelta=1, remainder=1.
+[Info   :Smart Companions UI Smoke] [InventoryRegression] PASS full-destination/retry conservation, whole-item transfer, exact food consumption and empty-food rejection.
+[Info   :Smart Companions UI Smoke] [Scenes] Assets/Scenes/GameInit.unity
+[Info   :Smart Companions UI Smoke] [Scenes] Assets/Scenes/GameDataInit.unity
+[Info   :Smart Companions UI Smoke] [Scenes] Assets/Scenes/MainMenu.unity
+[Info   :Smart Companions UI Smoke] [Scenes] Assets/Scenes/Loading.unity
+[Info   :Smart Companions UI Smoke] [Scenes] Assets/Scenes/Gaming.unity
+[Info   :Smart Companions UI Smoke] [Scenes] Assets/Scenes/ModCenter.unity
+[Info   :Smart Companions UI Smoke] [Scenes] Assets/Scenes/Credits.unity
+[Info   :Smart Companions UI Smoke] [NativeMenu] PASS seven native command executions store bare action names.
+[Info   :Smart Companions UI Smoke] [NativeMenu] Built native command tree with 24 commands.
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=0 leaf=False name='ROOT' path='' displayName=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Basic' path='Basic' displayName='Базовые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FollowPlayer' path='Basic.FollowPlayer' displayName='Следуй за мной'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StayAtPosition' path='Basic.StayAtPosition' displayName='Оставайся здесь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectResource' path='Basic.CollectResource' displayName='Собирать ресурсы самостоятельно'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectSpecifiedItem' path='Basic.CollectSpecifiedItem' displayName='Собирать указанные предметы'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SortBaseContainers' path='Basic.SortBaseContainers' displayName='Сортировать ящики базы'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SweepNearbyLoot' path='Basic.SweepNearbyLoot' displayName='Собрать трофеи вокруг'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Combat' path='Combat' displayName='Боевые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FireAtWill' path='Combat.FireAtWill' displayName='Огонь по готовности'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StopFire' path='Combat.StopFire' displayName='Не стрелять'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ProtectPlayer' path='Combat.ProtectPlayer' displayName='Защищай меня'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineAssault' path='Combat.DoctrineAssault' displayName='Доктрина: Штурм'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineBodyguard' path='Combat.DoctrineBodyguard' displayName='Доктрина: Телохранитель'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineSniper' path='Combat.DoctrineSniper' displayName='Доктрина: Снайпер (кайтинг)'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineStealth' path='Combat.DoctrineStealth' displayName='Доктрина: Тихий режим'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='WeaponPreference' path='WeaponPreference' displayName='Предпочтение оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='NoWeaponPreference' path='WeaponPreference.NoWeaponPreference' displayName='Холодное и дальнобойное оружие'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='MeleeWeaponOnly' path='WeaponPreference.MeleeWeaponOnly' displayName='Приоритет холодного оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='RangedWeaponOnly' path='WeaponPreference.RangedWeaponOnly' displayName='Приоритет огнестрела'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='OneTime' path='OneTime' displayName='Тактическая команда'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ThrowGrenade' path='OneTime.ThrowGrenade' displayName='Бросить гранату'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='HealPlayer' path='OneTime.HealPlayer' displayName='Мне нужна медпомощь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSharedInventory' path='OneTime.OpenSharedInventory' displayName='Открыть Общий инвентарь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSmartHub' path='OneTime.OpenSmartHub' displayName='Панель напарников и базы [F8]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='EmergencyAid' path='OneTime.EmergencyAid' displayName='Полевая помощь / Патроны'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ShareRationWithSquad' path='OneTime.ShareRationWithSquad' displayName='Подогреть братву пайком (Бафф)'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='UnloadVehicleToBase' path='OneTime.UnloadVehicleToBase' displayName='Разгрузить багажник машины на склад'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SquadBattleCry' path='OneTime.SquadBattleCry' displayName='Боевой клич и Штурм [F9]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] PASS four native groups, 13 vanilla + 11 custom commands; bare/path/legacy labels.
+[Info   :Smart Companions UI Smoke] [NativeMenu] Captured actual root/Basic/Combat/OneTime panels: G:\Steam\steamapps\common\ZED ZONE\BepInEx\NativeMenu132\native-menu-Russian.png
+[Info   :Smart Companions UI Smoke] [NativeMenu] Built native command tree with 24 commands.
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=0 leaf=False name='ROOT' path='' displayName=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Basic' path='Basic' displayName='Базовые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FollowPlayer' path='Basic.FollowPlayer' displayName='Следуй за мной'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StayAtPosition' path='Basic.StayAtPosition' displayName='Оставайся здесь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectResource' path='Basic.CollectResource' displayName='Собирать ресурсы самостоятельно'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectSpecifiedItem' path='Basic.CollectSpecifiedItem' displayName='Собирать указанные предметы'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SortBaseContainers' path='Basic.SortBaseContainers' displayName='Sort Base Containers'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SweepNearbyLoot' path='Basic.SweepNearbyLoot' displayName='Sweep Nearby Loot'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Combat' path='Combat' displayName='Боевые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FireAtWill' path='Combat.FireAtWill' displayName='Огонь по готовности'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StopFire' path='Combat.StopFire' displayName='Не стрелять'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ProtectPlayer' path='Combat.ProtectPlayer' displayName='Защищай меня'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineAssault' path='Combat.DoctrineAssault' displayName='Doctrine: Assault'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineBodyguard' path='Combat.DoctrineBodyguard' displayName='Doctrine: Bodyguard'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineSniper' path='Combat.DoctrineSniper' displayName='Doctrine: Sniper / Kite'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineStealth' path='Combat.DoctrineStealth' displayName='Doctrine: Stealth Melee'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='WeaponPreference' path='WeaponPreference' displayName='Предпочтение оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='NoWeaponPreference' path='WeaponPreference.NoWeaponPreference' displayName='Холодное и дальнобойное оружие'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='MeleeWeaponOnly' path='WeaponPreference.MeleeWeaponOnly' displayName='Приоритет холодного оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='RangedWeaponOnly' path='WeaponPreference.RangedWeaponOnly' displayName='Приоритет огнестрела'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='OneTime' path='OneTime' displayName='Тактическая команда'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ThrowGrenade' path='OneTime.ThrowGrenade' displayName='Бросить гранату'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='HealPlayer' path='OneTime.HealPlayer' displayName='Мне нужна медпомощь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSharedInventory' path='OneTime.OpenSharedInventory' displayName='Открыть Общий инвентарь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSmartHub' path='OneTime.OpenSmartHub' displayName='Smart Companions & Base UI [F8]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='EmergencyAid' path='OneTime.EmergencyAid' displayName='Field Aid & Ammo Resupply'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ShareRationWithSquad' path='OneTime.ShareRationWithSquad' displayName='Share Ration (Fed & Fierce Buff)'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='UnloadVehicleToBase' path='OneTime.UnloadVehicleToBase' displayName='Unload Vehicle Trunk to Base'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SquadBattleCry' path='OneTime.SquadBattleCry' displayName='Squad Battle Cry & Assault [F9]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] PASS four native groups, 13 vanilla + 11 custom commands; bare/path/legacy labels.
+[Info   :Smart Companions UI Smoke] [NativeMenu] Captured actual root/Basic/Combat/OneTime panels: G:\Steam\steamapps\common\ZED ZONE\BepInEx\NativeMenu132\native-menu-English.png
+[Info   :Smart Companions UI Smoke] [NativeMenu] Built native command tree with 24 commands.
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=0 leaf=False name='ROOT' path='' displayName=''
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Basic' path='Basic' displayName='Базовые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FollowPlayer' path='Basic.FollowPlayer' displayName='Следуй за мной'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StayAtPosition' path='Basic.StayAtPosition' displayName='Оставайся здесь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectResource' path='Basic.CollectResource' displayName='Собирать ресурсы самостоятельно'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='CollectSpecifiedItem' path='Basic.CollectSpecifiedItem' displayName='Собирать указанные предметы'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SortBaseContainers' path='Basic.SortBaseContainers' displayName='整理基地储物箱'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SweepNearbyLoot' path='Basic.SweepNearbyLoot' displayName='搜刮附近战利品'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='Combat' path='Combat' displayName='Боевые команды'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='FireAtWill' path='Combat.FireAtWill' displayName='Огонь по готовности'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='StopFire' path='Combat.StopFire' displayName='Не стрелять'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ProtectPlayer' path='Combat.ProtectPlayer' displayName='Защищай меня'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineAssault' path='Combat.DoctrineAssault' displayName='战术：突击强攻'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineBodyguard' path='Combat.DoctrineBodyguard' displayName='战术：贴身护卫'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineSniper' path='Combat.DoctrineSniper' displayName='战术：狙击风筝'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='DoctrineStealth' path='Combat.DoctrineStealth' displayName='战术：潜行近战'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='WeaponPreference' path='WeaponPreference' displayName='Предпочтение оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='NoWeaponPreference' path='WeaponPreference.NoWeaponPreference' displayName='Холодное и дальнобойное оружие'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='MeleeWeaponOnly' path='WeaponPreference.MeleeWeaponOnly' displayName='Приоритет холодного оружия'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='RangedWeaponOnly' path='WeaponPreference.RangedWeaponOnly' displayName='Приоритет огнестрела'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=1 leaf=False name='OneTime' path='OneTime' displayName='Тактическая команда'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ThrowGrenade' path='OneTime.ThrowGrenade' displayName='Бросить гранату'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='HealPlayer' path='OneTime.HealPlayer' displayName='Мне нужна медпомощь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSharedInventory' path='OneTime.OpenSharedInventory' displayName='Открыть Общий инвентарь'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='OpenSmartHub' path='OneTime.OpenSmartHub' displayName='智能队友与基地面板 [F8]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='EmergencyAid' path='OneTime.EmergencyAid' displayName='战地急救与弹药补给'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='ShareRationWithSquad' path='OneTime.ShareRationWithSquad' displayName='分享口粮（饱腹狂暴增益）'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='UnloadVehicleToBase' path='OneTime.UnloadVehicleToBase' displayName='卸载汽车后备箱至基地仓库'
+[Info   :Smart Companions UI Smoke] [NativeMenu] depth=2 leaf=True name='SquadBattleCry' path='OneTime.SquadBattleCry' displayName='小队战吼与集火突击 [F9]'
+[Info   :Smart Companions UI Smoke] [NativeMenu] PASS four native groups, 13 vanilla + 11 custom commands; bare/path/legacy labels.
+[Info   :Smart Companions UI Smoke] [NativeMenu] Captured actual root/Basic/Combat/OneTime panels: G:\Steam\steamapps\common\ZED ZONE\BepInEx\NativeMenu132\native-menu-Chinese.png
+[Info   :Smart Companions UI Smoke] [NativeMenu] PASS three actual native-menu screenshots written.

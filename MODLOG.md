@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: RELEASED 1.3.1 — graphical UI and native input regression verified
+## Status: 1.3.2 candidate BLOCKED by combat acceptance; installed/published 1.3.1
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -64,3 +64,14 @@
 - [x] Correctforum40676593 AJAX verified exactly2 pinned topics (570428419877202927,570428419877202938). Public EN/RU/ZH HTML returned429; post-upload localized HTML/sidebar rendering not claimed verified. Evidence docs/publication-1.3.1.json.
 - [x] Boosty1.3.1 queued, replaced only pending1.3.0 entry; other projects untouched. Queue acceptance is not publication.
 - Completed. No game process or temporary probe remains active. Full boundary/limitations in docs/verification-1.3.1.md.
+
+## 1.3.2 native menu / combat audit (in progress)
+- Owner reports native companion commands blank and late threat reaction. Different UI from repaired F8.
+- Native runtime probe confirmed vanilla data commands are unprefixed Basic.FollowPlayer etc. Injected NPCCommand: prefix creates extra blank groups. Native label lookup receives bare leaf name, not full path; existing label hook missed it.
+- Combat audit: invalid prefixed doctrine state, no proactive native perception refresh, sorting skips combat entirely, anti-friendly-fire moves even when merely carrying a gun. Fix owners separate.
+- Broader audit: player-centered passive loot, XP only persisted on rankup, free unlimited manual ration buff, ignored inventory partial merges. Investigating/fixing with quantity-conservation probes.
+- Lab profile copied to backups/live132/profile; temporary LiveSmoke redirects GameConfigs save/config getters there and suppresses cloud saves. Original profile must remain hash-identical.
+
+- CIRCUIT BREAKER: three repeated native combat failures `no native shot within12s phase=0, distance=8,00m acquired=False, sight=28,00, command=FireAtWill`. Stopped repeated launches and informed owner. Final valid fixture: enabled NPC/zombie, LOS/inSight true, hostile samelevel, suppressedFalse, FollowPlayer, threats0. Investigate UpdatePreceptionSystem/native threat acquisition next; do not force threats/shots to pass.
+- Menu actualnativepanels RU/EN/ZH + exactcanonicalcommands and inventoryconservation/food tests PASS. Build0warnings0errors. No1.3.2publication orBoostyqueue. See docs/verification-1.3.2.md with RELEASE_READY:false; package_v132 refuses publication package until true.
+- Local game restored verified1.3.1 DLL+manifest. Testpluginsmoved to backups/live132 disabled; no gameprocess. Original8357GameDatafiles SHA256 unchanged. CandidateDLL/failedlog preservedbackup.

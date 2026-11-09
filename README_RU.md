@@ -1,3 +1,5 @@
+> UNRELEASED 1.3.2 candidate: native menu checks passed, ranged-combat acceptance FAILED. See docs/verification-1.3.2.md. Published/installed stable version remains 1.3.1.
+
 # ZED ZONE: Smart Companions — Умные напарники, сортировка базы и живые фразы
 
 <p align="center"><a href="https://boosty.to/lrgpp"><img src="https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png" alt="LrgPP mods on Boosty" width="640"></a></p>
@@ -7,12 +9,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.1"><strong>Скачать релиз v1.3.1 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.2"><strong>Скачать релиз v1.3.2 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Исправлено в v1.3.2
+
+- **Штатное меню приказов NPC:** восстановлены пустые названия категорий и команд в собственном меню игры. Это отдельное исправление от окна F8 в 1.3.1; обычные команды игры сохранены.
+- **Реакция на угрозы:** исправлены сохранённые боевые приказы и предпочтения оружия. Проверка угроз обновляется каждые 0,3 секунды с учётом дальности оружия и штатной видимости. Мод не заставляет стрелять сквозь стены и не отменяет «Не стрелять».
+- **Меньше помех в бою:** угроза прерывает сортировку; отход с линии огня включается только при прицеливании игрока; кайтинг меньше мешает стрельбе.
+- **Лут и инвентарь:** поиск идёт от позиции напарника, предмет переносится целиком только при наличии места, прогресс опыта сохраняется между повышениями ранга с отложенной записью и окончательным сохранением при выходе.
+- **Паёк:** ручная раздача расходует по одному предмету еды на каждого накормленного напарника и имеет отдельную задержку 30 секунд для каждого напарника; автоматическая раздача использует уже съеденную игроком еду.
+- Сброс сохранений не нужен, новых реплик нет. Для установки обновления закройте игру один раз; настройки по-прежнему меняются в игре без перезапуска. [Проверки и ограничения](docs/verification-1.3.2.md).
+
 
 ## Исправлено в v1.3.1
 
@@ -68,7 +80,7 @@
 ## Установка и управление
 
 1. Подпишитесь на **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** и один раз запустите его `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.3.1.zip` в `<ZED ZONE>\Mods\SmartCompanions\`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.3.2.zip` в `<ZED ZONE>\Mods\SmartCompanions\`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 
