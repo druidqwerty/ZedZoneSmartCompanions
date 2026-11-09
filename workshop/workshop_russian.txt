@@ -1,0 +1,32 @@
+title=ZED ZONE: Smart Companions - Умные напарники, сортировка базы и живые фразы 1.0.0
+visibility=public
+description=[h1]ZED ZONE: Smart Companions — Умные напарники 1.0.0[/h1]
+description=Превратите нанятых выживших в умных и живых напарников: они грамотно ведут бой против зомби и вражеских NPC, уходят с вашей линии огня, раскладывают хабар на базе по категориям ящиков, собирают трофеи вокруг, перевязывают вас в бою и комментируют происходящее (более 170 живых фраз на русском языке).
+description=
+description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ALifeAirwaves/d2357132d52c903c5dadddb80fb66f64a32aff35/docs/banner.png[/img][/url]
+description=Нравится мод? Поддержите его развитие на Boosty.
+description=
+description=[h2]Что умеют напарники[/h2]
+description=[list]
+description=[*][b]Умный бой против зомби и вражеских NPC:[/b] напарники в первую очередь снимают врагов, прорвавшихся к игроку, распознают вооружённых мародёров и боссов, ведут огонь на отходе (кайтинг), стрейфят против стрелков и мгновенно переключаются между огнестрелом и холодным оружием вблизи или при пустом магазине.
+description=[*][b]Анти-Френдли-Фаер (выход с линии огня):[/b] когда вы целитесь из оружия, напарник автоматически смещается в сторону с вашей линии прицеливания и сообщает, что сектор чист.
+description=[*][b]Сортировка базы и панель 12 категорий для ящиков:[/b] при открытии любого ящика, шкафа или холодильника сверху экрана появляется панель категорий (Холодное оружие, Огнестрел, Патроны, Медицина, Свежая еда, Консервы и вода, Материалы, Инструменты, Одежда/Броня, Авто/Энергия, Фермерство/Питомцы, Разное), тумблер [b]«Ящик-приёмник (Сброс хабара)»[/b] и быстрые пресеты. По приказу ([b]F7[/b], кнопка в UI или родное меню приказов NPC) напарники обходят базу, раскладывают вещи по категориям и уплотняют сетку ящиков.
+description=[*][b]44 контекстные темы (171 фраза на русском + 92 на английском):[/b] живые облачка реплик над головой, когда вы едите стейк или жареное мясо ([i]«Вкусно тебе наверное? Да? Я вот стейк никогда не пробовал...»[/i]), консервы, рыбу или сырое мясо, пьёте газировку или лагер, перевязываетесь, набиваете магазины, чините снаряжение, жарите еду на костре, взламываете замки, дерётесь с ордой или сортируете склад — плюс диалоги напарников друг с другом.
+description=[*][b]6 тактических доктрин и полевая поддержка (Центр управления [b]F8[/b]):[/b] переключайте доктрины ([i]Умный баланс[/i], [i]Штурм[/i], [i]Телохранитель[/i], [i]Снайпер/Кайт[/i], [i]Тихий клинок[/i], [i]Не стрелять[/i]) на лету. Включает [b]Полевого медика[/b] (экстренная перевязка игрока при HP < 48%), [b]Полевого снабженца[/b] (подача патронов при пустом оружии в бою) и приказ [b]«Собрать трофеи вокруг»[/b].
+description=[/list]
+description=
+description=[h2]Перед игрой[/h2]
+description=[list]
+description=[*][b]Требуемый загрузчик:[/b] необходим [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader (BepInEx IL2CPP)[/url]. Один раз запустите его [code]install.cmd[/code] и запускайте игру через Steam — загрузчик подхватит этот мод из Мастерской автоматически.
+description=[*][b]Управление и настройки:[/b] клавиша [b]F8[/b] (или кнопка [b]Напарники [F8][/b] в правом верхнем углу) открывает Командный центр отряда и базы (3 вкладки). Клавиша [b]F7[/b] отдаёт быстрый приказ отсортировать базу. Все настройки, категории ящиков и язык (RU/EN) применяются прямо в игре без перезапуска.
+description=[*][b]Важно знать:[/b] код-моды работают локально и не синхронизируются автоматически другим игрокам в кооперативе.
+description=[/list]
+description=Версия 1.0.0 · [url=https://github.com/druidqwerty/ZedZoneSmartCompanions]Исходный код, архитектура и описание релиза на GitHub[/url]
+description=
+description=[h2]Мои моды[/h2]
+description=[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827367565]SmoothRide MP[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827946115]ZombieSync MP[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829034899]Tripping Zombies MP Fix[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829140377]Wandering Hordes Performance Fix[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829163351]Download Unstuck[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829332775]A-Life: Reactive Survivors[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829571361]A-Life: Caravans[/url] · [b]ZED ZONE: Smart Companions[/b] (этот мод).
+description=
+description=Workshop ID: 3836613312
+description=Mod ID: SmartCompanions
+description=
+description=© 2026 druidqwerty. Лицензия MIT. Бесплатный открытый мод; код с помощью ИИ, идея и тестирование — druid.

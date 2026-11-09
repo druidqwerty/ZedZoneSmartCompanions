@@ -1,0 +1,33 @@
+version=1
+title=ZED ZONE: Smart Companions - Tactical AI, Base Sorting & Live Chatter 1.0.0
+visibility=public
+description=[h1]ZED ZONE: Smart Companions 1.0.0[/h1]
+description=Turn your recruited survivors into smart, responsive teammates who kite zombies, step out of your line of fire, sort base chests by category, scavenge nearby loot, patch you up in combat, and react to everything you do with 170+ lively lines.
+description=
+description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ALifeAirwaves/d2357132d52c903c5dadddb80fb66f64a32aff35/docs/banner.png[/img][/url]
+description=Enjoy the mod? Support its development on Boosty.
+description=
+description=[h2]What you get[/h2]
+description=[list]
+description=[*][b]Smarter combat vs. zombies & hostile NPCs:[/b] companions prioritize threats attacking you at close range, recognize armed human raiders and giant mutants, kite backward while firing, strafe against enemy shooters, and automatically swap between melee and firearms when enemies close in or magazines run dry.
+description=[*][b]Anti-Friendly-Fire corridor:[/b] when you aim a firearm, companions standing in your firing line automatically sidestep out of the way and call out that your sector is clear.
+description=[*][b]Base chest sorting & 12-category UI:[/b] opening any chest, locker, or fridge displays a category bar at the top of the screen (Melee, Firearms, Ammo, Medicine, Fresh Food, Canned/Drinks, Materials, Tools, Clothing/Armor, Vehicle/Power, Farming/Pets, Misc) plus a [b]Drop-off Box[/b] toggle and 1-click presets. Order companions with [b]F7[/b] (or from the UI / radial menu) to walk around your base and sort items into matching chests.
+description=[*][b]44 context topics (171 RU / 92 EN lines):[/b] companions comment in overhead speech bubbles when you eat steak or roasted meat, eat canned food or raw meat, drink soda or lager, bandage wounds, reload magazines, repair gear or vehicles, cook on a campfire, pick locks, fight hordes, sort the base, or experience rain, blood rain, nightfall, and dawn—plus two-companion banter when travelling with a squad.
+description=[*][b]6 Tactical Doctrines & Field Support ([b]F8[/b] Command Center):[/b] switch companions between [i]Balanced[/i], [i]Assault[/i], [i]Bodyguard[/i], [i]Sniper/Kite[/i], [i]Stealth Melee[/i], and [i]Passive[/i] in real time. Includes [b]Field Medic[/b] (emergency player dressing below 48% HP), [b]Field Ammo Supplier[/b] (hands you spare rounds when your gun clicks empty in combat), and [b]Sweep Nearby Loot[/b].
+description=[/list]
+description=
+description=[h2]Before you play[/h2]
+description=[list]
+description=[*][b]Required loader:[/b] requires [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader (BepInEx IL2CPP)[/url]. Run its [code]install.cmd[/code] once and launch the game through Steam. [code]ZedModsLoader[/code] loads this Workshop mod automatically.
+description=[*][b]Controls & settings:[/b] press [b]F8[/b] (or click the top-right [b]Squad [F8][/b] badge) to open the 3-tab Command & Base Logistics Hub. Press [b]F7[/b] to order base sorting. All doctrines, category rules, language (RU/EN), and AI toggles apply immediately in-game without restarts.
+description=[*][b]Worth knowing:[/b] code mods run locally and are not synced automatically to other players in co-op sessions.
+description=[/list]
+description=Version 1.0.0 · [url=https://github.com/druidqwerty/ZedZoneSmartCompanions]Source code, architecture & release notes on GitHub[/url]
+description=
+description=[h2]My mods[/h2]
+description=[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827367565]SmoothRide MP[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827946115]ZombieSync MP[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829034899]Tripping Zombies MP Fix[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829140377]Wandering Hordes Performance Fix[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829163351]Download Unstuck[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829332775]A-Life: Reactive Survivors[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829571361]A-Life: Caravans[/url] · [b]ZED ZONE: Smart Companions[/b] (this mod).
+description=
+description=Workshop ID: 3836613312
+description=Mod ID: SmartCompanions
+description=
+description=© 2026 druidqwerty. MIT License. Free and open source; AI-assisted code, direction and testing by druid.

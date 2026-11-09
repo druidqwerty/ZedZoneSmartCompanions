@@ -1,0 +1,8 @@
+backups/
+dist/
+tools/InspectApi/bin/
+tools/InspectApi/obj/
+src/*/bin/
+src/*/obj/
+*.user
+*.tmp
