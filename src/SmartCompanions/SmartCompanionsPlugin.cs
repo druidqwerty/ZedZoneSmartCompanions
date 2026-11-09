@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using BepInEx;
 using BepInEx.Logging;
@@ -13,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "1.0.0";
+        public const string PluginVersion = "1.1.0";
 
         internal static ManualLogSource Logs;
 
@@ -53,28 +54,45 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
-                // 1. Verify all 37 ChatterTopic entries have non-empty RU and EN phrase arrays
                 var topics = (ChatterTopic[])Enum.GetValues(typeof(ChatterTopic));
-                int totalRuLines = 0;
-                int totalEnLines = 0;
+                int rudeRuCount = 0;
+                int cleanRuCount = 0;
+                int rudeEnCount = 0;
+                int cleanEnCount = 0;
+                var uniqueRu = new HashSet<string>();
+                var uniqueEn = new HashSet<string>();
+
                 foreach (var t in topics)
                 {
-                    var ru = ChatterDatabase.GetLines(t, true);
-                    var en = ChatterDatabase.GetLines(t, false);
-                    if (ru == null || ru.Length == 0)
+                    var rRu = ChatterDatabase.GetLines(t, true, ProfanityMode.HardcoreRude);
+                    var cRu = ChatterDatabase.GetLines(t, true, ProfanityMode.Clean);
+                    var mRu = ChatterDatabase.GetLines(t, true, ProfanityMode.Mixed);
+                    var rEn = ChatterDatabase.GetLines(t, false, ProfanityMode.HardcoreRude);
+                    var cEn = ChatterDatabase.GetLines(t, false, ProfanityMode.Clean);
+
+                    if (rRu == null || rRu.Length == 0 || cRu == null || cRu.Length == 0 || mRu == null || mRu.Length == 0)
                         throw new Exception($"Missing RU lines for topic {t}");
-                    if (en == null || en.Length == 0)
+                    if (rEn == null || rEn.Length == 0 || cEn == null || cEn.Length == 0)
                         throw new Exception($"Missing EN lines for topic {t}");
-                    totalRuLines += ru.Length;
-                    totalEnLines += en.Length;
+
+                    rudeRuCount += rRu.Length;
+                    cleanRuCount += cRu.Length;
+                    rudeEnCount += rEn.Length;
+                    cleanEnCount += cEn.Length;
+
+                    foreach (var s in rRu) if (!string.IsNullOrWhiteSpace(s)) uniqueRu.Add(s);
+                    foreach (var s in cRu) if (!string.IsNullOrWhiteSpace(s)) uniqueRu.Add(s);
+                    foreach (var s in rEn) if (!string.IsNullOrWhiteSpace(s)) uniqueEn.Add(s);
+                    foreach (var s in cEn) if (!string.IsNullOrWhiteSpace(s)) uniqueEn.Add(s);
                 }
 
-                // 2. Verify exact signature steak phrase
-                string firstSteakLine = ChatterDatabase.GetLines(ChatterTopic.PlayerEatSteakMeat, true)[0];
-                if (!firstSteakLine.Contains("Вкусно тебе наверное"))
-                    throw new Exception("Signature steak line mismatch: " + firstSteakLine);
+                // Verify steak signature phrase in both Rude and Clean modes
+                string rudeSteak0 = ChatterDatabase.GetLines(ChatterTopic.PlayerEatSteakMeat, true, ProfanityMode.HardcoreRude)[0];
+                string cleanSteak0 = ChatterDatabase.GetLines(ChatterTopic.PlayerEatSteakMeat, true, ProfanityMode.Clean)[0];
+                if (!rudeSteak0.Contains("Вкусно тебе") || !cleanSteak0.Contains("Вкусно тебе"))
+                    throw new Exception("Signature steak line mismatch!");
 
-                // 3. Verify ItemCategorizer food & storage category rules
+                // Verify ItemCategorizer
                 var steakKind = ItemCategorizer.ClassifyFoodKind(248, null, null);
                 var rawKind = ItemCategorizer.ClassifyFoodKind(204, null, null);
                 var canKind = ItemCategorizer.ClassifyFoodKind(232, null, null);
@@ -87,14 +105,14 @@ namespace ZedZone.SmartCompanions
                 if (medCat != StorageCategory.Medicine || foodCat != StorageCategory.FreshFood || canCat != StorageCategory.CannedAndDrinks)
                     throw new Exception($"StorageCategory check failed: med={medCat}, food={foodCat}, can={canCat}");
 
-                // 4. Verify CustomNpcCommands display names
+                // Verify CustomNpcCommands
                 foreach (var cmd in CustomNpcCommands.AllCustomCommands)
                 {
                     if (!CustomNpcCommands.TryGetDisplayName(cmd, out var label) || string.IsNullOrEmpty(label))
                         throw new Exception("Custom command missing label: " + cmd);
                 }
 
-                LogInfo($"[SelfVerify] PASS: {topics.Length} chatter topics ({totalRuLines} RU lines, {totalEnLines} EN lines), 12 storage categories, {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands verified.");
+                LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}]), 12 storage categories, {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands verified.");
             }
             catch (Exception e)
             {
@@ -119,14 +137,14 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
-                if (!_languageAutoDetected && GameController.instance?.gameSettings != null)
+                if (!_languageAutoDetected && Il2CppSafe.IsAliveUnity(GameController.instance) &&
+                    Il2CppSafe.IsAlive(GameController.instance.gameSettings))
                 {
                     _languageAutoDetected = true;
                     string code = GameController.instance.gameSettings.languageCode ?? "";
-                    if (!string.IsNullOrEmpty(code))
+                    if (!string.IsNullOrEmpty(code) && code.IndexOf("ru", StringComparison.OrdinalIgnoreCase) >= 0)
                     {
-                        if (code.IndexOf("ru", StringComparison.OrdinalIgnoreCase) >= 0)
-                            CompanionConfigStore.UseRussian = true;
+                        CompanionConfigStore.UseRussian = true;
                     }
                 }
 
@@ -142,6 +160,12 @@ namespace ZedZone.SmartCompanions
                 if (Input.GetKeyDown(KeyCode.F7))
                 {
                     BaseSortingSystem.CommandSortBase(null, null, instant: false);
+                }
+
+                // Hotkey F6: Quick Order -> Share Ration with Squad ("Подогреть братву пайком")
+                if (Input.GetKeyDown(KeyCode.F6))
+                {
+                    SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
                 }
 
                 float now = Time.unscaledTime;

@@ -6,16 +6,22 @@ namespace ZedZone.SmartCompanions
 {
     public static class AutoLootSystem
     {
-        public static int CommandSweepNearbyLoot(GOAPAgent specificAgent = null, float radius = 18f)
+        private const StorageCategory PriorityLootMask =
+            StorageCategory.AmmoAndMags |
+            StorageCategory.Medicine |
+            StorageCategory.FreshFood |
+            StorageCategory.CannedAndDrinks;
+
+        public static int CommandSweepNearbyLoot(GOAPAgent specificAgent = null, float radius = 18f, bool silentIfEmpty = false)
         {
             int totalCollected = 0;
             try
             {
                 var gc = GameController.instance;
-                if (gc == null || gc.playerCharacter == null) return 0;
+                if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter)) return 0;
 
                 var workers = new List<GOAPAgent>();
-                if (specificAgent != null)
+                if (Il2CppSafe.IsAliveUnity(specificAgent))
                     workers.Add(specificAgent);
                 else
                     workers.AddRange(SmartChatterSystem.GetActiveTeammateAgents());
@@ -24,31 +30,36 @@ namespace ZedZone.SmartCompanions
 
                 Vector2 center = gc.playerCharacter.transform.position;
                 float rSqr = radius * radius;
+                float now = Time.unscaledTime;
 
-                // 1. Collect ground items (BasicItem under InGameController.instance.itemParent)
+                // 1. Collect ground items
                 var igc = InGameController.instance;
-                var itemParent = igc != null ? igc.itemParentIfExistsSafe() : null;
-                if (itemParent != null)
+                var itemParent = Il2CppSafe.IsAliveUnity(igc) ? igc.itemParentIfExistsSafe() : null;
+                if (Il2CppSafe.IsAliveUnity(itemParent))
                 {
                     var itemsToPick = new List<BasicItem>();
                     int childCount = itemParent.childCount;
                     for (int i = 0; i < childCount; i++)
                     {
                         var tr = itemParent.GetChild(i);
-                        if (tr == null || !tr.gameObject.activeInHierarchy) continue;
+                        if (!Il2CppSafe.IsAliveUnity(tr) || !tr.gameObject.activeInHierarchy) continue;
                         if (((Vector2)tr.position - center).sqrMagnitude > rSqr) continue;
 
                         var bi = tr.GetComponent<BasicItem>();
-                        if (bi == null || bi.itemData == null || bi.itemData.deployedFlag) continue;
+                        if (!Il2CppSafe.IsAliveUnity(bi) || !Il2CppSafe.IsAlive(bi.itemData) || bi.itemData.deployedFlag)
+                            continue;
                         itemsToPick.Add(bi);
                     }
 
                     int workerIdx = 0;
                     foreach (var bi in itemsToPick)
                     {
-                        if (bi == null || bi.itemData == null) continue;
+                        if (!Il2CppSafe.IsAliveUnity(bi) || !Il2CppSafe.IsAlive(bi.itemData)) continue;
                         var agent = workers[workerIdx % workers.Count];
                         workerIdx++;
+
+                        if (!PassesSmartOverweightFilter(agent, bi.itemData, now))
+                            continue;
 
                         if (TryGiveItemToCompanionOrPlayer(agent, bi.itemData))
                         {
@@ -60,20 +71,21 @@ namespace ZedZone.SmartCompanions
                     }
                 }
 
-                // 2. Also sweep inspected/nearby zombie corpses (TerrainObject_Corpse) within radius
+                // 2. Sweep nearby zombie corpses
                 var terrainParent = gc.terrainObjectsParent;
-                if (terrainParent != null)
+                if (Il2CppSafe.IsAliveUnity(terrainParent))
                 {
                     int childCount = terrainParent.childCount;
                     int workerIdx = 0;
                     for (int i = 0; i < childCount; i++)
                     {
                         var tr = terrainParent.GetChild(i);
-                        if (tr == null || !tr.gameObject.activeInHierarchy) continue;
+                        if (!Il2CppSafe.IsAliveUnity(tr) || !tr.gameObject.activeInHierarchy) continue;
                         if (((Vector2)tr.position - center).sqrMagnitude > rSqr) continue;
 
                         var corpse = tr.GetComponent<TerrainObject_Corpse>();
-                        if (corpse == null || corpse.objectData == null || corpse.objectData.inventoryData == null)
+                        if (!Il2CppSafe.IsAliveUnity(corpse) || !Il2CppSafe.IsAlive(corpse.objectData) ||
+                            !Il2CppSafe.IsAlive(corpse.objectData.inventoryData))
                             continue;
 
                         var inv = corpse.objectData.inventoryData;
@@ -82,15 +94,19 @@ namespace ZedZone.SmartCompanions
                         var snap = new List<ItemData>();
                         for (int k = 0; k < inv.itemList.Count; k++)
                         {
-                            if (inv.itemList[k] != null) snap.Add(inv.itemList[k]);
+                            if (Il2CppSafe.IsAlive(inv.itemList[k])) snap.Add(inv.itemList[k]);
                         }
 
                         foreach (var item in snap)
                         {
                             var agent = workers[workerIdx % workers.Count];
                             workerIdx++;
+
+                            if (!PassesSmartOverweightFilter(agent, item, now))
+                                continue;
+
                             var copy = item.CopyItemData(null);
-                            if (copy != null && TryGiveItemToCompanionOrPlayer(agent, copy))
+                            if (Il2CppSafe.IsAlive(copy) && TryGiveItemToCompanionOrPlayer(agent, copy))
                             {
                                 inv.RemoveItem(item, true);
                                 totalCollected++;
@@ -103,13 +119,16 @@ namespace ZedZone.SmartCompanions
 
                 if (totalCollected > 0 && workers.Count > 0)
                 {
-                    SmartChatterSystem.Speak(workers[0], ChatterTopic.LootFoundGood, minCooldown: 1f, bubbleDuration: 5.5f, force: true);
-                    bool ru = CompanionConfigStore.UseRussian;
-                    BaseSortingSystem.SetBanner(ru
-                        ? $"Отряд собрал трофеи в радиусе {radius:F0}м: подобрано предметов — {totalCollected} шт."
-                        : $"Squad scavenged area ({radius:F0}m): collected {totalCollected} items.");
+                    SmartChatterSystem.Speak(workers[0], ChatterTopic.LootFoundGood, minCooldown: 1f, bubbleDuration: 5.5f, force: !silentIfEmpty);
+                    if (!silentIfEmpty)
+                    {
+                        bool ru = CompanionConfigStore.UseRussian;
+                        BaseSortingSystem.SetBanner(ru
+                            ? $"🎒 Отряд собрал трофеи в радиусе {radius:F0}м: подобрано предметов — {totalCollected} шт."
+                            : $"🎒 Squad scavenged area ({radius:F0}m): collected {totalCollected} items.");
+                    }
                 }
-                else
+                else if (!silentIfEmpty)
                 {
                     bool ru = CompanionConfigStore.UseRussian;
                     BaseSortingSystem.SetBanner(ru
@@ -125,40 +144,76 @@ namespace ZedZone.SmartCompanions
             return totalCollected;
         }
 
+        private static bool PassesSmartOverweightFilter(GOAPAgent agent, ItemData item, float now)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData) || !Il2CppSafe.IsAlive(item))
+                return true;
+
+            try
+            {
+                var shared = agent.npcData.GetOrCreateSharedInventory();
+                if (!Il2CppSafe.IsAlive(shared)) return true;
+
+                int totalCells = Mathf.Max(1, shared.inventorySizeX * shared.inventorySizeY);
+                int freeCells = shared.CountFreeCells();
+                float fillRatio = 1f - ((float)freeCells / totalCells);
+
+                // When companion's pack is >= 70% full, only accept PriorityLootMask (Ammo, Meds, Food/Drinks)
+                if (fillRatio >= 0.70f)
+                {
+                    var cat = ItemCategorizer.ClassifyItem(item);
+                    if ((cat & PriorityLootMask) == 0)
+                    {
+                        var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID, agent.npcData.characterData?.characterName);
+                        if (now - st.LastOverweightWarnTime > 28f)
+                        {
+                            st.LastOverweightWarnTime = now;
+                            SmartChatterSystem.Speak(agent, ChatterTopic.LootOverweight, minCooldown: 6f, bubbleDuration: 6f);
+                        }
+                        return false;
+                    }
+                }
+            }
+            catch { }
+            return true;
+        }
+
         public static void TickPassiveAutoLoot()
         {
             var gc = GameController.instance;
-            if (gc == null || gc.playerCharacter == null || gc.isPlayerInCombat) return;
+            if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter) || gc.isPlayerInCombat)
+                return;
 
             float now = Time.unscaledTime;
             foreach (var ag in SmartChatterSystem.GetActiveTeammateAgents())
             {
-                if (ag == null || ag.npcData == null || ag.humanCharacter == null || ag.humanCharacter.deadFlag)
+                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
+                    !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag)
                     continue;
-                if (ag.mostThreateningCharacter != null) continue;
+                if (Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter)) continue;
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
                 if (!st.AllowAutoLootNearby || st.IsSortingActive) continue;
-                if (now - st.LastAutoLootTickTime < 6.0f) continue;
+                if (now - st.LastAutoLootTickTime < 5.5f) continue;
 
                 st.LastAutoLootTickTime = now;
-                CommandSweepNearbyLoot(ag, 9f);
+                CommandSweepNearbyLoot(ag, 9.5f, silentIfEmpty: true);
             }
         }
 
         private static bool TryGiveItemToCompanionOrPlayer(GOAPAgent agent, ItemData item)
         {
-            if (item == null) return false;
+            if (!Il2CppSafe.IsAlive(item)) return false;
             try
             {
-                if (agent != null && agent.npcData != null)
+                if (Il2CppSafe.IsAliveUnity(agent) && Il2CppSafe.IsAlive(agent.npcData))
                 {
                     var shared = agent.npcData.GetOrCreateSharedInventory();
-                    if (shared != null && shared.TryAddItem(item, true, true))
+                    if (Il2CppSafe.IsAlive(shared) && shared.TryAddItem(item, true, true))
                         return true;
 
                     var npcInv = agent.npcData.characterData?.inventoryData;
-                    if (npcInv != null && npcInv.TryAddItem(item, true, true))
+                    if (Il2CppSafe.IsAlive(npcInv) && npcInv.TryAddItem(item, true, true))
                         return true;
                 }
             }

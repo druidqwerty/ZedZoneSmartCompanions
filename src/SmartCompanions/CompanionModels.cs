@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using BepInEx;
+using Il2CppInterop.Runtime.InteropTypes;
 using UnityEngine;
 
 namespace ZedZone.SmartCompanions
@@ -15,6 +17,13 @@ namespace ZedZone.SmartCompanions
         SniperKite = 3,
         StealthMelee = 4,
         Passive = 5
+    }
+
+    public enum ProfanityMode
+    {
+        HardcoreRude = 0, // Постапокалипсис: Быдло и хамы (Мат 18+) — по умолчанию
+        Mixed = 1,        // Смешанный (Мат + Обычные)
+        Clean = 2         // Без мата (Цензура / Стример)
     }
 
     [Flags]
@@ -69,6 +78,7 @@ namespace ZedZone.SmartCompanions
         PlayerRepairOrCraft,
         PlayerCookingBBQ,
         PlayerLockpickBreakDoor,
+        PlayerShareFoodThanks,
         CombatSpotZombie,
         CombatSpotHorde,
         CombatSpotBandit,
@@ -81,6 +91,8 @@ namespace ZedZone.SmartCompanions
         CombatSavePlayer,
         CombatLowAmmo,
         CombatWounded,
+        CombatFlankWarning,
+        CombatWeaponJammed,
         FieldMedicAid,
         FieldAmmoShare,
         SortStart,
@@ -91,6 +103,8 @@ namespace ZedZone.SmartCompanions
         SortDepositMaterials,
         SortFinished,
         LootFoundGood,
+        LootOverweight,
+        BaseAutoDropoff,
         AmbientRain,
         AmbientBloodRain,
         AmbientNight,
@@ -99,7 +113,40 @@ namespace ZedZone.SmartCompanions
         AmbientTired,
         AmbientBaseIdle,
         BanterQuestion,
-        BanterReply
+        BanterReply,
+        WorldNpcEncounter
+    }
+
+    /// <summary>
+    /// Safe IL2CPP &amp; UnityEngine.Object validity helpers to prevent native pointer crashes across scene reloads.
+    /// </summary>
+    public static class Il2CppSafe
+    {
+        public static bool IsAlive(Il2CppObjectBase obj)
+        {
+            if (ReferenceEquals(obj, null)) return false;
+            try
+            {
+                return obj.Pointer != IntPtr.Zero;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool IsAliveUnity(UnityEngine.Object uobj)
+        {
+            if (ReferenceEquals(uobj, null)) return false;
+            try
+            {
+                return uobj.Pointer != IntPtr.Zero && uobj != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 
     public class ContainerRuleProfile
@@ -122,11 +169,15 @@ namespace ZedZone.SmartCompanions
         public bool AllowAutoLootNearby = false;
         public bool AllowFieldMedic = true;
         public bool AllowAmmoShare = true;
+        public bool AllowAutoDropoffAtBase = true;
 
         public string CurrentTaskText = "";
         public int KillsThisSession = 0;
         public int SortedItemsThisSession = 0;
         public int LootedItemsThisSession = 0;
+
+        // Buff: "Сытый и злой" (Fed & Fierce) from sharing rations
+        public float FedAndFierceUntil = -999f;
 
         public float LastChatterTime = -999f;
         public float LastCombatCalloutTime = -999f;
@@ -137,6 +188,10 @@ namespace ZedZone.SmartCompanions
         public float LastAmmoShareTime = -999f;
         public float LastAutoSortTickTime = -999f;
         public float LastAutoLootTickTime = -999f;
+        public float LastAutoDropoffTime = -999f;
+        public float LastFlankWarnTime = -999f;
+        public float LastOutOfCombatPrepTime = -999f;
+        public float LastOverweightWarnTime = -999f;
 
         // Active physical sorting state
         public bool IsSortingActive = false;
@@ -145,6 +200,9 @@ namespace ZedZone.SmartCompanions
         public Vector2 TargetContainerPos;
         public float SortingStateStartTime = 0f;
         public int PendingTransferCount = 0;
+
+        public bool HasFedBuff => Time.unscaledTime < FedAndFierceUntil;
+        public float FedBuffRemainingSeconds => Mathf.Max(0f, FedAndFierceUntil - Time.unscaledTime);
     }
 
     public static class CompanionConfigStore
@@ -157,12 +215,16 @@ namespace ZedZone.SmartCompanions
 
         public static bool UseRussian = true;
         public static bool EnableChatter = true;
+        public static ProfanityMode Profanity = ProfanityMode.HardcoreRude;
         public static float ChatterIntervalMultiplier = 1.0f;
         public static bool EnableSmartCombat = true;
         public static bool EnableAntiFriendlyFire = true;
         public static bool EnableKiting = true;
         public static bool EnableFieldMedic = true;
         public static bool EnableAmmoShare = true;
+        public static bool AutoShareFoodOnEat = false;
+        public static bool EnableBaseAutoDropoff = true;
+        public static bool EnableWorldNpcChatter = true;
         public static bool ShowHudBadge = true;
         public static float BaseScanRadius = 48f;
 
@@ -212,17 +274,21 @@ namespace ZedZone.SmartCompanions
             try
             {
                 var sb = new StringBuilder();
-                sb.AppendLine("# ZED ZONE Smart Companions Saved Rules v1.0");
+                sb.AppendLine("# ZED ZONE Smart Companions Saved Rules v1.1");
                 sb.AppendLine($"SET|UseRussian|{UseRussian}");
                 sb.AppendLine($"SET|EnableChatter|{EnableChatter}");
-                sb.AppendLine($"SET|ChatterIntervalMultiplier|{ChatterIntervalMultiplier:F2}");
+                sb.AppendLine($"SET|Profanity|{(int)Profanity}");
+                sb.AppendLine($"SET|ChatterIntervalMultiplier|{ChatterIntervalMultiplier.ToString("F2", CultureInfo.InvariantCulture)}");
                 sb.AppendLine($"SET|EnableSmartCombat|{EnableSmartCombat}");
                 sb.AppendLine($"SET|EnableAntiFriendlyFire|{EnableAntiFriendlyFire}");
                 sb.AppendLine($"SET|EnableKiting|{EnableKiting}");
                 sb.AppendLine($"SET|EnableFieldMedic|{EnableFieldMedic}");
                 sb.AppendLine($"SET|EnableAmmoShare|{EnableAmmoShare}");
+                sb.AppendLine($"SET|AutoShareFoodOnEat|{AutoShareFoodOnEat}");
+                sb.AppendLine($"SET|EnableBaseAutoDropoff|{EnableBaseAutoDropoff}");
+                sb.AppendLine($"SET|EnableWorldNpcChatter|{EnableWorldNpcChatter}");
                 sb.AppendLine($"SET|ShowHudBadge|{ShowHudBadge}");
-                sb.AppendLine($"SET|BaseScanRadius|{BaseScanRadius:F1}");
+                sb.AppendLine($"SET|BaseScanRadius|{BaseScanRadius.ToString("F1", CultureInfo.InvariantCulture)}");
 
                 foreach (var kv in ContainerRules)
                 {
@@ -237,7 +303,7 @@ namespace ZedZone.SmartCompanions
                 {
                     var c = kv.Value;
                     var safeName = (c.LastKnownName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
-                    sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}");
+                    sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}");
                 }
 
                 File.WriteAllText(SaveFilePath, sb.ToString(), Encoding.UTF8);
@@ -266,14 +332,18 @@ namespace ZedZone.SmartCompanions
                         var val = parts[2];
                         if (key == "UseRussian" && bool.TryParse(val, out var b0)) UseRussian = b0;
                         else if (key == "EnableChatter" && bool.TryParse(val, out var b1)) EnableChatter = b1;
-                        else if (key == "ChatterIntervalMultiplier" && float.TryParse(val, out var f1)) ChatterIntervalMultiplier = Mathf.Clamp(f1, 0.25f, 4f);
+                        else if (key == "Profanity" && int.TryParse(val, out var pMode)) Profanity = (ProfanityMode)Mathf.Clamp(pMode, 0, 2);
+                        else if (key == "ChatterIntervalMultiplier" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f1)) ChatterIntervalMultiplier = Mathf.Clamp(f1, 0.25f, 4f);
                         else if (key == "EnableSmartCombat" && bool.TryParse(val, out var b2)) EnableSmartCombat = b2;
                         else if (key == "EnableAntiFriendlyFire" && bool.TryParse(val, out var b3)) EnableAntiFriendlyFire = b3;
                         else if (key == "EnableKiting" && bool.TryParse(val, out var b4)) EnableKiting = b4;
                         else if (key == "EnableFieldMedic" && bool.TryParse(val, out var b5)) EnableFieldMedic = b5;
                         else if (key == "EnableAmmoShare" && bool.TryParse(val, out var b6)) EnableAmmoShare = b6;
+                        else if (key == "AutoShareFoodOnEat" && bool.TryParse(val, out var bShare)) AutoShareFoodOnEat = bShare;
+                        else if (key == "EnableBaseAutoDropoff" && bool.TryParse(val, out var bDrop)) EnableBaseAutoDropoff = bDrop;
+                        else if (key == "EnableWorldNpcChatter" && bool.TryParse(val, out var bWorld)) EnableWorldNpcChatter = bWorld;
                         else if (key == "ShowHudBadge" && bool.TryParse(val, out var b7)) ShowHudBadge = b7;
-                        else if (key == "BaseScanRadius" && float.TryParse(val, out var f2)) BaseScanRadius = Mathf.Clamp(f2, 15f, 120f);
+                        else if (key == "BaseScanRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f2)) BaseScanRadius = Mathf.Clamp(f2, 15f, 120f);
                     }
                     else if (parts[0] == "BOX" && parts.Length >= 6)
                     {
@@ -302,6 +372,9 @@ namespace ZedZone.SmartCompanions
                         bool.TryParse(parts[5], out var med);
                         bool.TryParse(parts[6], out var ammo);
                         var name = parts.Length >= 8 ? parts[7] : "";
+                        bool autoDrop = true;
+                        if (parts.Length >= 9 && bool.TryParse(parts[8], out var ad)) autoDrop = ad;
+
                         CompanionStates[guid] = new CompanionRuntimeState
                         {
                             NpcGuid = guid,
@@ -310,6 +383,7 @@ namespace ZedZone.SmartCompanions
                             AllowAutoLootNearby = loot,
                             AllowFieldMedic = med,
                             AllowAmmoShare = ammo,
+                            AllowAutoDropoffAtBase = autoDrop,
                             LastKnownName = name
                         };
                     }

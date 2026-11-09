@@ -7,7 +7,28 @@ namespace ZedZone.SmartCompanions
     {
         public static string[] GetLines(ChatterTopic topic, bool ru)
         {
-            return ru ? GetLinesRu(topic) : GetLinesEn(topic);
+            return GetLines(topic, ru, CompanionConfigStore.Profanity);
+        }
+
+        public static string[] GetLines(ChatterTopic topic, bool ru, ProfanityMode mode)
+        {
+            if (mode == ProfanityMode.Clean)
+                return ru ? GetLinesRu(topic) : GetLinesEn(topic);
+
+            var rude = ru
+                ? AppendExtraRudeRu(topic, GetRudeLinesRu(topic))
+                : AppendExtraRudeEn(topic, GetRudeLinesEn(topic));
+            if (mode == ProfanityMode.HardcoreRude)
+                return (rude != null && rude.Length > 0) ? rude : (ru ? GetLinesRu(topic) : GetLinesEn(topic));
+
+            // Mixed mode: combine rude + clean lines
+            var clean = ru ? GetLinesRu(topic) : GetLinesEn(topic);
+            if (rude == null || rude.Length == 0) return clean;
+            if (clean == null || clean.Length == 0) return rude;
+            var combined = new string[rude.Length + clean.Length];
+            Array.Copy(rude, 0, combined, 0, rude.Length);
+            Array.Copy(clean, 0, combined, rude.Length, clean.Length);
+            return combined;
         }
 
         private static string[] GetLinesRu(ChatterTopic topic)
@@ -209,6 +230,36 @@ namespace ZedZone.SmartCompanions
                         "Смотри-ка, полезная вещица валяется. В хозяйстве всё пригодится!",
                         "Подобрал припасы! Не пропадать же добру посреди улицы.",
                         "Есть улов! Ещё немного хабара в наш рюкзак."
+                    };
+
+                case ChatterTopic.PlayerShareFoodThanks:
+                    return new[]
+                    {
+                        "Ого, поделился пайком! Спасибо, командир, теперь сил хоть отбавляй!",
+                        "От души за горячую еду! На сытый желудок и прицел ровнее, и шаг быстрее!",
+                        "Спасибо за угощение! Теперь мы в полной боевой готовности!"
+                    };
+
+                case ChatterTopic.LootOverweight:
+                    return new[]
+                    {
+                        "Рюкзак почти под завязку! Беру только патроны, медицину и провизию!",
+                        "Перегруз даёт о себе знать — тяжёлый хлам пропускаю, собираю только самое важное!"
+                    };
+
+                case ChatterTopic.BaseAutoDropoff:
+                    return new[]
+                    {
+                        "Вернулись на базу! Выгрузил собранные в рейде трофеи в приёмный ящик и разложил по складу!",
+                        "Авто-разгрузка завершена: все припасы из рюкзака распределены по ящикам базы!"
+                    };
+
+                case ChatterTopic.WorldNpcEncounter:
+                    return new[]
+                    {
+                        "Держи дистанцию, путник. В карантинной зоне каждый сам за себя.",
+                        "Осторожнее на улицах, за соседним кварталом видели толпу заражённых.",
+                        "Ищешь припасы? Главное — в чужие тайники не лезь."
                     };
 
                 case ChatterTopic.AmbientRain:

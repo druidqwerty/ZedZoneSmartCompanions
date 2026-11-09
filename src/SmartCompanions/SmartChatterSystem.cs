@@ -7,15 +7,17 @@ namespace ZedZone.SmartCompanions
     public static class SmartChatterSystem
     {
         private static readonly System.Random Rng = new System.Random();
-        private static readonly Dictionary<ChatterTopic, int> LastPickedIndex = new Dictionary<ChatterTopic, int>();
+        private static readonly Dictionary<ChatterTopic, Queue<int>> RecentIndicesByTopic = new Dictionary<ChatterTopic, Queue<int>>();
+        private static readonly Dictionary<string, float> WorldNpcLastSpeakTime = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
         public static readonly List<string> RecentSpeechLog = new List<string>();
 
         private static bool _steakSignatureSpokenThisSession = false;
         private static float _lastGlobalChatterTime = -999f;
         private static float _lastAmbientCheckTime = 0f;
+        private static float _lastWorldNpcCheckTime = 0f;
         private static bool _wasRaining = false;
         private static bool _wasBloodRaining = false;
-        private static int _lastAnnouncedTimeBand = -1; // 0=Night, 1=Morning, 2=Day, 3=Evening
+        private static int _lastAnnouncedTimeBand = -1;
 
         private static string _pendingBanterPartnerGuid = "";
         private static float _pendingBanterReplyAt = -1f;
@@ -26,22 +28,23 @@ namespace ZedZone.SmartCompanions
             try
             {
                 var mgr = GOAPNPCManager.instance;
-                if (mgr == null || mgr.activeNPCs == null) return result;
+                if (!Il2CppSafe.IsAlive(mgr) || mgr.activeNPCs == null) return result;
 
                 var gc = GameController.instance;
-                var playerData = gc != null && gc.gameData != null ? gc.gameData.playerData : null;
+                var playerData = (Il2CppSafe.IsAliveUnity(gc) && Il2CppSafe.IsAlive(gc.gameData)) ? gc.gameData.playerData : null;
 
                 foreach (var kv in mgr.activeNPCs)
                 {
                     var agent = kv.Value;
-                    if (agent == null || agent.npcData == null || agent.humanCharacter == null) continue;
+                    if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData) || !Il2CppSafe.IsAliveUnity(agent.humanCharacter))
+                        continue;
                     if (agent.humanCharacter.deadFlag) continue;
 
                     bool isTeammate = false;
                     try
                     {
                         if (agent.IsPlayerTeammate()) isTeammate = true;
-                        else if (playerData != null && GOAPNPCManager.IsPlayerTeammateData(agent.npcData, playerData)) isTeammate = true;
+                        else if (Il2CppSafe.IsAlive(playerData) && GOAPNPCManager.IsPlayerTeammateData(agent.npcData, playerData)) isTeammate = true;
                         else if (mgr.teammateNPCs != null && mgr.teammateNPCs.Contains(agent.npcData)) isTeammate = true;
                     }
                     catch { }
@@ -60,7 +63,7 @@ namespace ZedZone.SmartCompanions
             float bestSqr = maxDist * maxDist;
             foreach (var ag in GetActiveTeammateAgents())
             {
-                if (ag == null || ag.humanCharacter == null) continue;
+                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter)) continue;
                 float sqr = (ag.humanCharacter.transform.position - origin).sqrMagnitude;
                 if (sqr <= bestSqr)
                 {
@@ -74,21 +77,22 @@ namespace ZedZone.SmartCompanions
         public static bool Speak(GOAPAgent agent, ChatterTopic topic, float minCooldown = 4.5f, float bubbleDuration = 5.5f, bool force = false)
         {
             if (!CompanionConfigStore.EnableChatter && !force) return false;
-            if (agent == null || agent.humanCharacter == null || agent.humanCharacter.deadFlag) return false;
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAliveUnity(agent.humanCharacter) || agent.humanCharacter.deadFlag)
+                return false;
 
             float now = Time.unscaledTime;
             float scaledCooldown = minCooldown * CompanionConfigStore.ChatterIntervalMultiplier;
-            var npcGuid = agent.npcData != null ? agent.npcData.npcGUID : "npc";
+            var npcGuid = Il2CppSafe.IsAlive(agent.npcData) ? agent.npcData.npcGUID : "npc";
             var npcName = agent.npcData?.characterData?.characterName ?? "NPC";
             var st = CompanionConfigStore.GetOrCreateCompanion(npcGuid, npcName);
 
             if (!force)
             {
                 if (now - st.LastChatterTime < scaledCooldown) return false;
-                if (now - _lastGlobalChatterTime < 1.8f) return false;
+                if (now - _lastGlobalChatterTime < 1.6f) return false;
             }
 
-            string line = PickLine(topic, agent);
+            string line = PickLine(topic);
             if (string.IsNullOrEmpty(line)) return false;
 
             return SpeakCustom(agent, line, bubbleDuration, force);
@@ -96,11 +100,12 @@ namespace ZedZone.SmartCompanions
 
         public static bool SpeakCustom(GOAPAgent agent, string line, float bubbleDuration = 5.5f, bool force = false)
         {
-            if (agent == null || agent.humanCharacter == null || string.IsNullOrEmpty(line)) return false;
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAliveUnity(agent.humanCharacter) || string.IsNullOrEmpty(line))
+                return false;
             try
             {
                 float now = Time.unscaledTime;
-                var npcGuid = agent.npcData != null ? agent.npcData.npcGUID : "npc";
+                var npcGuid = Il2CppSafe.IsAlive(agent.npcData) ? agent.npcData.npcGUID : "npc";
                 var npcName = agent.npcData?.characterData?.characterName ?? "NPC";
                 var st = CompanionConfigStore.GetOrCreateCompanion(npcGuid, npcName);
 
@@ -111,7 +116,7 @@ namespace ZedZone.SmartCompanions
 
                 string stamp = DateTime.Now.ToString("HH:mm:ss");
                 RecentSpeechLog.Insert(0, $"[{stamp}] {npcName}: {line}");
-                if (RecentSpeechLog.Count > 30)
+                if (RecentSpeechLog.Count > 40)
                     RecentSpeechLog.RemoveAt(RecentSpeechLog.Count - 1);
 
                 return true;
@@ -123,42 +128,137 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        private static string PickLine(ChatterTopic topic, GOAPAgent agent)
+        private static string PickLine(ChatterTopic topic)
         {
             bool ru = CompanionConfigStore.UseRussian;
-            var lines = ChatterDatabase.GetLines(topic, ru);
+            var lines = ChatterDatabase.GetLines(topic, ru, CompanionConfigStore.Profanity);
             if (lines == null || lines.Length == 0) return null;
 
-            // Ensure the signature steak line is guaranteed first time player eats steak/meat!
             if (topic == ChatterTopic.PlayerEatSteakMeat && !_steakSignatureSpokenThisSession)
             {
                 _steakSignatureSpokenThisSession = true;
-                LastPickedIndex[topic] = 0;
+                RecordRecentIndex(topic, 0, lines.Length);
                 return lines[0];
             }
 
-            int idx = Rng.Next(lines.Length);
-            if (lines.Length > 1 && LastPickedIndex.TryGetValue(topic, out int prev) && idx == prev)
+            if (!RecentIndicesByTopic.TryGetValue(topic, out var recentQueue))
             {
-                idx = (idx + 1 + Rng.Next(lines.Length - 1)) % lines.Length;
+                recentQueue = new Queue<int>();
+                RecentIndicesByTopic[topic] = recentQueue;
             }
-            LastPickedIndex[topic] = idx;
+
+            int idx = Rng.Next(lines.Length);
+            if (lines.Length > 1)
+            {
+                for (int attempt = 0; attempt < 6; attempt++)
+                {
+                    if (!recentQueue.Contains(idx)) break;
+                    idx = (idx + 1 + Rng.Next(lines.Length - 1)) % lines.Length;
+                }
+            }
+
+            RecordRecentIndex(topic, idx, lines.Length);
             return lines[idx];
+        }
+
+        private static void RecordRecentIndex(ChatterTopic topic, int idx, int poolSize)
+        {
+            if (!RecentIndicesByTopic.TryGetValue(topic, out var q))
+            {
+                q = new Queue<int>();
+                RecentIndicesByTopic[topic] = q;
+            }
+            q.Enqueue(idx);
+            int maxHistory = Mathf.Clamp(poolSize / 2, 1, 4);
+            while (q.Count > maxHistory)
+                q.Dequeue();
+        }
+
+        /// <summary>
+        /// Shares a ration with one or all active companions: restores hunger/thirst/stamina,
+        /// grants the 180s "Сытый и злой" (Fed &amp; Fierce) combat buff, and triggers appreciative gangster/bro lines.
+        /// </summary>
+        public static int CommandShareRationWithSquad(GOAPAgent specificAgent = null, bool fromAutoShare = false)
+        {
+            var targets = new List<GOAPAgent>();
+            if (Il2CppSafe.IsAliveUnity(specificAgent))
+                targets.Add(specificAgent);
+            else
+                targets.AddRange(GetActiveTeammateAgents());
+
+            if (targets.Count == 0) return 0;
+
+            float now = Time.unscaledTime;
+            int buffedCount = 0;
+            GOAPAgent speaker = null;
+
+            foreach (var ag in targets)
+            {
+                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData)) continue;
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                st.FedAndFierceUntil = now + 180f;
+
+                try
+                {
+                    ag.npcData.hunger = Mathf.Clamp(ag.npcData.hunger + 35f, 0f, 100f);
+                    ag.npcData.thirst = Mathf.Clamp(ag.npcData.thirst + 35f, 0f, 100f);
+                    ag.npcData.fatigue = Mathf.Clamp(ag.npcData.fatigue + 25f, 0f, 100f);
+                    ag.npcData.hireAffinity = Mathf.Clamp(ag.npcData.hireAffinity + 0.15f, 0f, 100f);
+
+                    var status = ag.npcData.characterData?.characterStatusData;
+                    if (Il2CppSafe.IsAlive(status))
+                    {
+                        status.hunger = Mathf.Min(status.maxHunger > 0 ? status.maxHunger : 100f, status.hunger + 35f);
+                        status.thirst = Mathf.Min(status.maxThirst > 0 ? status.maxThirst : 100f, status.thirst + 35f);
+                        status.fatigue = Mathf.Min(status.maxFatigue > 0 ? status.maxFatigue : 100f, status.fatigue + 25f);
+                        status.energy = Mathf.Min(status.maxEnergy > 0 ? status.maxEnergy : 100f, status.energy + 40f);
+                    }
+                }
+                catch { }
+
+                if (speaker == null) speaker = ag;
+                buffedCount++;
+            }
+
+            if (speaker != null)
+            {
+                Speak(speaker, ChatterTopic.PlayerShareFoodThanks, minCooldown: 0.5f, bubbleDuration: 6.0f, force: true);
+            }
+
+            if (!fromAutoShare && buffedCount > 0)
+            {
+                bool ru = CompanionConfigStore.UseRussian;
+                BaseSortingSystem.SetBanner(ru
+                    ? $"🍖 Вы поделились пайком с отрядом ({buffedCount} чел.)! Напарники получили бафф «Сытый и злой» на 3 мин!"
+                    : $"🍖 Shared rations with squad ({buffedCount})! Companions gained 'Fed & Fierce' combat buff for 3 min!");
+            }
+
+            return buffedCount;
         }
 
         public static void OnPlayerEatOrUseFood(HumanCharacterController character, ItemData foodItemData)
         {
             try
             {
-                if (character == null || foodItemData == null) return;
+                if (!Il2CppSafe.IsAliveUnity(character) || !Il2CppSafe.IsAlive(foodItemData)) return;
                 var gc = GameController.instance;
-                if (gc == null || gc.playerCharacter == null || character.Pointer != gc.playerCharacter.Pointer)
-                    return;
+                if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter)) return;
+                if (character.Pointer != gc.playerCharacter.Pointer) return;
 
                 var companion = PickNearestTeammate(character.transform.position, 26f);
-                if (companion == null) return;
+                if (!Il2CppSafe.IsAliveUnity(companion)) return;
 
                 var kind = ItemCategorizer.ClassifyFoodKind(foodItemData);
+
+                // If AutoShareFoodOnEat is enabled and player eats good food/drink, share with squad!
+                if (CompanionConfigStore.AutoShareFoodOnEat &&
+                    kind != FoodKind.RawMeat && kind != FoodKind.RottenFood &&
+                    kind != FoodKind.MedicineBandage && kind != FoodKind.MedicinePills)
+                {
+                    CommandShareRationWithSquad(null, fromAutoShare: true);
+                    return;
+                }
+
                 ChatterTopic topic = kind switch
                 {
                     FoodKind.SteakAndRoastMeat => ChatterTopic.PlayerEatSteakMeat,
@@ -166,7 +266,7 @@ namespace ZedZone.SmartCompanions
                     FoodKind.RottenFood        => ChatterTopic.PlayerEatRawOrBad,
                     FoodKind.CannedFood        => ChatterTopic.PlayerEatCanned,
                     FoodKind.FishDish          => ChatterTopic.PlayerEatFish,
-                    FoodKind.CookedMeal        => ChatterTopic.PlayerEatSteakMeat, // hot cooked meals also trigger meat/meal envy!
+                    FoodKind.CookedMeal        => ChatterTopic.PlayerEatSteakMeat,
                     FoodKind.SweetAndSnack     => ChatterTopic.PlayerEatSnackOrFruit,
                     FoodKind.FruitAndVeg       => ChatterTopic.PlayerEatSnackOrFruit,
                     FoodKind.DrinkAndSoda      => ChatterTopic.PlayerDrinkWaterSoda,
@@ -176,7 +276,6 @@ namespace ZedZone.SmartCompanions
                     _                          => ChatterTopic.PlayerEatCookedMeal
                 };
 
-                // Eating steak/meat is high priority so the companion always comments!
                 bool forceFirstSteak = (topic == ChatterTopic.PlayerEatSteakMeat && !_steakSignatureSpokenThisSession);
                 Speak(companion, topic, minCooldown: 2.0f, bubbleDuration: 6.5f, force: forceFirstSteak);
             }
@@ -191,13 +290,14 @@ namespace ZedZone.SmartCompanions
             try
             {
                 var gc = GameController.instance;
-                if (gc == null || gc.playerCharacter == null || character == null) return;
+                if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter) || !Il2CppSafe.IsAliveUnity(character))
+                    return;
                 if (character.Pointer != gc.playerCharacter.Pointer) return;
 
                 var companion = PickNearestTeammate(character.transform.position, 24f);
-                if (companion == null) return;
+                if (!Il2CppSafe.IsAliveUnity(companion)) return;
 
-                Speak(companion, topic, minCooldown: 8.0f, bubbleDuration: 5.0f);
+                Speak(companion, topic, minCooldown: 7.5f, bubbleDuration: 5.5f);
             }
             catch { }
         }
@@ -207,7 +307,7 @@ namespace ZedZone.SmartCompanions
             if (!CompanionConfigStore.EnableChatter) return;
             float now = Time.unscaledTime;
 
-            // Handle pending 2-companion banter reply
+            // 1. Handle pending 2-companion banter reply
             if (_pendingBanterReplyAt > 0f && now >= _pendingBanterReplyAt)
             {
                 _pendingBanterReplyAt = -1f;
@@ -215,7 +315,7 @@ namespace ZedZone.SmartCompanions
                 _pendingBanterPartnerGuid = "";
                 foreach (var ag in GetActiveTeammateAgents())
                 {
-                    if (ag.npcData != null && ag.npcData.npcGUID == partnerGuid)
+                    if (Il2CppSafe.IsAlive(ag.npcData) && ag.npcData.npcGUID == partnerGuid)
                     {
                         Speak(ag, ChatterTopic.BanterReply, minCooldown: 1f, bubbleDuration: 5.5f, force: true);
                         break;
@@ -223,19 +323,27 @@ namespace ZedZone.SmartCompanions
                 }
             }
 
-            if (now - _lastAmbientCheckTime < 12f) return;
+            // 2. Ambient World NPC chatter (non-teammate survivors/drifters around the player)
+            if (CompanionConfigStore.EnableWorldNpcChatter && now - _lastWorldNpcCheckTime >= 16f)
+            {
+                _lastWorldNpcCheckTime = now;
+                TickWorldNpcEncounterChatter(now);
+            }
+
+            if (now - _lastAmbientCheckTime < 11f) return;
             _lastAmbientCheckTime = now;
 
             var gc = GameController.instance;
-            if (gc == null || gc.playerCharacter == null || gc.gameData == null) return;
+            if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter) || !Il2CppSafe.IsAlive(gc.gameData))
+                return;
 
             var teammates = GetActiveTeammateAgents();
             if (teammates.Count == 0) return;
 
             var primary = PickNearestTeammate(gc.playerCharacter.transform.position, 24f);
-            if (primary == null) return;
+            if (!Il2CppSafe.IsAliveUnity(primary)) return;
 
-            // 1. Weather changes (Rain / Blood Rain)
+            // Weather transitions
             bool isBloodRain = gc.gameData.isBloodRaining;
             bool isRain = gc.gameData.isRaining;
             if (isBloodRain && !_wasBloodRaining)
@@ -254,7 +362,7 @@ namespace ZedZone.SmartCompanions
             }
             _wasRaining = isRain;
 
-            // 2. Time of day transitions (Morning 06:00, Night 20:00)
+            // Time of day transitions
             float hours = (gc.gameData.inGameTime / 60f) % 24f;
             int timeBand = (hours >= 6f && hours < 10f) ? 1 : (hours >= 10f && hours < 20f) ? 2 : 0;
             if (_lastAnnouncedTimeBand != -1 && timeBand != _lastAnnouncedTimeBand)
@@ -273,27 +381,24 @@ namespace ZedZone.SmartCompanions
             }
             _lastAnnouncedTimeBand = timeBand;
 
-            // 3. Only do idle/needs/banter when not in active combat
-            if (gc.isPlayerInCombat || primary.mostThreateningCharacter != null) return;
-            if (now - _lastGlobalChatterTime < 38f * CompanionConfigStore.ChatterIntervalMultiplier) return;
+            if (gc.isPlayerInCombat || Il2CppSafe.IsAliveUnity(primary.mostThreateningCharacter)) return;
+            if (now - _lastGlobalChatterTime < 32f * CompanionConfigStore.ChatterIntervalMultiplier) return;
 
-            // Check hunger or fatigue of companion
-            if (primary.npcData != null)
+            if (Il2CppSafe.IsAlive(primary.npcData))
             {
-                if (primary.npcData.hunger < 28f && Rng.NextDouble() < 0.45)
+                if (primary.npcData.hunger < 30f && Rng.NextDouble() < 0.45)
                 {
-                    Speak(primary, ChatterTopic.AmbientHungry, minCooldown: 45f, bubbleDuration: 5.5f);
+                    Speak(primary, ChatterTopic.AmbientHungry, minCooldown: 40f, bubbleDuration: 5.5f);
                     return;
                 }
                 if (primary.npcData.fatigue < 25f && Rng.NextDouble() < 0.35)
                 {
-                    Speak(primary, ChatterTopic.AmbientTired, minCooldown: 45f, bubbleDuration: 5.5f);
+                    Speak(primary, ChatterTopic.AmbientTired, minCooldown: 40f, bubbleDuration: 5.5f);
                     return;
                 }
             }
 
-            // Two-companion banter if player has 2+ companions nearby!
-            if (teammates.Count >= 2 && Rng.NextDouble() < 0.35)
+            if (teammates.Count >= 2 && Rng.NextDouble() < 0.40)
             {
                 var speaker1 = teammates[Rng.Next(teammates.Count)];
                 GOAPAgent speaker2 = null;
@@ -305,22 +410,65 @@ namespace ZedZone.SmartCompanions
                         break;
                     }
                 }
-                if (speaker2 != null && speaker2.npcData != null)
+                if (Il2CppSafe.IsAliveUnity(speaker2) && Il2CppSafe.IsAlive(speaker2.npcData))
                 {
-                    if (Speak(speaker1, ChatterTopic.BanterQuestion, minCooldown: 40f, bubbleDuration: 5.0f))
+                    if (Speak(speaker1, ChatterTopic.BanterQuestion, minCooldown: 35f, bubbleDuration: 5.0f))
                     {
                         _pendingBanterPartnerGuid = speaker2.npcData.npcGUID;
-                        _pendingBanterReplyAt = now + 4.2f;
+                        _pendingBanterReplyAt = now + 4.0f;
                         return;
                     }
                 }
             }
 
-            // Otherwise occasional base/calm ambient line
-            if (Rng.NextDouble() < 0.25)
+            if (Rng.NextDouble() < 0.30)
             {
-                Speak(primary, ChatterTopic.AmbientBaseIdle, minCooldown: 50f, bubbleDuration: 5.5f);
+                Speak(primary, ChatterTopic.AmbientBaseIdle, minCooldown: 45f, bubbleDuration: 5.5f);
             }
+        }
+
+        private static void TickWorldNpcEncounterChatter(float now)
+        {
+            try
+            {
+                if (now - _lastGlobalChatterTime < 14f) return;
+                var gc = GameController.instance;
+                var mgr = GOAPNPCManager.instance;
+                if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter) || !Il2CppSafe.IsAlive(mgr) || mgr.activeNPCs == null)
+                    return;
+
+                Vector2 playerPos = gc.playerCharacter.transform.position;
+                foreach (var kv in mgr.activeNPCs)
+                {
+                    var ag = kv.Value;
+                    if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter))
+                        continue;
+                    if (ag.humanCharacter.deadFlag || ag.IsPlayerTeammate()) continue;
+
+                    float dist = Vector2.Distance(ag.humanCharacter.transform.position, playerPos);
+                    if (dist < 3.0f || dist > 13.5f) continue;
+
+                    string guid = ag.npcData.npcGUID ?? "world_npc";
+                    if (WorldNpcLastSpeakTime.TryGetValue(guid, out float lastT) && now - lastT < 75f)
+                        continue;
+
+                    if (Rng.NextDouble() < 0.35)
+                    {
+                        WorldNpcLastSpeakTime[guid] = now;
+                        string line = PickLine(ChatterTopic.WorldNpcEncounter);
+                        if (!string.IsNullOrEmpty(line))
+                        {
+                            ag.humanCharacter.ShowDialogueBubble(line, 5.0f);
+                            _lastGlobalChatterTime = now;
+                        }
+                        break;
+                    }
+                }
+
+                if (WorldNpcLastSpeakTime.Count > 120)
+                    WorldNpcLastSpeakTime.Clear();
+            }
+            catch { }
         }
     }
 }

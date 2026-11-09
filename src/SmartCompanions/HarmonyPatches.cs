@@ -14,6 +14,7 @@ namespace ZedZone.SmartCompanions
         public const string DocStealth    = "NPCCommand:Combat.DoctrineStealth";
         public const string OpenHub       = "NPCCommand:OneTime.OpenSmartHub";
         public const string EmergencyAid  = "NPCCommand:OneTime.EmergencyAid";
+        public const string ShareRation   = "NPCCommand:OneTime.ShareRationWithSquad";
 
         public static readonly string[] AllCustomCommands = new[]
         {
@@ -24,7 +25,8 @@ namespace ZedZone.SmartCompanions
             DocSniper,
             DocStealth,
             OpenHub,
-            EmergencyAid
+            EmergencyAid,
+            ShareRation
         };
 
         public static bool TryGetDisplayName(string cmd, out string label)
@@ -63,6 +65,10 @@ namespace ZedZone.SmartCompanions
                 case "OneTime.EmergencyAid":
                 case EmergencyAid:
                     label = ru ? "💉 Полевая помощь / Патроны" : "💉 Field Aid & Ammo Resupply";
+                    return true;
+                case "OneTime.ShareRationWithSquad":
+                case ShareRation:
+                    label = ru ? "🍖 Подогреть братву пайком (Бафф)" : "🍖 Share Ration (Fed & Fierce Buff)";
                     return true;
                 default:
                     label = null;
@@ -151,14 +157,20 @@ namespace ZedZone.SmartCompanions
                     st.LastAmmoShareTime = -999f;
                 }
                 var player = GameController.instance?.playerCharacter;
-                if (player != null && player.characterData?.characterStatusData != null)
+                if (Il2CppSafe.IsAliveUnity(player) && Il2CppSafe.IsAlive(player.characterData?.characterStatusData))
                 {
                     var status = player.characterData.characterStatusData;
                     status.hp = Mathf.Min(status.maxhp, status.hp + Mathf.Max(25f, status.maxhp * 0.30f));
                     player.hp = status.hp;
                 }
-                if (agent != null)
+                if (Il2CppSafe.IsAliveUnity(agent))
                     SmartChatterSystem.Speak(agent, ChatterTopic.FieldMedicAid, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
+                return true;
+            }
+
+            if (commandStr.EndsWith("ShareRationWithSquad", StringComparison.OrdinalIgnoreCase))
+            {
+                SmartChatterSystem.CommandShareRationWithSquad(agent, fromAutoShare: false);
                 return true;
             }
 

@@ -127,6 +127,20 @@ namespace ZedZone.SmartCompanions
                         "Передал тебе запасные патроны! Не останавливай огонь!"
                     };
 
+                case ChatterTopic.CombatFlankWarning:
+                    return new[]
+                    {
+                        "Осторожно, командир! Враги заходят тебе со спины — обернись!",
+                        "Угроза с тыла! Перехватываю тех, кто подкрался сзади!"
+                    };
+
+                case ChatterTopic.CombatWeaponJammed:
+                    return new[]
+                    {
+                        "Оружие заклинило! Прикрой на пару секунд, устраняю задержку!",
+                        "Поймал клин затвора! Сейчас быстро прочищу ствол!"
+                    };
+
                 default:
                     return new[] { "Я на связи, командир!" };
             }
@@ -235,6 +249,18 @@ namespace ZedZone.SmartCompanions
                     return new[] { "You're bleeding out! Hold still, applying emergency field dressing!", "Field medic here! Patched you up from my kit!" };
                 case ChatterTopic.FieldAmmoShare:
                     return new[] { "Heard you click empty! Catch some spare ammo from my pack!", "Sharing ammo! Reload and keep firing!" };
+                case ChatterTopic.PlayerShareFoodThanks:
+                    return new[] { "Thanks for sharing the ration, boss! Feeling energized and ready for action!", "Appreciate the meal! Full stamina and sharp aim!" };
+                case ChatterTopic.CombatFlankWarning:
+                    return new[] { "Watch your six, boss! Hostiles flanking from behind!", "Threat behind you! Intercepting flankers!" };
+                case ChatterTopic.CombatWeaponJammed:
+                    return new[] { "Weapon jammed! Cover me for two seconds while I clear it!", "Clearing a weapon malfunction — hold the line!" };
+                case ChatterTopic.LootOverweight:
+                    return new[] { "Backpack is nearly full! Filtering for ammo, medicine, and food only!", "Overweight limit reached — taking only high-priority supplies!" };
+                case ChatterTopic.BaseAutoDropoff:
+                    return new[] { "Back at base! Automatically unloaded raid loot into the drop-off chest and sorted storage!", "Auto-dropoff complete: raid supplies sorted into base chests!" };
+                case ChatterTopic.WorldNpcEncounter:
+                    return new[] { "Keep your distance, stranger. Everyone's on edge in the quarantine zone.", "Watch the streets ahead, spotted walkers a block away." };
                 default:
                     return new[] { "Standing by, boss!", "Copy that, watching our sector." };
             }

@@ -273,10 +273,19 @@ namespace ZedZone.SmartCompanions
 
             foreach (var ag in teammates)
             {
-                if (ag == null || ag.npcData == null || ag.humanCharacter == null || ag.humanCharacter.deadFlag)
+                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
+                    !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag)
                     continue;
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+
+                // Automatic Base Drop-off when returning to a base drop-off box out of combat!
+                if (!st.IsSortingActive && CompanionConfigStore.EnableBaseAutoDropoff && st.AllowAutoDropoffAtBase &&
+                    !Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && now - st.LastAutoDropoffTime > 25f)
+                {
+                    TryAutoDropoffAtBase(ag, st, now);
+                }
+
                 if (!st.IsSortingActive) continue;
 
                 // Abort sorting if companion enters combat
@@ -533,6 +542,50 @@ namespace ZedZone.SmartCompanions
                 topic = ChatterTopic.SortDepositMeds;
 
             SmartChatterSystem.Speak(agent, topic, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
+        }
+
+        private static void TryAutoDropoffAtBase(GOAPAgent ag, CompanionRuntimeState st, float now)
+        {
+            try
+            {
+                var shared = ag.npcData?.sharedInventoryData;
+                if (!Il2CppSafe.IsAlive(shared) || shared.itemList == null || shared.itemList.Count == 0)
+                    return;
+
+                var containers = ScanNearbyContainers(force: false);
+                if (containers.Count == 0) return;
+
+                bool nearDropoffOrCatBox = false;
+                Vector2 selfPos = ag.humanCharacter.transform.position;
+                var destBoxes = new List<DiscoveredContainer>();
+
+                foreach (var c in containers)
+                {
+                    if (c.Rule == null || !Il2CppSafe.IsAlive(c.Inventory)) continue;
+                    if (c.Rule.Categories != StorageCategory.None && !c.Rule.IsDropoffSource)
+                        destBoxes.Add(c);
+                    if ((c.Rule.IsDropoffSource || c.Rule.Categories != StorageCategory.None) &&
+                        Vector2.Distance(selfPos, c.WorldPos) <= 7.5f)
+                    {
+                        nearDropoffOrCatBox = true;
+                    }
+                }
+
+                if (!nearDropoffOrCatBox || destBoxes.Count == 0) return;
+
+                st.LastAutoDropoffTime = now;
+                int moved = ExecuteSortPass(new List<GOAPAgent> { ag }, containers, destBoxes, null, out _);
+                if (moved > 0)
+                {
+                    st.SortedItemsThisSession += moved;
+                    SmartChatterSystem.Speak(ag, ChatterTopic.BaseAutoDropoff, minCooldown: 2f, bubbleDuration: 6f, force: true);
+                    bool ru = CompanionConfigStore.UseRussian;
+                    SetBanner(ru
+                        ? $"📥 {st.LastKnownName} автоматически выгрузил и разложил по ящикам базы {moved} шт. трофеев!"
+                        : $"📥 {st.LastKnownName} auto-unloaded and sorted {moved} raid items into base chests!");
+                }
+            }
+            catch { }
         }
 
         public static void SetBanner(string msg, float seconds = 6f)

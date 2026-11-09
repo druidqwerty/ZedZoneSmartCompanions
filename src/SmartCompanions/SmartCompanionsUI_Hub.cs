@@ -88,16 +88,19 @@ namespace ZedZone.SmartCompanions
             GUI.Label(new Rect(bx, by, 175f, 26f),
                 ru ? $"Отряд активен: {teammates.Count} чел." : $"Active Squad: {teammates.Count}", _subHeaderStyle);
 
-            if (GUI.Button(new Rect(bx + 180f, by, 170f, 26f), ru ? "📦 Приказ: Сортировать базу" : "📦 Order: Sort Base", _catOnStyle))
+            if (GUI.Button(new Rect(bx + 180f, by, 140f, 26f), ru ? "📦 Сортировать [F7]" : "📦 Sort Base [F7]", _catOnStyle))
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
 
-            if (GUI.Button(new Rect(bx + 356f, by, 165f, 26f), ru ? "⚡ Мгновенная сорт. базы" : "⚡ Instant Sort Base", _btnStyle))
+            if (GUI.Button(new Rect(bx + 325f, by, 130f, 26f), ru ? "⚡ Мгновенно" : "⚡ Instant Sort", _btnStyle))
                 BaseSortingSystem.CommandSortBase(null, null, instant: true);
 
-            if (GUI.Button(new Rect(bx + 527f, by, 160f, 26f), ru ? "🎒 Собрать лут вокруг" : "🎒 Sweep Nearby Loot", _btnStyle))
+            if (GUI.Button(new Rect(bx + 460f, by, 125f, 26f), ru ? "🎒 Собрать лут" : "🎒 Sweep Loot", _btnStyle))
                 AutoLootSystem.CommandSweepNearbyLoot(null, 20f);
 
-            if (GUI.Button(new Rect(bx + 693f, by, 145f, 26f), ru ? "💉 Полевая аптечка" : "💉 Field Aid Now", _btnStyle))
+            if (GUI.Button(new Rect(bx + 590f, by, 130f, 26f), ru ? "🍖 Подогреть [F6]" : "🍖 Share Food [F6]", _catOnStyle))
+                SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
+
+            if (GUI.Button(new Rect(bx + 725f, by, 115f, 26f), ru ? "💉 Медпомощь" : "💉 Field Aid", _btnStyle))
             {
                 if (teammates.Count > 0)
                     CustomNpcCommands.ExecuteCustomCommand(teammates[0].npcData, CustomNpcCommands.EmergencyAid);
@@ -159,7 +162,7 @@ namespace ZedZone.SmartCompanions
 
                 // Row 3: Per-companion feature toggles
                 cy += 30f;
-                if (GUI.Button(new Rect(cx, cy, 185f, 24f),
+                if (GUI.Button(new Rect(cx, cy, 170f, 24f),
                     (st.AllowFieldMedic ? "☑ " : "☐ ") + (ru ? "Полевой медик" : "Field Medic"),
                     st.AllowFieldMedic ? _catOnStyle : _catOffStyle))
                 {
@@ -167,7 +170,7 @@ namespace ZedZone.SmartCompanions
                     CompanionConfigStore.Save();
                 }
 
-                if (GUI.Button(new Rect(cx + 192f, cy, 195f, 24f),
+                if (GUI.Button(new Rect(cx + 176f, cy, 175f, 24f),
                     (st.AllowAmmoShare ? "☑ " : "☐ ") + (ru ? "Подача патронов" : "Ammo Supplier"),
                     st.AllowAmmoShare ? _catOnStyle : _catOffStyle))
                 {
@@ -175,11 +178,19 @@ namespace ZedZone.SmartCompanions
                     CompanionConfigStore.Save();
                 }
 
-                if (GUI.Button(new Rect(cx + 394f, cy, 195f, 24f),
+                if (GUI.Button(new Rect(cx + 357f, cy, 180f, 24f),
                     (st.AllowAutoLootNearby ? "☑ " : "☐ ") + (ru ? "Авто-сбор трофеев" : "Auto-Loot Nearby"),
                     st.AllowAutoLootNearby ? _catOnStyle : _catOffStyle))
                 {
                     st.AllowAutoLootNearby = !st.AllowAutoLootNearby;
+                    CompanionConfigStore.Save();
+                }
+
+                if (GUI.Button(new Rect(cx + 543f, cy, 210f, 24f),
+                    (st.AllowAutoDropoffAtBase ? "☑ " : "☐ ") + (ru ? "Авто-выгрузка на базе" : "Base Auto-Dropoff"),
+                    st.AllowAutoDropoffAtBase ? _catOnStyle : _catOffStyle))
+                {
+                    st.AllowAutoDropoffAtBase = !st.AllowAutoDropoffAtBase;
                     CompanionConfigStore.Save();
                 }
 
@@ -391,89 +402,112 @@ namespace ZedZone.SmartCompanions
             float ly = area.y + 10f;
             float lw = leftW - 20f;
 
-            GUI.Label(new Rect(lx, ly, lw, 24f), ru ? "⚙ Настройки ИИ и Реплик" : "⚙ AI & Chatter Settings", _headerStyle);
+            GUI.Label(new Rect(lx, ly, lw, 22f), ru ? "⚙ Режим лексики и характера NPC:" : "⚙ NPC Profanity & Attitude Mode:", _headerStyle);
+            ly += 24f;
+
+            float mw = (lw - 10f) / 3f;
+            if (GUI.Button(new Rect(lx, ly, mw, 26f), ru ? "🔥 Мат 18+ (Быдло)" : "🔥 Hardcore 18+",
+                CompanionConfigStore.Profanity == ProfanityMode.HardcoreRude ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.Profanity = ProfanityMode.HardcoreRude;
+                CompanionConfigStore.Save();
+            }
+            if (GUI.Button(new Rect(lx + mw + 5f, ly, mw, 26f), ru ? "⚖ Смешанный" : "⚖ Mixed",
+                CompanionConfigStore.Profanity == ProfanityMode.Mixed ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.Profanity = ProfanityMode.Mixed;
+                CompanionConfigStore.Save();
+            }
+            if (GUI.Button(new Rect(lx + (mw + 5f) * 2f, ly, mw, 26f), ru ? "😇 Без мата" : "😇 Clean",
+                CompanionConfigStore.Profanity == ProfanityMode.Clean ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.Profanity = ProfanityMode.Clean;
+                CompanionConfigStore.Save();
+            }
             ly += 30f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 28f),
-                (CompanionConfigStore.EnableSmartCombat ? "☑ " : "☐ ") + (ru ? "Умный боевой ИИ против зомби и вражеских NPC" : "Smart Combat AI vs Zombies & Hostile NPCs"),
+            if (GUI.Button(new Rect(lx, ly, lw, 25f),
+                (CompanionConfigStore.EnableSmartCombat ? "☑ " : "☐ ") + (ru ? "Умный боевой ИИ, радар тыла и авто-клин" : "Smart Combat AI, Flank Radar & Auto-Unjam"),
                 CompanionConfigStore.EnableSmartCombat ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.EnableSmartCombat = !CompanionConfigStore.EnableSmartCombat;
                 CompanionConfigStore.Save();
             }
-            ly += 32f;
+            ly += 27f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 28f),
+            if (GUI.Button(new Rect(lx, ly, lw, 25f),
                 (CompanionConfigStore.EnableKiting ? "☑ " : "☐ ") + (ru ? "Тактический кайтинг (отход при стрельбе вблизи)" : "Tactical Kiting (Backpedal while firing)"),
                 CompanionConfigStore.EnableKiting ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.EnableKiting = !CompanionConfigStore.EnableKiting;
                 CompanionConfigStore.Save();
             }
-            ly += 32f;
+            ly += 27f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 28f),
+            if (GUI.Button(new Rect(lx, ly, lw, 25f),
                 (CompanionConfigStore.EnableAntiFriendlyFire ? "☑ " : "☐ ") + (ru ? "Анти-Френдли-Фаер (выход с линии огня игрока)" : "Anti-Friendly-Fire (Step out of player aim line)"),
                 CompanionConfigStore.EnableAntiFriendlyFire ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.EnableAntiFriendlyFire = !CompanionConfigStore.EnableAntiFriendlyFire;
                 CompanionConfigStore.Save();
             }
-            ly += 32f;
+            ly += 27f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 28f),
-                (CompanionConfigStore.EnableFieldMedic ? "☑ " : "☐ ") + (ru ? "Полевой медик (экстренная перевязка игрока)" : "Field Medic (Emergency player bandaging)"),
+            if (GUI.Button(new Rect(lx, ly, lw, 25f),
+                (CompanionConfigStore.EnableFieldMedic ? "☑ " : "☐ ") + (ru ? "Полевой медик и снабженец патронами" : "Field Medic & Emergency Ammo Supplier"),
                 CompanionConfigStore.EnableFieldMedic ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.EnableFieldMedic = !CompanionConfigStore.EnableFieldMedic;
+                CompanionConfigStore.EnableAmmoShare = CompanionConfigStore.EnableFieldMedic;
                 CompanionConfigStore.Save();
             }
-            ly += 32f;
+            ly += 27f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 28f),
-                (CompanionConfigStore.EnableAmmoShare ? "☑ " : "☐ ") + (ru ? "Полевой снабженец (подача патронов при пустом оружии)" : "Field Ammo Supplier (Share ammo when empty)"),
-                CompanionConfigStore.EnableAmmoShare ? _catOnStyle : _catOffStyle))
+            if (GUI.Button(new Rect(lx, ly, lw, 25f),
+                (CompanionConfigStore.AutoShareFoodOnEat ? "☑ " : "☐ ") + (ru ? "Авто-делёжка пайка при еде (Бафф «Сытый и злой»)" : "Auto-Share Food When Eating ('Fed & Fierce' Buff)"),
+                CompanionConfigStore.AutoShareFoodOnEat ? _catOnStyle : _catOffStyle))
             {
-                CompanionConfigStore.EnableAmmoShare = !CompanionConfigStore.EnableAmmoShare;
+                CompanionConfigStore.AutoShareFoodOnEat = !CompanionConfigStore.AutoShareFoodOnEat;
                 CompanionConfigStore.Save();
             }
-            ly += 32f;
+            ly += 27f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 28f),
+            if (GUI.Button(new Rect(lx, ly, lw, 25f),
+                (CompanionConfigStore.EnableBaseAutoDropoff ? "☑ " : "☐ ") + (ru ? "Авто-выгрузка хабара на базе и реплики мира" : "Base Auto-Dropoff & World NPC Chatter"),
+                CompanionConfigStore.EnableBaseAutoDropoff ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.EnableBaseAutoDropoff = !CompanionConfigStore.EnableBaseAutoDropoff;
+                CompanionConfigStore.EnableWorldNpcChatter = CompanionConfigStore.EnableBaseAutoDropoff;
+                CompanionConfigStore.Save();
+            }
+            ly += 27f;
+
+            if (GUI.Button(new Rect(lx, ly, lw, 25f),
                 (CompanionConfigStore.EnableChatter ? "☑ " : "☐ ") + (ru ? "Живые комментарии и фразы напарников" : "Companion Context Chatter & Reactions"),
                 CompanionConfigStore.EnableChatter ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.EnableChatter = !CompanionConfigStore.EnableChatter;
                 CompanionConfigStore.Save();
             }
-            ly += 32f;
-
-            if (GUI.Button(new Rect(lx, ly, lw, 28f),
-                (CompanionConfigStore.ShowHudBadge ? "☑ " : "☐ ") + (ru ? "Показывать мини-кнопку отряда в углу экрана" : "Show Mini Squad Badge on HUD"),
-                CompanionConfigStore.ShowHudBadge ? _catOnStyle : _catOffStyle))
-            {
-                CompanionConfigStore.ShowHudBadge = !CompanionConfigStore.ShowHudBadge;
-                CompanionConfigStore.Save();
-            }
-            ly += 38f;
+            ly += 30f;
 
             GUI.Label(new Rect(lx, ly, lw, 22f), ru ? "🎙 Проверить реплику напарника прямо сейчас:" : "🎙 Test Companion Speech Now:", _subHeaderStyle);
-            ly += 26f;
+            ly += 24f;
 
             float hw = (lw - 6f) * 0.5f;
             var nearest = SmartChatterSystem.PickNearestTeammate(GameController.instance.playerCharacter.transform.position, 50f);
-            if (GUI.Button(new Rect(lx, ly, hw, 26f), ru ? "🥩 Реакция на стейк/мясо" : "🥩 Steak/Meat Reaction", _catOnStyle))
+            if (GUI.Button(new Rect(lx, ly, hw, 25f), ru ? "🥩 Стейк (Наезд/Зависть)" : "🥩 Steak Envy", _catOnStyle))
                 if (nearest != null) SmartChatterSystem.Speak(nearest, ChatterTopic.PlayerEatSteakMeat, 0.1f, 6.5f, true);
 
-            if (GUI.Button(new Rect(lx + hw + 6f, ly, hw, 26f), ru ? "🥫 Реакция на консервы" : "🥫 Canned Food", _btnStyle))
-                if (nearest != null) SmartChatterSystem.Speak(nearest, ChatterTopic.PlayerEatCanned, 0.1f, 5.5f, true);
+            if (GUI.Button(new Rect(lx + hw + 6f, ly, hw, 25f), ru ? "🍖 Подогреть братву [F6]" : "🍖 Share Ration [F6]", _catOnStyle))
+                SmartChatterSystem.CommandShareRationWithSquad(nearest, fromAutoShare: false);
 
-            ly += 30f;
-            if (GUI.Button(new Rect(lx, ly, hw, 26f), ru ? "🧟 Боевой клич / Орда" : "🧟 Horde Callout", _btnStyle))
+            ly += 28f;
+            if (GUI.Button(new Rect(lx, ly, hw, 25f), ru ? "🧟 Орда / Замес (Мат)" : "🧟 Horde Callout", _btnStyle))
                 if (nearest != null) SmartChatterSystem.Speak(nearest, ChatterTopic.CombatSpotHorde, 0.1f, 5.5f, true);
 
-            if (GUI.Button(new Rect(lx + hw + 6f, ly, hw, 26f), ru ? "📦 Отчёт о сортировке" : "📦 Sorting Report", _btnStyle))
-                if (nearest != null) SmartChatterSystem.Speak(nearest, ChatterTopic.SortFinished, 0.1f, 5.5f, true);
+            if (GUI.Button(new Rect(lx + hw + 6f, ly, hw, 25f), ru ? "🎒 Перегруз (Плюшкин)" : "🎒 Overweight Rant", _btnStyle))
+                if (nearest != null) SmartChatterSystem.Speak(nearest, ChatterTopic.LootOverweight, 0.1f, 5.5f, true);
 
             // Right column: Recent Speech Log
             var rightRect = new Rect(area.x + leftW + 10f, area.y, rightW, area.height);
