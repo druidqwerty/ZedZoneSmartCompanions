@@ -1,5 +1,3 @@
-> UNRELEASED 1.3.2 candidate: native menu checks passed, ranged-combat acceptance FAILED. See docs/verification-1.3.2.md. Published/installed stable version remains 1.3.1.
-
 # ZED ZONE: Smart Companions — Tactical AI, Base Sorting & Live Chatter
 
 <p align="center"><a href="https://boosty.to/lrgpp"><img src="https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png" alt="LrgPP mods on Boosty" width="640"></a></p>

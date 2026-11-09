@@ -33,6 +33,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 Probe.Patch(method, prefix: harmless);
             }
             _inputObject = new GameObject("SmartCompanions_Input_Regression");
+            UnityEngine.Object.DontDestroyOnLoad(_inputObject);
             _inputObject.SetActive(false);
             _input = _inputObject.AddComponent<CharacterInput>();
             var player = SmokeFixtures.Agents[0].humanCharacter;
@@ -83,6 +84,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 try
                 {
                     gc.playerCharacter = SmokeFixtures.Agents[0].humanCharacter;
+                    if(!Il2CppSafe.IsAliveUnity(gc.playerCharacter))throw new Exception("Closing-frame player fixture is no longer alive.");
                     CheckNative("closing-frame attack remains blocked", () => gc.playerCharacter.Fire(null), false);
                 }
                 finally { gc.playerCharacter = originalPlayer; }

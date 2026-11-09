@@ -1,5 +1,3 @@
-> UNRELEASED 1.3.2 candidate: native menu checks passed, ranged-combat acceptance FAILED. See docs/verification-1.3.2.md. Published/installed stable version remains 1.3.1.
-
 # Smart Companions 1.3.2 — Native commands, threat response and inventory fixes
 
 ## English
@@ -12,6 +10,11 @@
 - Preserved vanilla categories and commands. Removed only the mod's obsolete duplicate paths and unsupported emoji labels.
 
 ### Threat response and combat
+
+- Decoupled bounded companion sight from camera culling and the native seven-frame scan phase, retaining native hostility, height, sight and firing obstruction checks.
+- Fixed FireAtWill losing to nearby-follow priority and repeatedly switching to the first inventory slot. Already drawn guns are kept stable.
+- Unified native AI weapon eligibility: liquid/energy tools no longer cause an endless equip/ranged-attack selection loop. Items remain in inventory; ordinary firearms, bows and crossbows retain native ammo/slot-lock rules.
+- Real copied-world acceptance: target acquired at 8 m in 0.75 s; actual shots at 8 m in 1.36 s and 12 m in 0.36 s, with the same rifle consuming ammo 8→7→6; StopFire prevents shots.
 
 - Migrated malformed legacy combat/weapon state to the bare action values expected by the native AI.
 - Added a 0.3-second native threat-perception refresh, bounded by the equipped weapon's range and native line-of-sight checks. Does not force shots or ignore Hold Fire.
@@ -42,6 +45,11 @@ No new chatter lines in this hotfix. Existing F8 rendering, fonts and input-capt
 - Сохранены обычные категории и команды игры. Удаляются только устаревшие дубликаты путей мода и неподдерживаемые эмодзи в названиях.
 
 ### Реакция на угрозы и бой
+
+- Ограниченная дальностью проверка зрения напарников больше не зависит от экранного отсечения и случайного попадания в фазу кадра. Штатные проверки враждебности, высоты, зрения и препятствий сохранены.
+- «Огонь по готовности» больше не проигрывает обычному сопровождению рядом с лидером; уже выбранное оружие не достаётся заново по кругу.
+- Убрано зацикливание между обычным огнестрелом и жидкостным/энергетическим оружием, которое штатный ИИ экипировки не поддерживает. Предметы остаются в инвентаре; ограничения патронов и закреплённых слотов сохранены.
+- Проверка в копии игрового мира: обнаружение на 8 м за 0,75 с; настоящие выстрелы на 8 м за 1,36 с и на 12 м за 0,36 с, расход патронов одной винтовки 8→7→6. «Не стрелять» прекращает огонь.
 
 - Неверные старые значения боевого приказа и предпочтения оружия приводятся к коротким названиям действий, которые понимает штатный ИИ.
 - Проверка угроз обновляется каждые 0,3 секунды с учётом дальности текущего оружия и штатной проверки видимости. Принудительных выстрелов и отмены приказа «Не стрелять» нет.

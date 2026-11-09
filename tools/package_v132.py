@@ -29,7 +29,7 @@ archive = dist / "ZedZoneSmartCompanions-1.3.2.zip"
 with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as z:
     z.write(dll, "Mods/SmartCompanions/SmartCompanions.dll")
     z.write(meta, "Mods/SmartCompanions/mod.json")
-    for filename in ("README.md", "README_RU.md", "README_CN.md", "LICENSE", "docs/verification-1.3.2.md", "docs/feedback-1.3.2.md", "docs/native-menu-1.3.2.log", "docs/preview.png"):
+    for filename in ("README.md", "README_RU.md", "README_CN.md", "LICENSE", "docs/verification-1.3.2.md", "docs/feedback-1.3.2.md", "docs/native-menu-1.3.2.log", "docs/ui-smoke-1.3.2.log", "docs/combat-acceptance-1.3.2.log", "docs/native-perception-analysis-1.3.2.md", "docs/preview.png"):
         z.write(root / filename, filename)
     for picture in sorted((root / "docs/images").glob("ui-1.3.2-*.png")):
         z.write(picture, str(picture.relative_to(root)))

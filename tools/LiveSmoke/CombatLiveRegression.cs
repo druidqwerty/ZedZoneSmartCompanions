@@ -9,6 +9,9 @@ namespace ZedZone.SmartCompanions.LiveSmoke
     {
         private static float _start = -1f, _phaseStart, _seenAt = -1f, _nextEquip;
         private static int _phase = -1, _initialAmmo, _initialFireFrame;
+        private static IntPtr _observedGun, _observedWeaponData;
+        private static bool _wasReloading;
+        private static float _stableWeaponSince;
         private static GOAPAgent _agent;
         private static ZombieController _zombie;
         private static Vector2 _originalZombiePosition;
@@ -79,11 +82,14 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     _zombieEnabled = _zombie.enabled;
                     _zombieWasFrozen = _zombie.isScriptedMoveFreezeActive;
                     _originalHp = _zombie.hp;
+                    IsolateArena();
                     RememberActorPositions();
                     // A disabled character may be excluded by native perception. Freeze
                     // movement through the native API, keeping its component alive/active.
                     if (!_zombieWasFrozen) _zombie.BeginScriptedMoveFreeze();
-                    _zombie.hp = 10000f;
+                    // Survive the owner's high-damage/critical weapon rolls through
+                    // the cease-fire observation. We verify shots, not target damage.
+                    _zombie.hp = 10000000f;
                     _state.Doctrine = TacticalDoctrine.SniperKite;
                     // Returning-to-base deliberately suppresses native combat. Put the
                     // disposable test NPC on the normal escort order, not a forced goal.
@@ -96,12 +102,14 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     return false;
                 }
 
-                if (_zombie.deadFlag || _agent.humanCharacter.deadFlag) return End(false, "FAIL: test participant died.");
-                _zombie.TeleportTo(_placement, false);
-                _agent.LookAtPositionSmoothCompat(_placement, 30f);
+                if (_zombie.deadFlag || _agent.humanCharacter.deadFlag) return End(false, "FAIL: participant died; target="+_zombie.deadFlag+", NPC="+_agent.humanCharacter.deadFlag);
                 DiagnosePhase(now);
                 var gun = _agent.humanCharacter.rangedWeapon;
-                if (!Il2CppSafe.IsAliveUnity(gun)) return End(false, "FAIL: loaded ranged weapon was lost during test.");
+                if (!Il2CppSafe.IsAliveUnity(gun) || !Il2CppSafe.IsAlive(gun.weaponData))
+                    return End(false, "FAIL: loaded ranged weapon/data was lost during test.");
+                float requiredRange = _phase == 1 ? 12f : 8f;
+                if (_phase < 2 && gun.fireRange + 0.01f < requiredRange && now - _phaseStart > 2f)
+                    return End(false, $"BLOCKED: native weapon selection uses weaponId={gun.weaponData.itemId} range={gun.fireRange:F2}m for the {requiredRange:F0}m phase; target={DescribeCurrentTarget()}. A suitable weapon/arena fixture is required.");
                 float distance = Vector2.Distance(_agent.humanCharacter.transform.position, _zombie.transform.position);
                 bool acquired = Il2CppSafe.IsAliveUnity(_agent.mostThreateningCharacter) &&
                     _agent.mostThreateningCharacter.Pointer == _zombie.Pointer;
@@ -110,10 +118,14 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     _seenAt = now;
                     LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Acquired phase={_phase} after={now-_phaseStart:F2}s distance={distance:F2}m sight={_agent.sightRange:F2}.");
                 }
-                bool fired = BasicRangedWeapon.GetLoadedAmmo(gun.weaponData) < _initialAmmo || gun.fireFrameFlag > _initialFireFrame;
+                bool fired = ObserveDischarge(gun, now);
                 if (_phase < 2 && fired)
                 {
-                    if (!acquired || distance < 6f) return End(false, "FAIL: discharge was not at the ranged test target/distance.");
+                    if (gun.fireRange + 0.01f < requiredRange)
+                        return End(false, $"BLOCKED: weaponId={gun.weaponData.itemId} range={gun.fireRange:F2}m discharged during the {requiredRange:F0}m phase; this does not verify the requested ranged fixture.");
+                    if (!acquired)
+                        return End(false, "BLOCKED: native AI discharged while selecting another threat: " + DescribeCurrentTarget() + "; isolate the test arena before attributing this shot to the intended target.");
+                    if (distance < 6f) return End(false, "FAIL: discharge was not at the ranged test target/distance.");
                     LiveSmokePlugin.Logger.LogInfo($"[CombatLive] PASS native AI discharge phase={_phase} distance={distance:F2}m after={now-_phaseStart:F2}s.");
                     _phase++;
                     StartPhase(now);
@@ -121,7 +133,9 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 else if (_phase == 2)
                 {
                     if (fired) return End(false, "FAIL: native StopFire permitted a shot.");
-                    if (now - _phaseStart > 3f)
+                    // A gun replacement is not a shot, but it starts a fresh full
+                    // cease-fire observation window rather than shortening this check.
+                    if (now - _stableWeaponSince > 3f)
                         return End(true, "PASS ranged acquisition/discharge at 8m and 12m; StopFire negative case.");
                 }
                 else if (now - _phaseStart > 12f)
@@ -148,9 +162,49 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             _phaseStart = now;
             _seenAt = -1f;
             var gun = _agent.humanCharacter.rangedWeapon;
+            ResetDischargeBaseline(gun, now);
+            LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Begin phase={_phase} distance={distance}m rounds={_initialAmmo} weaponId={gun.weaponData.itemId} range={gun.fireRange:F2} command={_agent.npcData.combatCommand}.");
+        }
+
+        private static void ResetDischargeBaseline(BasicRangedWeapon gun, float now)
+        {
+            _observedGun = gun.Pointer;
+            _observedWeaponData = gun.weaponData.Pointer;
             _initialAmmo = BasicRangedWeapon.GetLoadedAmmo(gun.weaponData);
             _initialFireFrame = gun.fireFrameFlag;
-            LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Begin phase={_phase} distance={distance}m rounds={_initialAmmo} command={_agent.npcData.combatCommand}.");
+            _wasReloading = gun.isReloading || _agent.humanCharacter.reloadingMagazineFlag;
+            _stableWeaponSince = now;
+        }
+
+        private static bool ObserveDischarge(BasicRangedWeapon gun, float now)
+        {
+            if (gun.Pointer != _observedGun || gun.weaponData.Pointer != _observedWeaponData)
+            {
+                LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Weapon changed phase={_phase}: weaponId={gun.weaponData.itemId} range={gun.fireRange:F2} loaded={BasicRangedWeapon.GetLoadedAmmo(gun.weaponData)} target={DescribeCurrentTarget()}; resetting shot baseline (NOT a discharge).");
+                ResetDischargeBaseline(gun, now);
+                return false;
+            }
+            int ammunition = BasicRangedWeapon.GetLoadedAmmo(gun.weaponData);
+            int fireFrame = gun.fireFrameFlag;
+            bool reloading = gun.isReloading || _agent.humanCharacter.reloadingMagazineFlag;
+            bool frameAdvanced = fireFrame > _initialFireFrame;
+            bool consumedAmmo = ammunition < _initialAmmo && !reloading && !_wasReloading;
+            if (frameAdvanced || consumedAmmo)
+                LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Same-weapon discharge evidence phase={_phase} weaponId={gun.weaponData.itemId} range={gun.fireRange:F2} ammo={_initialAmmo}->{ammunition} fireFrame={_initialFireFrame}->{fireFrame} reloading={reloading}.");
+            // Roll the same-weapon baseline forward, including reload transitions.
+            // Magazine removal/replacement must not be counted as ammunition fired.
+            _initialAmmo = ammunition;
+            _initialFireFrame = fireFrame;
+            _wasReloading = reloading;
+            return frameAdvanced || consumedAmmo;
+        }
+
+        private static string DescribeCurrentTarget()
+        {
+            var target = _agent.mostThreateningCharacter;
+            if (!Il2CppSafe.IsAliveUnity(target)) return "none";
+            float distance = Vector2.Distance(_agent.humanCharacter.transform.position, target.transform.position);
+            return $"{target.name}#{target.GetInstanceID()} at {distance:F2}m (testTarget={target.Pointer == _zombie.Pointer})";
         }
 
         private static bool End(bool success, string message)
@@ -180,6 +234,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     if (!_zombieWasFrozen) _zombie.EndScriptedMoveFreeze();
                 }
                 RestoreActorPositions();
+                RestoreArena();
             }
             catch (Exception error) { LiveSmokePlugin.Logger.LogWarning("[CombatLive] Lab cleanup: " + error.Message); }
             return true;

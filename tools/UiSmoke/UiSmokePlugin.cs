@@ -53,7 +53,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 if (!_initialized)
                 {
                     if (Time.realtimeSinceStartup < 5f) return;
-                    if (Environment.GetCommandLineArgs().Contains("--sc-native-menu-only"))
+                    // Keep every fixture run in the settled main-menu scene. Starting
+                    // in GameDataInit can destroy its inert actors during scene load.
                     {
                         if (!GameController.initFinishFlag || Time.realtimeSinceStartup < 9f) return;
                         if (_menuSceneAt < 0f)
@@ -167,6 +168,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 var expectedBackground = GUI.backgroundColor;
                 float expectedScale = GUI.matrix.m00;
                 gc.playerCharacter = SmokeFixtures.Agents[0].humanCharacter;
+                if(!Il2CppSafe.IsAliveUnity(gc.playerCharacter))throw new Exception("UI fixture was destroyed during a scene transition.");
                 SmartCompanionsUI.DrawAllGUI();
                 if (GUI.enabled || Mathf.Abs(GUI.matrix.m00 - expectedScale) > 0.0001f || GUI.color != expectedColor ||
                     GUI.contentColor != expectedContent || GUI.backgroundColor != expectedBackground)

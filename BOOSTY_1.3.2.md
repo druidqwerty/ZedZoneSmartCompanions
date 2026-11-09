@@ -1,4 +1,3 @@
-DRAFT — DO NOT QUEUE: combat acceptance failed.
 Title / Заголовок: ZED ZONE: Smart Companions 1.3.2 — Clear orders and faster threat response / ZED ZONE: Smart Companions 1.3.2 — Понятные приказы и быстрая реакция на угрозы
 ---
 

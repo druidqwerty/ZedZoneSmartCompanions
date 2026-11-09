@@ -23,6 +23,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
             for (int i = 0; i < names.Length; i++)
             {
                 var go = new GameObject("SmartCompanions_UI_SMOKE_" + i);
+                UnityEngine.Object.DontDestroyOnLoad(go);
                 go.SetActive(false);
                 Objects.Add(go);
                 var agent = go.AddComponent<GOAPAgent>();
@@ -42,6 +43,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
         internal static void VerifyNativeInputGates()
         {
             var go = new GameObject("SmartCompanions_UI_SMOKE_Input");
+            UnityEngine.Object.DontDestroyOnLoad(go);
             go.SetActive(false);
             Objects.Add(go);
             var input = go.AddComponent<CharacterInput>();

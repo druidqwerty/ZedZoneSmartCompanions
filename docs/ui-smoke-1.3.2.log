@@ -1,0 +1,81 @@
+[Message: Preloader] BepInEx 6.0.0-be.793 - ZEDZONE (07.11.2026 23:46:52)
+[Message: Preloader] Built from commit dbc82f05b8ea34833de5b6a723eb60dd8398e0b1
+[Info   :   BepInEx] System platform: Windows 10 64-bit
+[Info   :   BepInEx] Process bitness: 64-bit (x64)
+[Info   :   BepInEx] Running under Unity 2023.1.18f1
+[Info   :   BepInEx] Runtime version: 6.0.7
+[Info   :   BepInEx] Runtime information: .NET 6.0.7
+[Info   : Preloader] 0 patcher plugins loaded
+[Info   : Preloader] 0 assemblies discovered
+[Message:AssemblyPatcher] Executing 0 patch(es)
+[Message:   BepInEx] Chainloader initialized
+[Warning:Il2CppInterop] Class::Init signatures have been exhausted, using a substitute!
+[Info   :Il2CppInterop] Registered mono type Il2CppInterop.Runtime.DelegateSupport+Il2CppToMonoDelegateReference in il2cpp domain
+[Info   :   BepInEx] 1 plugin to load
+[Info   :   BepInEx] Loading [ZED ZONE Code Mod Loader 1.1.0]
+[Info   :ZED ZONE Code Mod Loader]   + [game] G:\Steam\steamapps\common\ZED ZONE\Mods
+[Info   :ZED ZONE Code Mod Loader]   + [workshop] G:\Steam\steamapps\workshop\content\1211600
+[Info   :ZED ZONE Code Mod Loader] Code mod directories:
+[Info   :ZED ZONE Code Mod Loader]   G:\Steam\steamapps\common\ZED ZONE\Mods
+[Info   :ZED ZONE Code Mod Loader]   G:\Steam\steamapps\workshop\content\1211600
+[Warning:   BepInEx] Skipping [ZED ZONE Smart Companions 1.3.1] because a newer version exists (ZED ZONE Smart Companions 1.3.2)
+[Warning:   BepInEx] Skipping [ZED ZONE Smart Companions 1.3.1] because a newer version exists (ZED ZONE Smart Companions 1.3.2)
+[Warning:   BepInEx] Skipping [zedzone.zedmodsloader] because a plugin with a similar GUID ([ZED ZONE Code Mod Loader 1.1.0]) has been already loaded.
+[Info   :   BepInEx] Loading [ZED ZONE Smart Companions 1.3.2]
+[Info   :ZED ZONE Smart Companions] ZED ZONE Smart Companions v1.3.2 initializing...
+[Info   :ZED ZONE Smart Companions] Patched 29 game method(s) via Harmony.
+[Info   :Il2CppInterop] Registered mono type ZedZone.SmartCompanions.SmartCompanionsController in il2cpp domain
+[Info   :ZED ZONE Smart Companions] Registered SmartCompanionsController MonoBehaviour in IL2CPP domain.
+[Info   :ZED ZONE Smart Companions] [SelfVerify] PASS v1.3.2: 60 chatter topics (565 unique RU lines [Rude=349, Clean=216], 290 unique EN lines [Rude=194, Clean=134], 324 unique ZH lines [Rude=190, Clean=134]), 12 storage categories (RU/EN/ZH), 11 custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, ModLanguage Auto/RU/EN/ZH verified.
+[Info   :   BepInEx] Loading [Smart Companions Live Lab 1.0.0]
+[Info   :   BepInEx] Loading [Smart Companions UI Smoke 1.0.0]
+[Info   :Il2CppInterop] Registered mono type ZedZone.SmartCompanions.UiSmoke.UiSmokeRunner in il2cpp domain
+[Info   :Smart Companions UI Smoke] [UiSmoke] Enabled. Main-menu fixtures only; no save is loaded or written.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3834614258\payload\ZedModsLoader.dll': an assembly named 'ZedModsLoader' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3836613312\Mods\SmartCompanions\SmartCompanions.dll': an assembly named 'SmartCompanions' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3836613312\SmartCompanions\SmartCompanions.dll': an assembly named 'SmartCompanions' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Code mods loaded: 3
+[Info   :ZED ZONE Code Mod Loader]   - ZED ZONE Smart Companions 1.3.2 [BepInEx plugin] G:\Steam\steamapps\common\ZED ZONE\Mods\SmartCompanions\SmartCompanions.dll
+[Info   :ZED ZONE Code Mod Loader]   - Smart Companions Live Lab 1.0.0 [BepInEx plugin] G:\Steam\steamapps\common\ZED ZONE\Mods\ZLiveSmoke\SmartCompanions.LiveSmoke.dll
+[Info   :ZED ZONE Code Mod Loader]   - Smart Companions UI Smoke 1.0.0 [BepInEx plugin] G:\Steam\steamapps\common\ZED ZONE\Mods\ZUiSmoke\SmartCompanions.UiSmoke.dll
+[Info   :Il2CppInterop] Registered mono type ZedZone.ZedModsLoader.ModsLoadedNotifier in il2cpp domain
+[Message:   BepInEx] Chainloader startup complete
+[Info   :Smart Companions UI Smoke] [UiSmoke] Created three disabled native GOAPAgent fixtures.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS open F8 blocks player controls and mouse.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native CharacterInput stopAllInput=true, CanPressMouse=false, CanControlMouseActions=false.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player attack blocked while F8 open.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS companion attack unaffected by F8.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player gun attack blocked while F8 open.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS companion gun attack unaffected by F8.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player melee attack blocked while F8 open.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS companion melee attack unaffected by F8.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player held melee input blocked while F8 open.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS companion held melee input unaffected by F8.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native player control handler blocked.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS scene transition does not suppress unidentified NPC.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native attack isolation, modal movement reset, null-pointer and scene-transition guards.
+[Info   :ZED ZONE Smart Companions] [UI] Font ready: Microsoft YaHei (Latin/Cyrillic/Chinese glyphs verified).
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-00-Russian-0, NPCs=3.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-01-Russian-1, NPCs=3.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-02-Russian-2, NPCs=3.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-03-Russian-3, NPCs=0.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-04-Russian-4, NPCs=6.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-05-English-0, NPCs=3.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-06-English-1, NPCs=3.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-07-English-2, NPCs=3.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-08-English-3, NPCs=0.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-09-English-4, NPCs=6.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-10-Chinese-0, NPCs=3.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-11-Chinese-1, NPCs=3.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-12-Chinese-2, NPCs=3.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-13-Chinese-3, NPCs=0.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-14-Chinese-4, NPCs=6.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS closing-frame attack remains blocked.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player attack restored after release.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player gun attack restored after release.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player melee attack restored after release.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player held melee input restored after release.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS companion attack remains allowed.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native player control handler restored.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS close-frame attack quarantine and native player controls/attack restored after release; NPC attacks unaffected.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS 15/15 actual repaint cases; screenshots=15; fixture NPCs=3.

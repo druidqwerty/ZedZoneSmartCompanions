@@ -57,12 +57,18 @@ namespace ZedZone.SmartCompanions.LiveSmoke
         {
             try
             {
+                if(Environment.GetCommandLineArgs().Contains("--sc-dump-native"))
+                {
+                    if(Time.realtimeSinceStartup<5f)return;
+                    NativeAddressDump.Write();enabled=false;Application.Quit();return;
+                }
                 if (!_loading)
                 {
                     if (Time.realtimeSinceStartup < 9f || !GameController.initFinishFlag) return;
                     foreach (var p in new[]{GameConfigs.gameDataSavingPath,GameConfigs.mapDataSavingPath,GameConfigs.gameSettingsDataSavingPath})
                         if (!Path.GetFullPath(p).StartsWith(LiveSmokePlugin.Lab,StringComparison.OrdinalIgnoreCase)) throw new Exception("Unredirected save path: " + p);
                     var path = Directory.GetFiles(Path.Combine(LiveSmokePlugin.Lab,"GameData","GameData"),"*.game").OrderByDescending(File.GetLastWriteTimeUtc).First();
+                    NativeAddressDump.Write();
                     var data = GameDataManager.instance.LoadGameDataFromPath(path);
                     if (data == null) throw new Exception("Unable to load copied world");
                     _loading = true; _started = Time.realtimeSinceStartup;
@@ -106,7 +112,12 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                                 mgr.DrainPendingInit();
                             }
                         }
-                        foreach(var ag in squad) LiveSmokePlugin.Logger.LogInfo("[LiveLab] NPC="+ag.npcData.characterData.characterName+" pos="+ag.humanCharacter.transform.position+" combat="+ag.npcData.combatCommand+" weaponPref="+ag.npcData.weaponPreference+" ranged="+(ag.humanCharacter.rangedWeapon!=null));
+                        foreach(var ag in squad) LiveSmokePlugin.Logger.LogInfo("[LiveLab] NPC="+ag.npcData.characterData.characterName+" pos="+ag.humanCharacter.transform.position+" combat="+ag.npcData.combatCommand+" weaponPref="+ag.npcData.weaponPreference+" ranged="+(ag.humanCharacter.rangedWeapon!=null)+" equipment="+ag.humanCharacter.characterData.characterEquipmentData.Pointer);
+                    }
+                    if(Environment.GetCommandLineArgs().Contains("--sc-equip-trace") && Time.realtimeSinceStartup-_started>17f)
+                    {
+                        LiveSmokePlugin.Logger.LogInfo("[NativeEquipTrace] Diagnostic-only run complete; not an acceptance test.");
+                        enabled=false;Application.Quit();return;
                     }
                     if(CombatLiveRegression.Tick())
                     {

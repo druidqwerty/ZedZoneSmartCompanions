@@ -1,0 +1,15 @@
+[Info   :ZED ZONE Smart Companions] Patched 29 game method(s) via Harmony.
+[Info   :ZED ZONE Smart Companions] [SelfVerify] PASS v1.3.2: 60 chatter topics (565 unique RU lines [Rude=349, Clean=216], 290 unique EN lines [Rude=194, Clean=134], 324 unique ZH lines [Rude=190, Clean=134]), 12 storage categories (RU/EN/ZH), 11 custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, ModLanguage Auto/RU/EN/ZH verified.
+[Info   :Smart Companions Live Lab] [CombatLive] Prep orlov: equipped=True loaded=8 reserve=40 range=24.
+[Info   :Smart Companions Live Lab] [CombatLive] Isolated one-hostile copied-world arena; temporarily parked 135 other enemies.
+[Info   :Smart Companions Live Lab] [CombatLive] Begin phase=0 distance=8m rounds=8 weaponId=406 range=24,00 command=FireAtWill.
+[Info   :Smart Companions Live Lab] [CombatLive] Acquired phase=0 after=0,75s distance=8,00m sight=28,00.
+[Info   :Smart Companions Live Lab] [CombatLive] Same-weapon discharge evidence phase=0 weaponId=406 range=24,00 ammo=8->7 fireFrame=-10->1565 reloading=False.
+[Info   :Smart Companions Live Lab] [CombatLive] PASS native AI discharge phase=0 distance=8,00m after=1,36s.
+[Info   :Smart Companions Live Lab] [CombatLive] Begin phase=1 distance=12m rounds=7 weaponId=406 range=24,00 command=FireAtWill.
+[Info   :Smart Companions Live Lab] [CombatLive] Acquired phase=1 after=0,01s distance=12,00m sight=28,00.
+[Info   :Smart Companions Live Lab] [CombatLive] Same-weapon discharge evidence phase=1 weaponId=406 range=24,00 ammo=7->6 fireFrame=1565->1612 reloading=False.
+[Info   :Smart Companions Live Lab] [CombatLive] PASS native AI discharge phase=1 distance=12,00m after=0,36s.
+[Info   :Smart Companions Live Lab] [CombatLive] Begin phase=2 distance=8m rounds=6 weaponId=406 range=24,00 command=StopFire.
+[Info   :Smart Companions Live Lab] [CombatLive] Acquired phase=2 after=0,01s distance=8,00m sight=28,00.
+[Info   :Smart Companions Live Lab] [CombatLive] PASS ranged acquisition/discharge at 8m and 12m; StopFire negative case.

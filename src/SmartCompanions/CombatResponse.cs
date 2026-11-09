@@ -132,7 +132,7 @@ namespace ZedZone.SmartCompanions
                         if (range > 0f && !float.IsNaN(range) && !float.IsInfinity(range))
                             agent.defaultSightRange = Mathf.Max(originalRange, Mathf.Min(24f, range));
                     }
-                    agent.UpdateAgentSight();
+                    CombatSensing.Scan(agent);
                 }
                 finally { agent.defaultSightRange = originalRange; }
 

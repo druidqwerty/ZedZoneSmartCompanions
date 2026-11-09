@@ -36,6 +36,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     for (int i = 0; i < Math.Min(actions.Count, 5); i++)
                         text.Append(actions[i]?.actionName ?? "null").Append(',');
                 LiveSmokePlugin.Logger.LogInfo(text.ToString());
+                PerceptionDiagnostics.Log(_agent, _zombie);
+                WeaponActionDiagnostics.Log(_agent);
             }
             catch (Exception error) { LiveSmokePlugin.Logger.LogWarning("[CombatLive] Diagnostic read: " + error); }
         }
