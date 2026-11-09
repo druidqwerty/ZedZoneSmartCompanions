@@ -11,9 +11,19 @@ namespace ZedZone.SmartCompanions
 
     public static partial class SmartCompanionsUI
     {
+        private static void SetLanguageMode(ModLanguage mode)
+        {
+            if (CompanionConfigStore.LanguageMode != mode)
+            {
+                CompanionConfigStore.LanguageMode = mode;
+                InvalidateStyles();
+                CompanionConfigStore.Save();
+            }
+        }
+
         private static void DrawMainHubWindow()
         {
-            bool ru = CompanionConfigStore.UseRussian;
+            var lang = CompanionConfigStore.EffectiveLanguage;
             var r = _mainWinRect;
             GUI.Box(r, GUIContent.none, _winStyle);
 
@@ -22,16 +32,30 @@ namespace ZedZone.SmartCompanions
             float w = r.width - 28f;
 
             // Title bar
-            GUI.Label(new Rect(x, y, w - 160f, 28f),
-                ru ? "🔧 ZED ZONE — УМНЫЕ НАПАРНИКИ И ЛОГИСТИКА БАЗЫ [F8]" : "🔧 ZED ZONE — SMART COMPANIONS & BASE LOGISTICS [F8]",
+            GUI.Label(new Rect(x, y, w - 310f, 28f),
+                CompanionConfigStore.L(lang,
+                    "🔧 ZED ZONE — УМНЫЕ НАПАРНИКИ И ЛОГИСТИКА БАЗЫ [F8]",
+                    "🔧 ZED ZONE — SMART COMPANIONS & BASE LOGISTICS [F8]",
+                    "🔧 ZED ZONE — 智能队友与基地物流中心 [F8]"),
                 _headerStyle);
 
-            if (GUI.Button(new Rect(r.xMax - 140f, y, 54f, 26f), ru ? "RU/EN" : "EN/RU", _btnStyle))
-            {
-                CompanionConfigStore.UseRussian = !CompanionConfigStore.UseRussian;
-                CompanionConfigStore.Save();
-            }
-            if (GUI.Button(new Rect(r.xMax - 80f, y, 66f, 26f), ru ? "Закрыть" : "Close", _btnStyle))
+            // 4-mode language selector in header bar: Auto | RU | EN | 中文
+            float lx = r.xMax - 306f;
+            if (GUI.Button(new Rect(lx, y, 62f, 26f), "🌐 Auto",
+                CompanionConfigStore.LanguageMode == ModLanguage.Auto ? _catOnStyle : _btnStyle))
+                SetLanguageMode(ModLanguage.Auto);
+            if (GUI.Button(new Rect(lx + 65f, y, 50f, 26f), "🇷🇺 RU",
+                CompanionConfigStore.LanguageMode == ModLanguage.Russian ? _catOnStyle : _btnStyle))
+                SetLanguageMode(ModLanguage.Russian);
+            if (GUI.Button(new Rect(lx + 118f, y, 50f, 26f), "🇬🇧 EN",
+                CompanionConfigStore.LanguageMode == ModLanguage.English ? _catOnStyle : _btnStyle))
+                SetLanguageMode(ModLanguage.English);
+            if (GUI.Button(new Rect(lx + 171f, y, 54f, 26f), "🇨🇳 中文",
+                CompanionConfigStore.LanguageMode == ModLanguage.Chinese ? _catOnStyle : _btnStyle))
+                SetLanguageMode(ModLanguage.Chinese);
+
+            if (GUI.Button(new Rect(r.xMax - 76f, y, 64f, 26f),
+                CompanionConfigStore.L(lang, "Закрыть", "Close", "关闭"), _btnStyle))
             {
                 ShowMainWindow = false;
                 return;
@@ -41,20 +65,29 @@ namespace ZedZone.SmartCompanions
             // Tabs
             float tabW = (w - 16f) / 3f;
             if (GUI.Button(new Rect(x, y, tabW, 30f),
-                ru ? "👥 1. Напарники и Боевой ИИ" : "👥 1. Companions & Combat AI",
+                CompanionConfigStore.L(lang,
+                    "👥 1. Напарники и Боевой ИИ",
+                    "👥 1. Companions & Combat AI",
+                    "👥 1. 队友与智能战斗 AI"),
                 _activeTab == 0 ? _catOnStyle : _btnStyle))
             {
                 _activeTab = 0;
             }
             if (GUI.Button(new Rect(x + tabW + 8f, y, tabW, 30f),
-                ru ? "📦 2. Ящики базы и Сортировка" : "📦 2. Base Containers & Sorting",
+                CompanionConfigStore.L(lang,
+                    "📦 2. Ящики базы и Сортировка",
+                    "📦 2. Base Containers & Sorting",
+                    "📦 2. 基地储物箱与分类整理"),
                 _activeTab == 1 ? _catOnStyle : _btnStyle))
             {
                 _activeTab = 1;
                 BaseSortingSystem.ScanNearbyContainers(force: true);
             }
             if (GUI.Button(new Rect(x + (tabW + 8f) * 2f, y, tabW, 30f),
-                ru ? "💬 3. Фразы, Реакции и Настройки" : "💬 3. Chatter, Reactions & Settings",
+                CompanionConfigStore.L(lang,
+                    "💬 3. Фразы, Реакции и Настройки",
+                    "💬 3. Chatter, Reactions & Settings",
+                    "💬 3. 语录、反应与语言设置"),
                 _activeTab == 2 ? _catOnStyle : _btnStyle))
             {
                 _activeTab = 2;
@@ -64,11 +97,11 @@ namespace ZedZone.SmartCompanions
             var contentRect = new Rect(x, y, w, r.height - (y - r.y) - 14f);
 
             if (_activeTab == 0)
-                DrawTabSquad(contentRect, ru);
+                DrawTabSquad(contentRect, lang);
             else if (_activeTab == 1)
-                DrawTabBaseBoxes(contentRect, ru);
+                DrawTabBaseBoxes(contentRect, lang);
             else
-                DrawTabChatterAndSettings(contentRect, ru);
+                DrawTabChatterAndSettings(contentRect, lang);
 
             if (Event.current != null && (Event.current.type == EventType.MouseDown || Event.current.type == EventType.MouseUp) &&
                 r.Contains(Event.current.mousePosition))
@@ -77,7 +110,7 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        private static void DrawTabSquad(Rect area, bool ru)
+        private static void DrawTabSquad(Rect area, ModLanguage lang)
         {
             var teammates = SmartChatterSystem.GetActiveTeammateAgents();
 
@@ -86,21 +119,29 @@ namespace ZedZone.SmartCompanions
             float bx = area.x + 8f;
             float by = area.y + 8f;
             GUI.Label(new Rect(bx, by, 175f, 26f),
-                ru ? $"Отряд активен: {teammates.Count} чел." : $"Active Squad: {teammates.Count}", _subHeaderStyle);
+                CompanionConfigStore.L(lang,
+                    $"Отряд активен: {teammates.Count} чел.",
+                    $"Active Squad: {teammates.Count}",
+                    $"当前在队队友：{teammates.Count} 人"), _subHeaderStyle);
 
-            if (GUI.Button(new Rect(bx + 180f, by, 140f, 26f), ru ? "📦 Сортировать [F7]" : "📦 Sort Base [F7]", _catOnStyle))
+            if (GUI.Button(new Rect(bx + 180f, by, 140f, 26f),
+                CompanionConfigStore.L(lang, "📦 Сортировать [F7]", "📦 Sort Base [F7]", "📦 整理基地 [F7]"), _catOnStyle))
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
 
-            if (GUI.Button(new Rect(bx + 325f, by, 130f, 26f), ru ? "⚡ Мгновенно" : "⚡ Instant Sort", _btnStyle))
+            if (GUI.Button(new Rect(bx + 325f, by, 130f, 26f),
+                CompanionConfigStore.L(lang, "⚡ Мгновенно", "⚡ Instant Sort", "⚡ 立即秒理"), _btnStyle))
                 BaseSortingSystem.CommandSortBase(null, null, instant: true);
 
-            if (GUI.Button(new Rect(bx + 460f, by, 125f, 26f), ru ? "🎒 Собрать лут" : "🎒 Sweep Loot", _btnStyle))
+            if (GUI.Button(new Rect(bx + 460f, by, 125f, 26f),
+                CompanionConfigStore.L(lang, "🎒 Собрать лут", "🎒 Sweep Loot", "🎒 搜刮战利品"), _btnStyle))
                 AutoLootSystem.CommandSweepNearbyLoot(null, 20f);
 
-            if (GUI.Button(new Rect(bx + 590f, by, 130f, 26f), ru ? "🍖 Подогреть [F6]" : "🍖 Share Food [F6]", _catOnStyle))
+            if (GUI.Button(new Rect(bx + 590f, by, 130f, 26f),
+                CompanionConfigStore.L(lang, "🍖 Подогреть [F6]", "🍖 Share Food [F6]", "🍖 分口粮 [F6]"), _catOnStyle))
                 SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
 
-            if (GUI.Button(new Rect(bx + 725f, by, 115f, 26f), ru ? "💉 Медпомощь" : "💉 Field Aid", _btnStyle))
+            if (GUI.Button(new Rect(bx + 725f, by, 115f, 26f),
+                CompanionConfigStore.L(lang, "💉 Медпомощь", "💉 Field Aid", "💉 战地急救"), _btnStyle))
             {
                 if (teammates.Count > 0)
                     CustomNpcCommands.ExecuteCustomCommand(teammates[0].npcData, CustomNpcCommands.EmergencyAid);
@@ -113,9 +154,10 @@ namespace ZedZone.SmartCompanions
             {
                 GUI.Box(new Rect(area.x, listY, area.width, 90f), GUIContent.none, _boxStyle);
                 GUI.Label(new Rect(area.x + 16f, listY + 16f, area.width - 32f, 60f),
-                    ru
-                        ? "У вас сейчас нет активных напарников рядом. Наймите выжившего в лагере или по рации — здесь появятся его тактические доктрины, управление умным боем, приказ на сортировку базы и живые реакции!"
-                        : "No active companions nearby. Recruit a survivor in camp or via radio to manage their tactical doctrines, base sorting orders, and live reactions here!",
+                    CompanionConfigStore.L(lang,
+                        "У вас сейчас нет активных напарников рядом. Наймите выжившего в лагере или по рации — здесь появятся его тактические доктрины, управление умным боем, приказ на сортировку базы и живые реакции!",
+                        "No active companions nearby. Recruit a survivor in camp or via radio to manage their tactical doctrines, base sorting orders, and live reactions here!",
+                        "当前附近没有已招募的队友。在营地或通过电台招募幸存者后，即可在此管理其战术学说、智能战斗 AI、基地箱子整理指令与实时互动吐槽！"),
                     _labelStyle);
                 return;
             }
@@ -143,27 +185,29 @@ namespace ZedZone.SmartCompanions
                 float maxHp = status != null && status.maxhp > 0 ? status.maxhp : Mathf.Max(100f, ag.npcData.maxHealth);
                 float hunger = status != null ? status.hunger : ag.npcData.hunger;
                 float thirst = status != null ? status.thirst : ag.npcData.thirst;
-                string wepName = cd?.characterEquipmentData?.currentWeaponItemData?.GetItemName() ?? (ru ? "Без оружия" : "Unarmed");
+                string wepName = cd?.characterEquipmentData?.currentWeaponItemData?.GetItemName()
+                    ?? CompanionConfigStore.L(lang, "Без оружия", "Unarmed", "徒手");
 
                 GUI.Label(new Rect(cx, cy, 420f, 22f),
-                    $"★ {name}  |  HP: {hp:F0}/{maxHp:F0}  |  {(ru ? "Сытость" : "Food")}: {hunger:F0}%  |  {(ru ? "Вода" : "Water")}: {thirst:F0}%  |  🔫 {wepName}",
+                    $"★ {name}  |  HP: {hp:F0}/{maxHp:F0}  |  {CompanionConfigStore.L(lang, "Сытость", "Food", "饱食")}: {hunger:F0}%  |  {CompanionConfigStore.L(lang, "Вода", "Water", "饮水")}: {thirst:F0}%  |  🔫 {wepName}",
                     _subHeaderStyle);
 
                 GUI.Label(new Rect(cx + 430f, cy, viewRect.width - 440f, 22f),
-                    ru
-                        ? $"Задача: {st.CurrentTaskText} | Убито: {st.KillsThisSession} | Сорт.: {st.SortedItemsThisSession}"
-                        : $"Task: {st.CurrentTaskText} | Kills: {st.KillsThisSession} | Sorted: {st.SortedItemsThisSession}",
+                    CompanionConfigStore.L(lang,
+                        $"Задача: {st.CurrentTaskText} | Убито: {st.KillsThisSession} | Сорт.: {st.SortedItemsThisSession}",
+                        $"Task: {st.CurrentTaskText} | Kills: {st.KillsThisSession} | Sorted: {st.SortedItemsThisSession}",
+                        $"状态: {st.CurrentTaskText} | 击杀: {st.KillsThisSession} | 整理: {st.SortedItemsThisSession}"),
                     _labelStyle);
 
                 // Row 2: Doctrines
                 cy += 26f;
-                GUI.Label(new Rect(cx, cy, 90f, 24f), ru ? "Доктрина:" : "Doctrine:", _labelStyle);
-                DrawDoctrineButtons(new Rect(cx + 85f, cy, viewRect.width - 95f, 24f), ag, st, ru);
+                GUI.Label(new Rect(cx, cy, 90f, 24f), CompanionConfigStore.L(lang, "Доктрина:", "Doctrine:", "战术学说:"), _labelStyle);
+                DrawDoctrineButtons(new Rect(cx + 85f, cy, viewRect.width - 95f, 24f), ag, st, lang);
 
                 // Row 3: Per-companion feature toggles
                 cy += 30f;
                 if (GUI.Button(new Rect(cx, cy, 170f, 24f),
-                    (st.AllowFieldMedic ? "☑ " : "☐ ") + (ru ? "Полевой медик" : "Field Medic"),
+                    (st.AllowFieldMedic ? "☑ " : "☐ ") + CompanionConfigStore.L(lang, "Полевой медик", "Field Medic", "战地医疗兵"),
                     st.AllowFieldMedic ? _catOnStyle : _catOffStyle))
                 {
                     st.AllowFieldMedic = !st.AllowFieldMedic;
@@ -171,7 +215,7 @@ namespace ZedZone.SmartCompanions
                 }
 
                 if (GUI.Button(new Rect(cx + 176f, cy, 175f, 24f),
-                    (st.AllowAmmoShare ? "☑ " : "☐ ") + (ru ? "Подача патронов" : "Ammo Supplier"),
+                    (st.AllowAmmoShare ? "☑ " : "☐ ") + CompanionConfigStore.L(lang, "Подача патронов", "Ammo Supplier", "弹药补给员"),
                     st.AllowAmmoShare ? _catOnStyle : _catOffStyle))
                 {
                     st.AllowAmmoShare = !st.AllowAmmoShare;
@@ -179,7 +223,7 @@ namespace ZedZone.SmartCompanions
                 }
 
                 if (GUI.Button(new Rect(cx + 357f, cy, 180f, 24f),
-                    (st.AllowAutoLootNearby ? "☑ " : "☐ ") + (ru ? "Авто-сбор трофеев" : "Auto-Loot Nearby"),
+                    (st.AllowAutoLootNearby ? "☑ " : "☐ ") + CompanionConfigStore.L(lang, "Авто-сбор трофеев", "Auto-Loot Nearby", "自动拾取战利品"),
                     st.AllowAutoLootNearby ? _catOnStyle : _catOffStyle))
                 {
                     st.AllowAutoLootNearby = !st.AllowAutoLootNearby;
@@ -187,7 +231,7 @@ namespace ZedZone.SmartCompanions
                 }
 
                 if (GUI.Button(new Rect(cx + 543f, cy, 210f, 24f),
-                    (st.AllowAutoDropoffAtBase ? "☑ " : "☐ ") + (ru ? "Авто-выгрузка на базе" : "Base Auto-Dropoff"),
+                    (st.AllowAutoDropoffAtBase ? "☑ " : "☐ ") + CompanionConfigStore.L(lang, "Авто-выгрузка на базе", "Base Auto-Dropoff", "回基地自动卸货"),
                     st.AllowAutoDropoffAtBase ? _catOnStyle : _catOffStyle))
                 {
                     st.AllowAutoDropoffAtBase = !st.AllowAutoDropoffAtBase;
@@ -196,32 +240,32 @@ namespace ZedZone.SmartCompanions
 
                 // Row 4: Direct Companion Orders
                 cy += 30f;
-                if (GUI.Button(new Rect(cx, cy, 195f, 24f), ru ? "📦 Сортировать базу" : "📦 Sort Base Chests", _btnStyle))
+                if (GUI.Button(new Rect(cx, cy, 195f, 24f), CompanionConfigStore.L(lang, "📦 Сортировать базу", "📦 Sort Base Chests", "📦 整理基地储物箱"), _btnStyle))
                     BaseSortingSystem.CommandSortBase(ag, null, instant: false);
 
-                if (GUI.Button(new Rect(cx + 202f, cy, 195f, 24f), ru ? "🎒 Собрать трофеи" : "🎒 Sweep Area Loot", _btnStyle))
+                if (GUI.Button(new Rect(cx + 202f, cy, 195f, 24f), CompanionConfigStore.L(lang, "🎒 Собрать трофеи", "🎒 Sweep Area Loot", "🎒 搜刮周围物资"), _btnStyle))
                     AutoLootSystem.CommandSweepNearbyLoot(ag, 20f);
 
-                if (GUI.Button(new Rect(cx + 404f, cy, 195f, 24f), ru ? "🍖 Тест реакции на стейк" : "🍖 Test Steak Reaction", _btnStyle))
+                if (GUI.Button(new Rect(cx + 404f, cy, 195f, 24f), CompanionConfigStore.L(lang, "🍖 Тест реакции на стейк", "🍖 Test Steak Reaction", "🍖 测试吃牛排吐槽"), _btnStyle))
                     SmartChatterSystem.Speak(ag, ChatterTopic.PlayerEatSteakMeat, minCooldown: 0.1f, bubbleDuration: 6.5f, force: true);
 
-                if (GUI.Button(new Rect(cx + 606f, cy, 195f, 24f), ru ? "💬 Доложить обстановку" : "💬 Status Callout", _btnStyle))
+                if (GUI.Button(new Rect(cx + 606f, cy, 195f, 24f), CompanionConfigStore.L(lang, "💬 Доложить обстановку", "💬 Status Callout", "💬 汇报当前状况"), _btnStyle))
                     SmartChatterSystem.Speak(ag, ChatterTopic.AmbientBaseIdle, minCooldown: 0.1f, bubbleDuration: 5.5f, force: true);
             }
 
             GUI.EndScrollView();
         }
 
-        private static void DrawDoctrineButtons(Rect area, GOAPAgent agent, CompanionRuntimeState st, bool ru)
+        private static void DrawDoctrineButtons(Rect area, GOAPAgent agent, CompanionRuntimeState st, ModLanguage lang)
         {
             var docs = new[]
             {
-                (TacticalDoctrine.Balanced,     ru ? "⚖ Умный баланс" : "⚖ Balanced"),
-                (TacticalDoctrine.Assault,      ru ? "⚔ Штурм" : "⚔ Assault"),
-                (TacticalDoctrine.Bodyguard,    ru ? "🛡 Телохранитель" : "🛡 Bodyguard"),
-                (TacticalDoctrine.SniperKite,   ru ? "🎯 Снайпер/Кайт" : "🎯 Sniper/Kite"),
-                (TacticalDoctrine.StealthMelee, ru ? "🗡 Тихий клинок" : "🗡 Stealth Melee"),
-                (TacticalDoctrine.Passive,      ru ? "🏳 Не стрелять" : "🏳 Passive")
+                (TacticalDoctrine.Balanced,     CompanionConfigStore.L(lang, "⚖ Умный баланс", "⚖ Balanced", "⚖ 均衡战术")),
+                (TacticalDoctrine.Assault,      CompanionConfigStore.L(lang, "⚔ Штурм", "⚔ Assault", "⚔ 突击强攻")),
+                (TacticalDoctrine.Bodyguard,    CompanionConfigStore.L(lang, "🛡 Телохранитель", "🛡 Bodyguard", "🛡 贴身护卫")),
+                (TacticalDoctrine.SniperKite,   CompanionConfigStore.L(lang, "🎯 Снайпер/Кайт", "🎯 Sniper/Kite", "🎯 狙击风筝")),
+                (TacticalDoctrine.StealthMelee, CompanionConfigStore.L(lang, "🗡 Тихий клинок", "🗡 Stealth Melee", "🗡 潜行近战")),
+                (TacticalDoctrine.Passive,      CompanionConfigStore.L(lang, "🏳 Не стрелять", "🏳 Passive", "🏳 停止开火"))
             };
 
             float bw = (area.width - (docs.Length - 1) * 5f) / docs.Length;
@@ -238,7 +282,7 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        private static void DrawTabBaseBoxes(Rect area, bool ru)
+        private static void DrawTabBaseBoxes(Rect area, ModLanguage lang)
         {
             var containers = BaseSortingSystem.ScanNearbyContainers(force: false);
 
@@ -247,23 +291,24 @@ namespace ZedZone.SmartCompanions
             float bx = area.x + 8f;
             float by = area.y + 8f;
 
-            if (GUI.Button(new Rect(bx, by, 175f, 26f), ru ? "🔍 Обновить ящики базы" : "🔍 Rescan Base Boxes", _btnStyle))
+            if (GUI.Button(new Rect(bx, by, 175f, 26f),
+                CompanionConfigStore.L(lang, "🔍 Обновить ящики базы", "🔍 Rescan Base Boxes", "🔍 重新扫描周围箱子"), _btnStyle))
                 containers = BaseSortingSystem.ScanNearbyContainers(force: true);
 
             if (GUI.Button(new Rect(bx + 182f, by, 240f, 26f),
-                ru ? "✨ Авто-разметка по содержимому" : "✨ Auto-Detect Categories", _btnStyle))
+                CompanionConfigStore.L(lang, "✨ Авто-разметка по содержимому", "✨ Auto-Detect Categories", "✨ 按箱内物品自动识别分类"), _btnStyle))
             {
                 BaseSortingSystem.AutoDetectCategoriesFromContents();
             }
 
             if (GUI.Button(new Rect(bx + 428f, by, 215f, 26f),
-                ru ? "🤖 Приказ NPC: Сортировать базу" : "🤖 Order NPCs: Sort Base", _catOnStyle))
+                CompanionConfigStore.L(lang, "🤖 Приказ NPC: Сортировать базу", "🤖 Order NPCs: Sort Base", "🤖 命令队友：整理基地仓库"), _catOnStyle))
             {
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
             }
 
             if (GUI.Button(new Rect(bx + 649f, by, 190f, 26f),
-                ru ? "⚡ Мгновенно разложить всё" : "⚡ Instant Sort All Now", _btnStyle))
+                CompanionConfigStore.L(lang, "⚡ Мгновенно разложить всё", "⚡ Instant Sort All Now", "⚡ 立即一键整理全部"), _btnStyle))
             {
                 BaseSortingSystem.CommandSortBase(null, null, instant: true);
             }
@@ -282,7 +327,10 @@ namespace ZedZone.SmartCompanions
             if (containers.Count == 0)
             {
                 GUI.Label(new Rect(8f, 8f, leftW - 28f, 80f),
-                    ru ? "Рядом не найдено контейнеров. Подойдите к ящикам на базе или откройте любой ящик." : "No containers found nearby. Walk near your base chests or open any container.",
+                    CompanionConfigStore.L(lang,
+                        "Рядом не найдено контейнеров. Подойдите к ящикам на базе или откройте любой ящик.",
+                        "No containers found nearby. Walk near your base chests or open any container.",
+                        "附近未发现储物箱。请靠近基地的箱子或打开任意储物容器。"),
                     _labelStyle);
             }
 
@@ -296,8 +344,10 @@ namespace ZedZone.SmartCompanions
                     selectedContainer = c;
 
                 bool isSel = c.ContainerId == _selectedBoxIdInHub;
-                string summary = ItemCategorizer.FormatCategoriesSummary(c.Rule.Categories, c.Rule.IsDropoffSource, ru);
-                string btnText = $"{c.DisplayName} ({c.DistanceToPlayer:F1}м | {c.ItemCount} шт.)\n{summary}";
+                string summary = ItemCategorizer.FormatCategoriesSummary(c.Rule.Categories, c.Rule.IsDropoffSource, lang);
+                string unit = CompanionConfigStore.L(lang, "шт.", "items", "件");
+                string mUnit = CompanionConfigStore.L(lang, "м", "m", "米");
+                string btnText = $"{c.DisplayName} ({c.DistanceToPlayer:F1}{mUnit} | {c.ItemCount} {unit})\n{summary}";
 
                 if (GUI.Button(new Rect(4f, i * 48f, viewRect.width - 8f, 44f), btnText, isSel ? _catOnStyle : _btnStyle))
                 {
@@ -319,14 +369,18 @@ namespace ZedZone.SmartCompanions
                 float rw = rightRect.width - 24f;
 
                 GUI.Label(new Rect(rx, ry, rw, 24f),
-                    ru
-                        ? $"Настройка ящика: {selectedContainer.DisplayName} (предметов внутри: {selectedContainer.ItemCount})"
-                        : $"Configure Chest: {selectedContainer.DisplayName} (items: {selectedContainer.ItemCount})",
+                    CompanionConfigStore.L(lang,
+                        $"Настройка ящика: {selectedContainer.DisplayName} (предметов внутри: {selectedContainer.ItemCount})",
+                        $"Configure Chest: {selectedContainer.DisplayName} (items: {selectedContainer.ItemCount})",
+                        $"配置储物箱：{selectedContainer.DisplayName}（当前箱内物品：{selectedContainer.ItemCount} 件）"),
                     _headerStyle);
 
                 ry += 30f;
                 string dropText = (rule.IsDropoffSource ? "☑ " : "☐ ") +
-                    (ru ? "📥 Ящик-приёмник (NPC забирают хабар ОТСЮДА и разносят по базе)" : "📥 Drop-off Chest (NPCs take items FROM here to sort)");
+                    CompanionConfigStore.L(lang,
+                        "📥 Ящик-приёмник (NPC забирают хабар ОТСЮДА и разносят по базе)",
+                        "📥 Drop-off Chest (NPCs take items FROM here to sort)",
+                        "📥 收货中转箱（队友会从此处取出战利品并分拣到各个分类箱）");
                 if (GUI.Button(new Rect(rx, ry, rw, 28f), dropText, rule.IsDropoffSource ? _catOnStyle : _catOffStyle))
                 {
                     rule.IsDropoffSource = !rule.IsDropoffSource;
@@ -335,13 +389,16 @@ namespace ZedZone.SmartCompanions
 
                 ry += 34f;
                 if (GUI.Button(new Rect(rx, ry, rw * 0.48f, 26f),
-                    ru ? $"Приоритет укладки: ★{rule.Priority} (сменить)" : $"Fill Priority: ★{rule.Priority} (cycle)", _btnStyle))
+                    CompanionConfigStore.L(lang,
+                        $"Приоритет укладки: ★{rule.Priority} (сменить)",
+                        $"Fill Priority: ★{rule.Priority} (cycle)",
+                        $"存放优先级：★{rule.Priority}（点击切换）"), _btnStyle))
                 {
                     rule.Priority = (rule.Priority % 5) + 1;
                     CompanionConfigStore.Save();
                 }
                 if (GUI.Button(new Rect(rx + rw * 0.50f, ry, rw * 0.50f, 26f),
-                    (rule.AutoCompact ? "☑ " : "☐ ") + (ru ? "Авто-уплотнение сетки" : "Auto-Compact Grid"),
+                    (rule.AutoCompact ? "☑ " : "☐ ") + CompanionConfigStore.L(lang, "Авто-уплотнение сетки", "Auto-Compact Grid", "整理后自动紧凑排列"),
                     rule.AutoCompact ? _catOnStyle : _catOffStyle))
                 {
                     rule.AutoCompact = !rule.AutoCompact;
@@ -350,7 +407,10 @@ namespace ZedZone.SmartCompanions
 
                 ry += 34f;
                 GUI.Label(new Rect(rx, ry, rw, 22f),
-                    ru ? "Отметьте категории предметов, которые NPC должны складывать в этот ящик:" : "Select item categories that NPCs should store in this chest:",
+                    CompanionConfigStore.L(lang,
+                        "Отметьте категории предметов, которые NPC должны складывать в этот ящик:",
+                        "Select item categories that NPCs should store in this chest:",
+                        "勾选队友应当存入此储物箱的物品分类："),
                     _subHeaderStyle);
 
                 ry += 26f;
@@ -364,7 +424,7 @@ namespace ZedZone.SmartCompanions
                     int rIdx = i / cols;
                     int cIdx = i % cols;
                     bool on = (rule.Categories & cat) != 0;
-                    string label = (on ? "☑ " : "☐ ") + ItemCategorizer.GetCategoryName(cat, ru);
+                    string label = (on ? "☑ " : "☐ ") + ItemCategorizer.GetCategoryName(cat, lang);
                     if (GUI.Button(new Rect(rx + cIdx * (cellW + 8f), ry + rIdx * 32f, cellW, cellH), label, on ? _catOnStyle : _catOffStyle))
                     {
                         if (on) rule.Categories &= ~cat;
@@ -375,145 +435,185 @@ namespace ZedZone.SmartCompanions
 
                 ry += 6 * 32f + 8f;
                 float pw = (rw - 12f) / 3f;
-                if (GUI.Button(new Rect(rx, ry, pw, 26f), ru ? "Выбрать все" : "Select All", _btnStyle))
+                if (GUI.Button(new Rect(rx, ry, pw, 26f), CompanionConfigStore.L(lang, "Выбрать все", "Select All", "全选分类"), _btnStyle))
                 {
                     rule.Categories = StorageCategory.All;
                     CompanionConfigStore.Save();
                 }
-                if (GUI.Button(new Rect(rx + pw + 6f, ry, pw, 26f), ru ? "Очистить все" : "Clear All", _btnStyle))
+                if (GUI.Button(new Rect(rx + pw + 6f, ry, pw, 26f), CompanionConfigStore.L(lang, "Очистить все", "Clear All", "清空全选"), _btnStyle))
                 {
                     rule.Categories = StorageCategory.None;
                     CompanionConfigStore.Save();
                 }
-                if (GUI.Button(new Rect(rx + (pw + 6f) * 2f, ry, pw, 26f), ru ? "Разобрать этот ящик" : "Sort From This Box", _catOnStyle))
+                if (GUI.Button(new Rect(rx + (pw + 6f) * 2f, ry, pw, 26f),
+                    CompanionConfigStore.L(lang, "Разобрать этот ящик", "Sort From This Box", "整理此箱物品"), _catOnStyle))
                 {
                     BaseSortingSystem.CommandSortBase(null, selectedContainer.Inventory, instant: false);
                 }
             }
         }
 
-        private static void DrawTabChatterAndSettings(Rect area, bool ru)
+        private static void DrawTabChatterAndSettings(Rect area, ModLanguage lang)
         {
-            float leftW = 410f;
+            float leftW = 420f;
             float rightW = area.width - leftW - 10f;
 
             GUI.Box(new Rect(area.x, area.y, leftW, area.height), GUIContent.none, _boxStyle);
             float lx = area.x + 10f;
-            float ly = area.y + 10f;
+            float ly = area.y + 8f;
             float lw = leftW - 20f;
 
-            GUI.Label(new Rect(lx, ly, lw, 22f), ru ? "⚙ Режим лексики и характера NPC:" : "⚙ NPC Profanity & Attitude Mode:", _headerStyle);
-            ly += 24f;
+            // Language selector row (4 modes: Auto, RU, EN, ZH)
+            GUI.Label(new Rect(lx, ly, lw, 20f),
+                CompanionConfigStore.L(lang,
+                    "🌐 Язык мода (Автоопределение или выбор):",
+                    "🌐 Mod Language (Auto-detect or manual):",
+                    "🌐 模组语言（自动识别或手动选择）："), _subHeaderStyle);
+            ly += 22f;
+            float langBtnW = (lw - 12f) / 4f;
+            if (GUI.Button(new Rect(lx, ly, langBtnW, 24f),
+                CompanionConfigStore.L(lang, "🌐 Авто", "🌐 Auto", "🌐 自动"),
+                CompanionConfigStore.LanguageMode == ModLanguage.Auto ? _catOnStyle : _catOffStyle))
+                SetLanguageMode(ModLanguage.Auto);
+            if (GUI.Button(new Rect(lx + langBtnW + 4f, ly, langBtnW, 24f), "🇷🇺 Русский",
+                CompanionConfigStore.LanguageMode == ModLanguage.Russian ? _catOnStyle : _catOffStyle))
+                SetLanguageMode(ModLanguage.Russian);
+            if (GUI.Button(new Rect(lx + (langBtnW + 4f) * 2f, ly, langBtnW, 24f), "🇬🇧 English",
+                CompanionConfigStore.LanguageMode == ModLanguage.English ? _catOnStyle : _catOffStyle))
+                SetLanguageMode(ModLanguage.English);
+            if (GUI.Button(new Rect(lx + (langBtnW + 4f) * 3f, ly, langBtnW, 24f), "🇨🇳 简体中文",
+                CompanionConfigStore.LanguageMode == ModLanguage.Chinese ? _catOnStyle : _catOffStyle))
+                SetLanguageMode(ModLanguage.Chinese);
+            ly += 27f;
+
+            GUI.Label(new Rect(lx, ly, lw, 20f),
+                CompanionConfigStore.L(lang, "⚙ Режим лексики и характера NPC:", "⚙ NPC Profanity & Attitude Mode:", "⚙ 队友台词风格与脏话模式："), _subHeaderStyle);
+            ly += 22f;
 
             float mw = (lw - 10f) / 3f;
-            if (GUI.Button(new Rect(lx, ly, mw, 26f), ru ? "🔥 Мат 18+ (Быдло)" : "🔥 Hardcore 18+",
+            if (GUI.Button(new Rect(lx, ly, mw, 24f),
+                CompanionConfigStore.L(lang, "🔥 Мат 18+ (Быдло)", "🔥 Hardcore 18+", "🔥 末日粗口 18+"),
                 CompanionConfigStore.Profanity == ProfanityMode.HardcoreRude ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.Profanity = ProfanityMode.HardcoreRude;
                 CompanionConfigStore.Save();
             }
-            if (GUI.Button(new Rect(lx + mw + 5f, ly, mw, 26f), ru ? "⚖ Смешанный" : "⚖ Mixed",
+            if (GUI.Button(new Rect(lx + mw + 5f, ly, mw, 24f),
+                CompanionConfigStore.L(lang, "⚖ Смешанный", "⚖ Mixed", "⚖ 混合模式"),
                 CompanionConfigStore.Profanity == ProfanityMode.Mixed ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.Profanity = ProfanityMode.Mixed;
                 CompanionConfigStore.Save();
             }
-            if (GUI.Button(new Rect(lx + (mw + 5f) * 2f, ly, mw, 26f), ru ? "😇 Без мата" : "😇 Clean",
+            if (GUI.Button(new Rect(lx + (mw + 5f) * 2f, ly, mw, 24f),
+                CompanionConfigStore.L(lang, "😇 Без мата", "😇 Clean", "😇 纯净无脏话"),
                 CompanionConfigStore.Profanity == ProfanityMode.Clean ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.Profanity = ProfanityMode.Clean;
                 CompanionConfigStore.Save();
             }
-            ly += 30f;
+            ly += 27f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 25f),
-                (CompanionConfigStore.EnableSmartCombat ? "☑ " : "☐ ") + (ru ? "Умный боевой ИИ, радар тыла и авто-клин" : "Smart Combat AI, Flank Radar & Auto-Unjam"),
+            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+                (CompanionConfigStore.EnableSmartCombat ? "☑ " : "☐ ") +
+                CompanionConfigStore.L(lang, "Умный боевой ИИ, радар тыла и авто-клин", "Smart Combat AI, Flank Radar & Auto-Unjam", "智能战斗 AI、背后偷袭雷达与自动排障"),
                 CompanionConfigStore.EnableSmartCombat ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.EnableSmartCombat = !CompanionConfigStore.EnableSmartCombat;
                 CompanionConfigStore.Save();
             }
-            ly += 27f;
+            ly += 26f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 25f),
-                (CompanionConfigStore.EnableKiting ? "☑ " : "☐ ") + (ru ? "Тактический кайтинг (отход при стрельбе вблизи)" : "Tactical Kiting (Backpedal while firing)"),
+            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+                (CompanionConfigStore.EnableKiting ? "☑ " : "☐ ") +
+                CompanionConfigStore.L(lang, "Тактический кайтинг (отход при стрельбе вблизи)", "Tactical Kiting (Backpedal while firing)", "战术风筝走位（近身边退边打）"),
                 CompanionConfigStore.EnableKiting ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.EnableKiting = !CompanionConfigStore.EnableKiting;
                 CompanionConfigStore.Save();
             }
-            ly += 27f;
+            ly += 26f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 25f),
-                (CompanionConfigStore.EnableAntiFriendlyFire ? "☑ " : "☐ ") + (ru ? "Анти-Френдли-Фаер (выход с линии огня игрока)" : "Anti-Friendly-Fire (Step out of player aim line)"),
+            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+                (CompanionConfigStore.EnableAntiFriendlyFire ? "☑ " : "☐ ") +
+                CompanionConfigStore.L(lang, "Анти-Френдли-Фаер (выход с линии огня игрока)", "Anti-Friendly-Fire (Step out of player aim line)", "防误伤让枪线（自动闪开玩家射界）"),
                 CompanionConfigStore.EnableAntiFriendlyFire ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.EnableAntiFriendlyFire = !CompanionConfigStore.EnableAntiFriendlyFire;
                 CompanionConfigStore.Save();
             }
-            ly += 27f;
+            ly += 26f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 25f),
-                (CompanionConfigStore.EnableFieldMedic ? "☑ " : "☐ ") + (ru ? "Полевой медик и снабженец патронами" : "Field Medic & Emergency Ammo Supplier"),
+            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+                (CompanionConfigStore.EnableFieldMedic ? "☑ " : "☐ ") +
+                CompanionConfigStore.L(lang, "Полевой медик и снабженец патронами", "Field Medic & Emergency Ammo Supplier", "战地急救包扎与紧急弹药支援"),
                 CompanionConfigStore.EnableFieldMedic ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.EnableFieldMedic = !CompanionConfigStore.EnableFieldMedic;
                 CompanionConfigStore.EnableAmmoShare = CompanionConfigStore.EnableFieldMedic;
                 CompanionConfigStore.Save();
             }
-            ly += 27f;
+            ly += 26f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 25f),
-                (CompanionConfigStore.AutoShareFoodOnEat ? "☑ " : "☐ ") + (ru ? "Авто-делёжка пайка при еде (Бафф «Сытый и злой»)" : "Auto-Share Food When Eating ('Fed & Fierce' Buff)"),
+            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+                (CompanionConfigStore.AutoShareFoodOnEat ? "☑ " : "☐ ") +
+                CompanionConfigStore.L(lang, "Авто-делёжка пайка при еде (Бафф «Сытый и злой»)", "Auto-Share Food When Eating ('Fed & Fierce' Buff)", "进食自动分口粮（触发「饱腹狂暴」增益）"),
                 CompanionConfigStore.AutoShareFoodOnEat ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.AutoShareFoodOnEat = !CompanionConfigStore.AutoShareFoodOnEat;
                 CompanionConfigStore.Save();
             }
-            ly += 27f;
+            ly += 26f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 25f),
-                (CompanionConfigStore.EnableBaseAutoDropoff ? "☑ " : "☐ ") + (ru ? "Авто-выгрузка хабара на базе и реплики мира" : "Base Auto-Dropoff & World NPC Chatter"),
+            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+                (CompanionConfigStore.EnableBaseAutoDropoff ? "☑ " : "☐ ") +
+                CompanionConfigStore.L(lang, "Авто-выгрузка хабара на базе и реплики мира", "Base Auto-Dropoff & World NPC Chatter", "回基地自动卸货与野生 NPC 路人台词"),
                 CompanionConfigStore.EnableBaseAutoDropoff ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.EnableBaseAutoDropoff = !CompanionConfigStore.EnableBaseAutoDropoff;
                 CompanionConfigStore.EnableWorldNpcChatter = CompanionConfigStore.EnableBaseAutoDropoff;
                 CompanionConfigStore.Save();
             }
-            ly += 27f;
+            ly += 26f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 25f),
-                (CompanionConfigStore.EnableChatter ? "☑ " : "☐ ") + (ru ? "Живые комментарии и фразы напарников" : "Companion Context Chatter & Reactions"),
+            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+                (CompanionConfigStore.EnableChatter ? "☑ " : "☐ ") +
+                CompanionConfigStore.L(lang, "Живые комментарии и фразы напарников", "Companion Context Chatter & Reactions", "开启队友实时情景吐槽与互动气泡"),
                 CompanionConfigStore.EnableChatter ? _catOnStyle : _catOffStyle))
             {
                 CompanionConfigStore.EnableChatter = !CompanionConfigStore.EnableChatter;
                 CompanionConfigStore.Save();
             }
-            ly += 30f;
+            ly += 27f;
 
-            GUI.Label(new Rect(lx, ly, lw, 22f), ru ? "🎙 Проверить реплику напарника прямо сейчас:" : "🎙 Test Companion Speech Now:", _subHeaderStyle);
-            ly += 24f;
+            GUI.Label(new Rect(lx, ly, lw, 20f),
+                CompanionConfigStore.L(lang, "🎙 Проверить реплику напарника прямо сейчас:", "🎙 Test Companion Speech Now:", "🎙 立即测试队友气泡台词："), _subHeaderStyle);
+            ly += 22f;
 
             float hw = (lw - 6f) * 0.5f;
             var nearest = SmartChatterSystem.PickNearestTeammate(GameController.instance.playerCharacter.transform.position, 50f);
-            if (GUI.Button(new Rect(lx, ly, hw, 25f), ru ? "🥩 Стейк (Наезд/Зависть)" : "🥩 Steak Envy", _catOnStyle))
+            if (GUI.Button(new Rect(lx, ly, hw, 24f),
+                CompanionConfigStore.L(lang, "🥩 Стейк (Наезд/Зависть)", "🥩 Steak Envy", "🥩 偷吃牛排吐槽"), _catOnStyle))
                 if (nearest != null) SmartChatterSystem.Speak(nearest, ChatterTopic.PlayerEatSteakMeat, 0.1f, 6.5f, true);
 
-            if (GUI.Button(new Rect(lx + hw + 6f, ly, hw, 25f), ru ? "🍖 Подогреть братву [F6]" : "🍖 Share Ration [F6]", _catOnStyle))
+            if (GUI.Button(new Rect(lx + hw + 6f, ly, hw, 24f),
+                CompanionConfigStore.L(lang, "🍖 Подогреть братву [F6]", "🍖 Share Ration [F6]", "🍖 分享口粮 [F6]"), _catOnStyle))
                 SmartChatterSystem.CommandShareRationWithSquad(nearest, fromAutoShare: false);
 
-            ly += 28f;
-            if (GUI.Button(new Rect(lx, ly, hw, 25f), ru ? "🧟 Орда / Замес (Мат)" : "🧟 Horde Callout", _btnStyle))
+            ly += 26f;
+            if (GUI.Button(new Rect(lx, ly, hw, 24f),
+                CompanionConfigStore.L(lang, "🧟 Орда / Замес (Мат)", "🧟 Horde Callout", "🧟 遭遇尸潮喊话"), _btnStyle))
                 if (nearest != null) SmartChatterSystem.Speak(nearest, ChatterTopic.CombatSpotHorde, 0.1f, 5.5f, true);
 
-            if (GUI.Button(new Rect(lx + hw + 6f, ly, hw, 25f), ru ? "🎒 Перегруз (Плюшкин)" : "🎒 Overweight Rant", _btnStyle))
+            if (GUI.Button(new Rect(lx + hw + 6f, ly, hw, 24f),
+                CompanionConfigStore.L(lang, "🎒 Перегруз (Плюшкин)", "🎒 Overweight Rant", "🎒 背包超重吐槽"), _btnStyle))
                 if (nearest != null) SmartChatterSystem.Speak(nearest, ChatterTopic.LootOverweight, 0.1f, 5.5f, true);
 
             // Right column: Recent Speech Log
             var rightRect = new Rect(area.x + leftW + 10f, area.y, rightW, area.height);
             GUI.Box(rightRect, GUIContent.none, _boxStyle);
             GUI.Label(new Rect(rightRect.x + 10f, rightRect.y + 10f, rightW - 20f, 24f),
-                ru ? "📜 Журнал последних реплик напарников:" : "📜 Recent Companion Speech Log:", _headerStyle);
+                CompanionConfigStore.L(lang, "📜 Журнал последних реплик напарников:", "📜 Recent Companion Speech Log:", "📜 最近队友台词记录："), _headerStyle);
 
             var log = SmartChatterSystem.RecentSpeechLog;
             var logView = new Rect(0, 0, rightW - 28f, Mathf.Max(area.height - 50f, log.Count * 36f));

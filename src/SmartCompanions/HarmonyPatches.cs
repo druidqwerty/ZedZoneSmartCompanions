@@ -31,44 +31,48 @@ namespace ZedZone.SmartCompanions
 
         public static bool TryGetDisplayName(string cmd, out string label)
         {
-            bool ru = CompanionConfigStore.UseRussian;
+            return TryGetDisplayName(cmd, CompanionConfigStore.EffectiveLanguage, out label);
+        }
+
+        public static bool TryGetDisplayName(string cmd, ModLanguage lang, out string label)
+        {
             switch (cmd)
             {
                 case "Basic.SortBaseContainers":
                 case SortBase:
-                    label = ru ? "📦 Сортировать ящики базы" : "📦 Sort Base Containers";
+                    label = CompanionConfigStore.L(lang, "📦 Сортировать ящики базы", "📦 Sort Base Containers", "📦 整理基地储物箱");
                     return true;
                 case "Basic.SweepNearbyLoot":
                 case SweepLoot:
-                    label = ru ? "🎒 Собрать трофеи вокруг" : "🎒 Sweep Nearby Loot";
+                    label = CompanionConfigStore.L(lang, "🎒 Собрать трофеи вокруг", "🎒 Sweep Nearby Loot", "🎒 搜刮附近战利品");
                     return true;
                 case "Combat.DoctrineAssault":
                 case DocAssault:
-                    label = ru ? "⚔ Доктрина: Штурм" : "⚔ Doctrine: Assault";
+                    label = CompanionConfigStore.L(lang, "⚔ Доктрина: Штурм", "⚔ Doctrine: Assault", "⚔ 战术：突击强攻");
                     return true;
                 case "Combat.DoctrineBodyguard":
                 case DocBodyguard:
-                    label = ru ? "🛡 Доктрина: Телохранитель" : "🛡 Doctrine: Bodyguard";
+                    label = CompanionConfigStore.L(lang, "🛡 Доктрина: Телохранитель", "🛡 Doctrine: Bodyguard", "🛡 战术：贴身护卫");
                     return true;
                 case "Combat.DoctrineSniper":
                 case DocSniper:
-                    label = ru ? "🎯 Доктрина: Снайпер (кайтинг)" : "🎯 Doctrine: Sniper / Kite";
+                    label = CompanionConfigStore.L(lang, "🎯 Доктрина: Снайпер (кайтинг)", "🎯 Doctrine: Sniper / Kite", "🎯 战术：狙击风筝");
                     return true;
                 case "Combat.DoctrineStealth":
                 case DocStealth:
-                    label = ru ? "🗡 Доктрина: Тихий режим" : "🗡 Doctrine: Stealth Melee";
+                    label = CompanionConfigStore.L(lang, "🗡 Доктрина: Тихий режим", "🗡 Doctrine: Stealth Melee", "🗡 战术：潜行近战");
                     return true;
                 case "OneTime.OpenSmartHub":
                 case OpenHub:
-                    label = ru ? "⚙ Панель напарников и базы [F8]" : "⚙ Smart Companions & Base UI [F8]";
+                    label = CompanionConfigStore.L(lang, "⚙ Панель напарников и базы [F8]", "⚙ Smart Companions & Base UI [F8]", "⚙ 智能队友与基地面板 [F8]");
                     return true;
                 case "OneTime.EmergencyAid":
                 case EmergencyAid:
-                    label = ru ? "💉 Полевая помощь / Патроны" : "💉 Field Aid & Ammo Resupply";
+                    label = CompanionConfigStore.L(lang, "💉 Полевая помощь / Патроны", "💉 Field Aid & Ammo Resupply", "💉 战地急救与弹药补给");
                     return true;
                 case "OneTime.ShareRationWithSquad":
                 case ShareRation:
-                    label = ru ? "🍖 Подогреть братву пайком (Бафф)" : "🍖 Share Ration (Fed & Fierce Buff)";
+                    label = CompanionConfigStore.L(lang, "🍖 Подогреть братву пайком (Бафф)", "🍖 Share Ration (Fed & Fierce Buff)", "🍖 分享口粮（饱腹狂暴增益）");
                     return true;
                 default:
                     label = null;
@@ -79,7 +83,6 @@ namespace ZedZone.SmartCompanions
         public static bool ExecuteCustomCommand(GOAPNPCData npcData, string commandStr)
         {
             if (string.IsNullOrEmpty(commandStr)) return false;
-            bool ru = CompanionConfigStore.UseRussian;
 
             GOAPAgent agent = npcData?.agentCache;
             if (agent == null && npcData != null && GOAPNPCManager.instance?.activeNPCs != null)
@@ -109,7 +112,10 @@ namespace ZedZone.SmartCompanions
                 SmartCombatAI.ApplyDoctrineToNpcData(agent, st);
                 CompanionConfigStore.Save();
                 if (agent != null)
-                    SmartChatterSystem.SpeakCustom(agent, ru ? "Перехожу в режим штурма! Подавляю врагов огнём!" : "Assault doctrine active! Engaging all targets!", 5f, true);
+                    SmartChatterSystem.SpeakCustom(agent, CompanionConfigStore.L(
+                        "Перехожу в режим штурма! Подавляю врагов огнём!",
+                        "Assault doctrine active! Engaging all targets!",
+                        "切换至突击模式！火力全开压制目标！"), 5f, true);
                 return true;
             }
 
@@ -119,7 +125,10 @@ namespace ZedZone.SmartCompanions
                 SmartCombatAI.ApplyDoctrineToNpcData(agent, st);
                 CompanionConfigStore.Save();
                 if (agent != null)
-                    SmartChatterSystem.SpeakCustom(agent, ru ? "Держусь рядом и охраняю твою спину, командир!" : "Bodyguard mode active! Staying close to protect you!", 5f, true);
+                    SmartChatterSystem.SpeakCustom(agent, CompanionConfigStore.L(
+                        "Держусь рядом и охраняю твою спину, командир!",
+                        "Bodyguard mode active! Staying close to protect you!",
+                        "切换至护卫模式！紧跟队长，保护你的后背！"), 5f, true);
                 return true;
             }
 
@@ -129,7 +138,10 @@ namespace ZedZone.SmartCompanions
                 SmartCombatAI.ApplyDoctrineToNpcData(agent, st);
                 CompanionConfigStore.Save();
                 if (agent != null)
-                    SmartChatterSystem.SpeakCustom(agent, ru ? "Держу дистанцию и отстреливаю врагов на отходе!" : "Sniper kiting mode active! Keeping firing distance!", 5f, true);
+                    SmartChatterSystem.SpeakCustom(agent, CompanionConfigStore.L(
+                        "Держу дистанцию и отстреливаю врагов на отходе!",
+                        "Sniper kiting mode active! Keeping firing distance!",
+                        "切换至狙击风筝模式！保持距离边退边打！"), 5f, true);
                 return true;
             }
 
@@ -139,7 +151,10 @@ namespace ZedZone.SmartCompanions
                 SmartCombatAI.ApplyDoctrineToNpcData(agent, st);
                 CompanionConfigStore.Save();
                 if (agent != null)
-                    SmartChatterSystem.SpeakCustom(agent, ru ? "Убираю огнестрел — работаю тихо клинком!" : "Going silent — melee weapons only!", 5f, true);
+                    SmartChatterSystem.SpeakCustom(agent, CompanionConfigStore.L(
+                        "Убираю огнестрел — работаю тихо клинком!",
+                        "Going silent — melee weapons only!",
+                        "收起枪械——切换潜行近战模式！"), 5f, true);
                 return true;
             }
 

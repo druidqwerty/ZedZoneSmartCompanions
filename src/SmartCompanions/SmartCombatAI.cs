@@ -185,11 +185,12 @@ namespace ZedZone.SmartCompanions
             if (!Il2CppSafe.IsAliveUnity(target) || target.deadFlag)
             {
                 TickOutOfCombatPrep(agent, st, hc, now);
-                if (string.IsNullOrEmpty(st.CurrentTaskText) || st.CurrentTaskText.StartsWith("Бой") || st.CurrentTaskText.StartsWith("Combat"))
+                if (string.IsNullOrEmpty(st.CurrentTaskText) || st.CurrentTaskText.StartsWith("Бой") || st.CurrentTaskText.StartsWith("Combat") || st.CurrentTaskText.StartsWith("交战"))
                 {
-                    st.CurrentTaskText = CompanionConfigStore.UseRussian
-                        ? (st.HasFedBuff ? "Патруль (🔥 Сытый и злой)" : "Патруль / Сопровождение")
-                        : (st.HasFedBuff ? "Escorting (🔥 Fed & Fierce)" : "Escorting Leader");
+                    st.CurrentTaskText = CompanionConfigStore.L(
+                        st.HasFedBuff ? "Патруль (🔥 Сытый и злой)" : "Патруль / Сопровождение",
+                        st.HasFedBuff ? "Escorting (🔥 Fed & Fierce)" : "Escorting Leader",
+                        st.HasFedBuff ? "护卫巡逻（🔥 饱腹狂暴）" : "护卫巡逻 / 跟随队长");
                 }
                 return;
             }
@@ -199,9 +200,11 @@ namespace ZedZone.SmartCompanions
 
             Vector2 targetPos = target.transform.position;
             float distToTarget = Vector2.Distance(selfPos, targetPos);
-            bool ru = CompanionConfigStore.UseRussian;
-            var targetName = target.characterData?.characterName ?? (ru ? "Враг" : "Hostile");
-            st.CurrentTaskText = ru ? $"Бой: {targetName} ({distToTarget:F1}м)" : $"Combat: {targetName} ({distToTarget:F1}m)";
+            var targetName = target.characterData?.characterName ?? CompanionConfigStore.L("Враг", "Hostile", "敌方目标");
+            st.CurrentTaskText = CompanionConfigStore.L(
+                $"Бой: {targetName} ({distToTarget:F1}м)",
+                $"Combat: {targetName} ({distToTarget:F1}m)",
+                $"交战：{targetName}（{distToTarget:F1}米）");
 
             // Check weapon malfunction in combat -> callout & auto-clear!
             if (Il2CppSafe.IsAliveUnity(hc.rangedWeapon) && hc.rangedWeapon.isMalfunction)

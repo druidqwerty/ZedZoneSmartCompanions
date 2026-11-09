@@ -89,7 +89,7 @@ namespace ZedZone.SmartCompanions
                 {
                     string openName = (openPanel != null && !string.IsNullOrEmpty(openPanel.lootObjectName))
                         ? openPanel.lootObjectName
-                        : (!string.IsNullOrEmpty(openInv.inventoryTitleName) ? openInv.inventoryTitleName : "Открытый ящик");
+                        : (!string.IsNullOrEmpty(openInv.inventoryTitleName) ? openInv.inventoryTitleName : CompanionConfigStore.L("Открытый ящик", "Open Container", "当前打开的箱子"));
                     AddDiscoveredContainer(openInv, null, playerPos, 0f, openName);
                 }
 
@@ -114,7 +114,7 @@ namespace ZedZone.SmartCompanions
                 else if (tobj != null && tobj.attr != null && !string.IsNullOrEmpty(tobj.attr.name))
                     baseName = tobj.attr.name;
                 else
-                    baseName = CompanionConfigStore.UseRussian ? "Контейнер" : "Container";
+                    baseName = CompanionConfigStore.L("Контейнер", "Container", "储物箱");
             }
 
             var rule = CompanionConfigStore.GetOrCreateRule(id, baseName);
@@ -162,10 +162,10 @@ namespace ZedZone.SmartCompanions
             }
 
             CompanionConfigStore.Save();
-            bool ru = CompanionConfigStore.UseRussian;
-            SetBanner(ru
-                ? $"Авто-разметка завершена: категории назначены для {updated} ящиков по их содержимому!"
-                : $"Auto-detected categories for {updated} containers based on contents!");
+            SetBanner(CompanionConfigStore.L(
+                $"Авто-разметка завершена: категории назначены для {updated} ящиков по их содержимому!",
+                $"Auto-detected categories for {updated} containers based on contents!",
+                $"自动识别完成：已根据箱内物品为 {updated} 个储物箱分配分类！"));
             return updated;
         }
 
@@ -195,9 +195,10 @@ namespace ZedZone.SmartCompanions
 
             if (destBoxes.Count == 0)
             {
-                SetBanner(ru
-                    ? "Нет размеченных ящиков! Откройте ящик и отметьте категории (Оружие, Еда, Медицина и т.д.)."
-                    : "No categorized containers found! Open a chest and select its categories first.");
+                SetBanner(CompanionConfigStore.L(
+                    "Нет размеченных ящиков! Откройте ящик и отметьте категории (Оружие, Еда, Медицина и т.д.).",
+                    "No categorized containers found! Open a chest and select its categories first.",
+                    "未找到已分类的储物箱！请先打开任意箱子并勾选分类（武器、食物、医疗等）。"));
                 return;
             }
 
@@ -227,9 +228,10 @@ namespace ZedZone.SmartCompanions
                         SmartChatterSystem.Speak(speaker, ChatterTopic.SortFinished, minCooldown: 1f, bubbleDuration: 5f, force: true);
                     }
                 }
-                SetBanner(ru
-                    ? $"Сортировка базы выполнена: перемещено и уложено предметов — {moved} шт."
-                    : $"Base sorting complete: {moved} item stacks sorted into category chests.");
+                SetBanner(CompanionConfigStore.L(
+                    $"Сортировка базы выполнена: перемещено и уложено предметов — {moved} шт.",
+                    $"Base sorting complete: {moved} item stacks sorted into category chests.",
+                    $"基地整理完成：已将 {moved} 组物品按类别归入储物箱。"));
                 return;
             }
 
@@ -241,7 +243,7 @@ namespace ZedZone.SmartCompanions
                 st.IsSortingActive = true;
                 st.SortingPhase = 1;
                 st.SortingStateStartTime = Time.unscaledTime;
-                st.CurrentTaskText = ru ? "Сортировка ящиков базы..." : "Sorting base containers...";
+                st.CurrentTaskText = CompanionConfigStore.L("Сортировка ящиков базы...", "Sorting base containers...", "正在整理基地储物箱...");
 
                 // Pick closest destination container to walk toward for visual immersion
                 var targetBox = destBoxes[UnityEngine.Random.Range(0, destBoxes.Count)];
@@ -342,11 +344,12 @@ namespace ZedZone.SmartCompanions
                     {
                         st.IsSortingActive = false;
                         st.SortingPhase = 0;
-                        st.CurrentTaskText = ru ? "Склад отсортирован" : "Base storage sorted";
+                        st.CurrentTaskText = CompanionConfigStore.L("Склад отсортирован", "Base storage sorted", "仓库已整理完毕");
                         SmartChatterSystem.Speak(ag, ChatterTopic.SortFinished, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
-                        SetBanner(ru
-                            ? $"{st.LastKnownName}: сортировка базы завершена (всего уложено за сессию: {st.SortedItemsThisSession} шт.)"
-                            : $"{st.LastKnownName}: base sorting finished (session total: {st.SortedItemsThisSession})");
+                        SetBanner(CompanionConfigStore.L(
+                            $"{st.LastKnownName}: сортировка базы завершена (всего уложено за сессию: {st.SortedItemsThisSession} шт.)",
+                            $"{st.LastKnownName}: base sorting finished (session total: {st.SortedItemsThisSession})",
+                            $"{st.LastKnownName}：基地仓库整理完毕（本局累计整理：{st.SortedItemsThisSession} 件）"));
                     }
                 }
                 else if (st.SortingPhase == 2)
@@ -364,11 +367,12 @@ namespace ZedZone.SmartCompanions
 
                     st.IsSortingActive = false;
                     st.SortingPhase = 0;
-                    st.CurrentTaskText = ru ? "Склад отсортирован" : "Base storage sorted";
+                    st.CurrentTaskText = CompanionConfigStore.L("Склад отсортирован", "Base storage sorted", "仓库已整理完毕");
                     SmartChatterSystem.Speak(ag, ChatterTopic.SortFinished, minCooldown: 0.5f, bubbleDuration: 6.0f, force: true);
-                    SetBanner(ru
-                        ? $"{st.LastKnownName}: сортировка базы завершена (всего уложено за сессию: {st.SortedItemsThisSession} шт.)"
-                        : $"{st.LastKnownName}: base sorting finished (session total: {st.SortedItemsThisSession})");
+                    SetBanner(CompanionConfigStore.L(
+                        $"{st.LastKnownName}: сортировка базы завершена (всего уложено за сессию: {st.SortedItemsThisSession} шт.)",
+                        $"{st.LastKnownName}: base sorting finished (session total: {st.SortedItemsThisSession})",
+                        $"{st.LastKnownName}：基地仓库整理完毕（本局累计整理：{st.SortedItemsThisSession} 件）"));
                 }
             }
         }
@@ -579,10 +583,10 @@ namespace ZedZone.SmartCompanions
                 {
                     st.SortedItemsThisSession += moved;
                     SmartChatterSystem.Speak(ag, ChatterTopic.BaseAutoDropoff, minCooldown: 2f, bubbleDuration: 6f, force: true);
-                    bool ru = CompanionConfigStore.UseRussian;
-                    SetBanner(ru
-                        ? $"📥 {st.LastKnownName} автоматически выгрузил и разложил по ящикам базы {moved} шт. трофеев!"
-                        : $"📥 {st.LastKnownName} auto-unloaded and sorted {moved} raid items into base chests!");
+                    SetBanner(CompanionConfigStore.L(
+                        $"📥 {st.LastKnownName} автоматически выгрузил и разложил по ящикам базы {moved} шт. трофеев!",
+                        $"📥 {st.LastKnownName} auto-unloaded and sorted {moved} raid items into base chests!",
+                        $"📥 {st.LastKnownName} 已自动将 {moved} 件战利品卸入基地储物箱并按类别归位！"));
                 }
             }
             catch { }

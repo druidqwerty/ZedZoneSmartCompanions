@@ -1,26 +1,25 @@
 version=1
 id=3836613312
-title=ZED ZONE: Smart Companions - Tactical AI, Base Sorting & 700+ Lines 1.1.0
+title=ZED ZONE: Smart Companions - Tactical AI, Base Sorting & 980+ Lines (EN/RU/ZH) 1.2.0
 visibility=public
-description=[h1]ZED ZONE: Smart Companions 1.1.0[/h1]
-description=Turn your recruited survivors into smart, foul-mouthed, responsive post-apocalyptic teammates who kite zombies, warn you about rear flankers, step out of your line of fire, sort base chests by category, auto-unload raid loot at base, share rations for a combat buff, and react to everything you do with [b]720+ lines across 50 context topics[/b] (495 RU / 228 EN).
+description=[h1]ZED ZONE: Smart Companions 1.2.0[/h1]
+description=Turn your recruited survivors into smart, foul-mouthed, responsive post-apocalyptic teammates who kite zombies, warn you about rear flankers, step out of your line of fire, sort base chests by category, auto-unload raid loot at base, share rations for a combat buff, and react to everything you do with [b]987 unique lines across 50 context topics in 3 languages[/b] (495 RU / 229 EN / 263 Simplified Chinese).
 description=
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Enjoy the mod? Support its development on Boosty.
 description=
-description=[h2]What's new in 1.1.0[/h2]
+description=[h2]What's new in 1.2.0[/h2]
 description=[list]
-description=[*][b]Post-Apocalyptic Profanity & Attitude Mode (18+ Rude / Mixed / Clean):[/b] the world is in ruins and most survivors are rough, cynical trash-talkers. Added [b]310+ uncensored Russian rude/gopnik lines and 160+ gritty English lines[/b] (723 total lines across 50 topics!). Switch between [i]Hardcore 18+[/i] (default), [i]Mixed[/i], and [i]Clean (Streamer)[/i] anytime in [b]F8[/b].
-description=[*][b]Share Ration & "Fed & Fierce" Buff ([b]F6[/b]):[/b] press [b]F6[/b] (or enable [i]Auto-Share Food When Eating[/i] in [b]F8[/b]) to share a meal with your squad—restoring their hunger/thirst/stamina, boosting loyalty, granting the 3-minute [b]"Fed & Fierce"[/b] combat & stamina buff, and replacing jealous food rants with grateful bro callouts.
-description=[*][b]Rear Flank Radar & Out-of-Combat Auto-Prep:[/b] companions warn you when zombies or raiders sneak behind your back, automatically clear jammed firearms in combat, and reload partial magazines & bandage minor wounds after battle.
-description=[*][b]Smart Overweight Loot Filter & Base Auto-Dropoff:[/b] when a companion's pack is over 70% full, auto-scavenging filters strictly for priority supplies (ammo, medicine, food/drinks). Returning within 7.5 m of your base chests out of combat automatically unloads and sorts their collected raid loot!
-description=[*][b]Ambient World NPC Encounters:[/b] passing neutral survivors and drifters in the world now drop gritty post-apocalyptic remarks as you walk by.
+description=[*][b]Full Simplified Chinese (简体中文) Localization + Auto/Manual Language Selector:[/b] automatically detects the game language ([code]GameController.instance.gameSettings.languageCode[/code] or OS language) or lets you switch anytime in-game without restarting between [b]🌐 Auto · 🇷🇺 Русский · 🇬🇧 English · 🇨🇳 简体中文[/b] right in the [b]F8[/b] window header or settings tab.
+description=[*][b]263 Unique Chinese Companion Lines Across All 50 Topics:[/b] includes [b]159 gritty 18+ post-apocalyptic Chinese lines[/b] ([i]Hardcore 18+[/i] mode — steak envy rants, horde callouts, weapon jam & flank warnings, chest-sorting grumbles, and squad banter) and [b]104 clean Chinese lines[/b] ([i]Clean[/i] mode), plus [i]Mixed[/i] mode.
 description=[/list]
 description=
-description=[h2]Core features[/h2]
+description=[h2]Core features (1.1.0 & 1.2.0)[/h2]
 description=[list]
-description=[*][b]Smarter combat vs. zombies & hostile NPCs:[/b] companions prioritize threats attacking you at close range, recognize armed human raiders and giant mutants, kite backward while firing, strafe against enemy shooters, step out of your line of fire ([b]Anti-Friendly-Fire corridor[/b]), and swap between melee and firearms dynamically.
-description=[*][b]Base chest sorting & 12-category UI:[/b] opening any chest, locker, or fridge displays a 12-category bar at the top of the screen plus a [b]Drop-off Box[/b] toggle and 1-click presets. Press [b]F7[/b] to order companions to sort your base storage.
+description=[*][b]Post-Apocalyptic Profanity & Attitude Mode (18+ Rude / Mixed / Clean):[/b] switch between [i]Hardcore 18+[/i] (default), [i]Mixed[/i], and [i]Clean (Streamer)[/i] anytime in [b]F8[/b] across Russian (495 lines), English (229 lines), and Chinese (263 lines).
+description=[*][b]Share Ration & "Fed & Fierce" Buff ([b]F6[/b]):[/b] press [b]F6[/b] (or enable [i]Auto-Share Food When Eating[/i] in [b]F8[/b]) to share a meal with your squad—restoring hunger/thirst/stamina, boosting loyalty, and granting the 3-minute [b]"Fed & Fierce"[/b] combat buff.
+description=[*][b]Smarter combat vs. zombies & hostile NPCs:[/b] companions prioritize threats attacking you at close range, recognize armed human raiders and giant mutants, kite backward while firing, strafe against enemy shooters, warn you about rear flankers, clear jammed guns, step out of your line of fire ([b]Anti-Friendly-Fire corridor[/b]), and swap between melee and firearms dynamically.
+description=[*][b]Base chest sorting, Auto-Dropoff & 12-category UI:[/b] opening any chest, locker, or fridge displays a 12-category bar at the top of the screen plus a [b]Drop-off Box[/b] toggle and 1-click presets. Press [b]F7[/b] to order companions to sort your base storage, or walk near base chests out of combat for automatic raid loot drop-off.
 description=[*][b]6 Tactical Doctrines & Field Support ([b]F8[/b]):[/b] switch between [i]Balanced[/i], [i]Assault[/i], [i]Bodyguard[/i], [i]Sniper/Kite[/i], [i]Stealth Melee[/i], and [i]Passive[/i], plus [b]Field Medic[/b] and [b]Field Ammo Supplier[/b].
 description=[/list]
 description=
@@ -30,7 +29,7 @@ description=[*][b]Required loader:[/b] requires [url=https://steamcommunity.com/
 description=[*][b]Hotkeys:[/b] [b]F8[/b] opens the 3-tab Command & Base Logistics Hub · [b]F7[/b] orders Base Sorting · [b]F6[/b] shares a ration with your squad. All settings apply in-game without restarts.
 description=[*][b]Worth knowing:[/b] code mods run locally and are not synced automatically to other players in co-op sessions.
 description=[/list]
-description=Version 1.1.0 · [url=https://github.com/druidqwerty/ZedZoneSmartCompanions]Source code, architecture & release notes on GitHub[/url]
+description=Version 1.2.0 · [url=https://github.com/druidqwerty/ZedZoneSmartCompanions]Source code, architecture & release notes on GitHub[/url]
 description=
 description=Workshop ID: 3836613312
 description=Mod ID: SmartCompanions

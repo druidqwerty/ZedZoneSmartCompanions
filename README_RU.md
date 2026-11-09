@@ -7,13 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.1.0"><strong>Скачать релиз v1.1.0 (ZIP)</strong></a> ·
-  <a href="README.md"><strong>English Documentation (README.md)</strong></a>
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.2.0"><strong>Скачать релиз v1.2.0 (ZIP)</strong></a> ·
+  <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
+  <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
 
-**ZED ZONE: Smart Companions** — комплексный код-мод на базе **BepInEx 6 (IL2CPP)** для **ZED ZONE** (`Unity 2023.1.18f1 x64`), который наделяет нанятых выживших умным тактическим ИИ против зомби и вражеских NPC, системой автоматической сортировки базы с интерфейсом из 12 категорий для ящиков, **44 контекстными темами живых реплик (171 фраза на русском и 92 на английском)**, 6 боевыми доктринами и полевой поддержкой игрока.
+**ZED ZONE: Smart Companions** — комплексный код-мод на базе **BepInEx 6 (IL2CPP)** для **ZED ZONE** (`Unity 2023.1.18f1 x64`), который наделяет нанятых выживших умным тактическим ИИ против зомби и вражеских NPC, системой автоматической сортировки базы с интерфейсом из 12 категорий для ящиков, **50 контекстными темами живых реплик (987 уникальных фраз на 3 языках: 495 RU / 229 EN / 263 ZH)**, автоопределением и ручным выбором языка в игре (`🌐 Авто / 🇷🇺 Русский / 🇬🇧 English / 🇨🇳 简体中文`), 6 боевыми доктринами и полевой поддержкой игрока.
+
+## Новое в v1.2.0
+
+- **Полный перевод на китайский язык (`简体中文`) + Автоопределение и выбор языка на лету (`ModLanguage`):**
+  - В режиме `🌐 Авто` мод автоматически определяет язык из настроек игры `GameController.instance.gameSettings.languageCode` (с фолбэком на `Application.systemLanguage`). В любой момент язык можно переключить вручную без перезапуска кнопками `🌐 Авто / 🇷🇺 RU / 🇬🇧 EN / 🇨🇳 中文` в шапке окна **F8** или во вкладке настроек.
+  - Переведены все 12 категорий ящиков, все вкладки и кнопки окна **F8**, панель категорий контейнера, все 9 команд радиального меню NPC и все всплывающие уведомления.
+  - Добавлено **263 уникальные китайские реплики (`ChatterDatabaseZh.cs` + `ChatterDatabaseZhCombat.cs`)** по всем 50 темам: **159 жёстких матерных/уличных фраз 18+ (`HardcoreRude`)** и **104 цензурные фразы (`Clean`)**.
 
 ## Основные возможности
 

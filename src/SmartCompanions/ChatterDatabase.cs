@@ -5,24 +5,47 @@ namespace ZedZone.SmartCompanions
 {
     public static partial class ChatterDatabase
     {
+        public static string[] GetLines(ChatterTopic topic)
+        {
+            return GetLines(topic, CompanionConfigStore.EffectiveLanguage, CompanionConfigStore.Profanity);
+        }
+
         public static string[] GetLines(ChatterTopic topic, bool ru)
         {
-            return GetLines(topic, ru, CompanionConfigStore.Profanity);
+            return GetLines(topic, ru ? ModLanguage.Russian : ModLanguage.English, CompanionConfigStore.Profanity);
         }
 
         public static string[] GetLines(ChatterTopic topic, bool ru, ProfanityMode mode)
         {
-            if (mode == ProfanityMode.Clean)
-                return ru ? GetLinesRu(topic) : GetLinesEn(topic);
+            return GetLines(topic, ru ? ModLanguage.Russian : ModLanguage.English, mode);
+        }
 
-            var rude = ru
-                ? AppendExtraRudeRu(topic, GetRudeLinesRu(topic))
-                : AppendExtraRudeEn(topic, GetRudeLinesEn(topic));
+        public static string[] GetLines(ChatterTopic topic, ModLanguage lang, ProfanityMode mode)
+        {
+            if (lang == ModLanguage.Auto)
+                lang = CompanionConfigStore.EffectiveLanguage;
+
+            string[] clean = lang switch
+            {
+                ModLanguage.Russian => GetLinesRu(topic),
+                ModLanguage.Chinese => GetCleanLinesZh(topic),
+                _ => GetLinesEn(topic)
+            };
+
+            if (mode == ProfanityMode.Clean)
+                return clean;
+
+            string[] rude = lang switch
+            {
+                ModLanguage.Russian => AppendExtraRudeRu(topic, GetRudeLinesRu(topic)),
+                ModLanguage.Chinese => GetRudeLinesZh(topic),
+                _ => AppendExtraRudeEn(topic, GetRudeLinesEn(topic))
+            };
+
             if (mode == ProfanityMode.HardcoreRude)
-                return (rude != null && rude.Length > 0) ? rude : (ru ? GetLinesRu(topic) : GetLinesEn(topic));
+                return (rude != null && rude.Length > 0) ? rude : clean;
 
             // Mixed mode: combine rude + clean lines
-            var clean = ru ? GetLinesRu(topic) : GetLinesEn(topic);
             if (rude == null || rude.Length == 0) return clean;
             if (clean == null || clean.Length == 0) return rude;
             var combined = new string[rude.Length + clean.Length];

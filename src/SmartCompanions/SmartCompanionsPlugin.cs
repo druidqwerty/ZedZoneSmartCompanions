@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "1.1.0";
+        public const string PluginVersion = "1.2.0";
 
         internal static ManualLogSource Logs;
 
@@ -55,44 +55,76 @@ namespace ZedZone.SmartCompanions
             try
             {
                 var topics = (ChatterTopic[])Enum.GetValues(typeof(ChatterTopic));
-                int rudeRuCount = 0;
-                int cleanRuCount = 0;
-                int rudeEnCount = 0;
-                int cleanEnCount = 0;
+                int rudeRuCount = 0, cleanRuCount = 0;
+                int rudeEnCount = 0, cleanEnCount = 0;
+                int rudeZhCount = 0, cleanZhCount = 0;
                 var uniqueRu = new HashSet<string>();
                 var uniqueEn = new HashSet<string>();
+                var uniqueZh = new HashSet<string>();
 
                 foreach (var t in topics)
                 {
-                    var rRu = ChatterDatabase.GetLines(t, true, ProfanityMode.HardcoreRude);
-                    var cRu = ChatterDatabase.GetLines(t, true, ProfanityMode.Clean);
-                    var mRu = ChatterDatabase.GetLines(t, true, ProfanityMode.Mixed);
-                    var rEn = ChatterDatabase.GetLines(t, false, ProfanityMode.HardcoreRude);
-                    var cEn = ChatterDatabase.GetLines(t, false, ProfanityMode.Clean);
+                    var rRu = ChatterDatabase.GetLines(t, ModLanguage.Russian, ProfanityMode.HardcoreRude);
+                    var cRu = ChatterDatabase.GetLines(t, ModLanguage.Russian, ProfanityMode.Clean);
+                    var mRu = ChatterDatabase.GetLines(t, ModLanguage.Russian, ProfanityMode.Mixed);
+                    var rEn = ChatterDatabase.GetLines(t, ModLanguage.English, ProfanityMode.HardcoreRude);
+                    var cEn = ChatterDatabase.GetLines(t, ModLanguage.English, ProfanityMode.Clean);
+                    var mEn = ChatterDatabase.GetLines(t, ModLanguage.English, ProfanityMode.Mixed);
+                    var rZh = ChatterDatabase.GetLines(t, ModLanguage.Chinese, ProfanityMode.HardcoreRude);
+                    var cZh = ChatterDatabase.GetLines(t, ModLanguage.Chinese, ProfanityMode.Clean);
+                    var mZh = ChatterDatabase.GetLines(t, ModLanguage.Chinese, ProfanityMode.Mixed);
 
                     if (rRu == null || rRu.Length == 0 || cRu == null || cRu.Length == 0 || mRu == null || mRu.Length == 0)
                         throw new Exception($"Missing RU lines for topic {t}");
-                    if (rEn == null || rEn.Length == 0 || cEn == null || cEn.Length == 0)
+                    if (rEn == null || rEn.Length == 0 || cEn == null || cEn.Length == 0 || mEn == null || mEn.Length == 0)
                         throw new Exception($"Missing EN lines for topic {t}");
+                    if (rZh == null || rZh.Length == 0 || cZh == null || cZh.Length == 0 || mZh == null || mZh.Length == 0)
+                        throw new Exception($"Missing ZH lines for topic {t}");
 
                     rudeRuCount += rRu.Length;
                     cleanRuCount += cRu.Length;
                     rudeEnCount += rEn.Length;
                     cleanEnCount += cEn.Length;
+                    rudeZhCount += rZh.Length;
+                    cleanZhCount += cZh.Length;
 
                     foreach (var s in rRu) if (!string.IsNullOrWhiteSpace(s)) uniqueRu.Add(s);
                     foreach (var s in cRu) if (!string.IsNullOrWhiteSpace(s)) uniqueRu.Add(s);
                     foreach (var s in rEn) if (!string.IsNullOrWhiteSpace(s)) uniqueEn.Add(s);
                     foreach (var s in cEn) if (!string.IsNullOrWhiteSpace(s)) uniqueEn.Add(s);
+                    foreach (var s in rZh) if (!string.IsNullOrWhiteSpace(s)) uniqueZh.Add(s);
+                    foreach (var s in cZh) if (!string.IsNullOrWhiteSpace(s)) uniqueZh.Add(s);
                 }
 
-                // Verify steak signature phrase in both Rude and Clean modes
-                string rudeSteak0 = ChatterDatabase.GetLines(ChatterTopic.PlayerEatSteakMeat, true, ProfanityMode.HardcoreRude)[0];
-                string cleanSteak0 = ChatterDatabase.GetLines(ChatterTopic.PlayerEatSteakMeat, true, ProfanityMode.Clean)[0];
-                if (!rudeSteak0.Contains("Вкусно тебе") || !cleanSteak0.Contains("Вкусно тебе"))
+                // Verify steak signature phrase in RU and ZH
+                string rudeSteakRu = ChatterDatabase.GetLines(ChatterTopic.PlayerEatSteakMeat, ModLanguage.Russian, ProfanityMode.HardcoreRude)[0];
+                string cleanSteakRu = ChatterDatabase.GetLines(ChatterTopic.PlayerEatSteakMeat, ModLanguage.Russian, ProfanityMode.Clean)[0];
+                string rudeSteakZh = ChatterDatabase.GetLines(ChatterTopic.PlayerEatSteakMeat, ModLanguage.Chinese, ProfanityMode.HardcoreRude)[0];
+                if (!rudeSteakRu.Contains("Вкусно тебе") || !cleanSteakRu.Contains("Вкусно тебе") || !rudeSteakZh.Contains("牛排"))
                     throw new Exception("Signature steak line mismatch!");
 
-                // Verify ItemCategorizer
+                // Verify auto-detection of language codes
+                if (CompanionConfigStore.ResolveLanguageMode("zh-CN", SystemLanguage.English) != ModLanguage.Chinese ||
+                    CompanionConfigStore.ResolveLanguageMode("schinese", SystemLanguage.English) != ModLanguage.Chinese ||
+                    CompanionConfigStore.ResolveLanguageMode("ru", SystemLanguage.English) != ModLanguage.Russian ||
+                    CompanionConfigStore.ResolveLanguageMode("en", SystemLanguage.ChineseSimplified) != ModLanguage.English ||
+                    CompanionConfigStore.ResolveLanguageMode("", SystemLanguage.ChineseSimplified) != ModLanguage.Chinese)
+                {
+                    throw new Exception("ResolveLanguageMode verification failed!");
+                }
+
+                // Verify ItemCategorizer in all 3 languages
+                foreach (var cat in ItemCategorizer.AllCategories)
+                {
+                    foreach (var lang in new[] { ModLanguage.Russian, ModLanguage.English, ModLanguage.Chinese })
+                    {
+                        if (string.IsNullOrWhiteSpace(ItemCategorizer.GetCategoryName(cat, lang)) ||
+                            string.IsNullOrWhiteSpace(ItemCategorizer.GetCategoryShortTag(cat, lang)))
+                            throw new Exception($"Category translation missing for {cat} ({lang})");
+                    }
+                }
+
+                // Verify ItemCategorizer classification
                 var steakKind = ItemCategorizer.ClassifyFoodKind(248, null, null);
                 var rawKind = ItemCategorizer.ClassifyFoodKind(204, null, null);
                 var canKind = ItemCategorizer.ClassifyFoodKind(232, null, null);
@@ -105,14 +137,17 @@ namespace ZedZone.SmartCompanions
                 if (medCat != StorageCategory.Medicine || foodCat != StorageCategory.FreshFood || canCat != StorageCategory.CannedAndDrinks)
                     throw new Exception($"StorageCategory check failed: med={medCat}, food={foodCat}, can={canCat}");
 
-                // Verify CustomNpcCommands
+                // Verify CustomNpcCommands in all 3 languages
                 foreach (var cmd in CustomNpcCommands.AllCustomCommands)
                 {
-                    if (!CustomNpcCommands.TryGetDisplayName(cmd, out var label) || string.IsNullOrEmpty(label))
-                        throw new Exception("Custom command missing label: " + cmd);
+                    foreach (var lang in new[] { ModLanguage.Russian, ModLanguage.English, ModLanguage.Chinese })
+                    {
+                        if (!CustomNpcCommands.TryGetDisplayName(cmd, lang, out var label) || string.IsNullOrEmpty(label))
+                            throw new Exception($"Custom command missing label for {lang}: " + cmd);
+                    }
                 }
 
-                LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}]), 12 storage categories, {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands verified.");
+                LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}], {uniqueZh.Count} unique ZH lines [Rude={rudeZhCount}, Clean={cleanZhCount}]), 12 storage categories (RU/EN/ZH), {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands (RU/EN/ZH), ModLanguage Auto/RU/EN/ZH verified.");
             }
             catch (Exception e)
             {
@@ -131,23 +166,11 @@ namespace ZedZone.SmartCompanions
 
         private float _lastCombatTickTime = 0f;
         private float _lastSortTickTime = 0f;
-        private bool _languageAutoDetected = false;
 
         private void Update()
         {
             try
             {
-                if (!_languageAutoDetected && Il2CppSafe.IsAliveUnity(GameController.instance) &&
-                    Il2CppSafe.IsAlive(GameController.instance.gameSettings))
-                {
-                    _languageAutoDetected = true;
-                    string code = GameController.instance.gameSettings.languageCode ?? "";
-                    if (!string.IsNullOrEmpty(code) && code.IndexOf("ru", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        CompanionConfigStore.UseRussian = true;
-                    }
-                }
-
                 // Hotkey F8: Toggle Smart Companions & Base Sorting Hub
                 if (Input.GetKeyDown(KeyCode.F8))
                 {

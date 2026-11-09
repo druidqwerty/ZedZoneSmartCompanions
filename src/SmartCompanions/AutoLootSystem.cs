@@ -122,18 +122,18 @@ namespace ZedZone.SmartCompanions
                     SmartChatterSystem.Speak(workers[0], ChatterTopic.LootFoundGood, minCooldown: 1f, bubbleDuration: 5.5f, force: !silentIfEmpty);
                     if (!silentIfEmpty)
                     {
-                        bool ru = CompanionConfigStore.UseRussian;
-                        BaseSortingSystem.SetBanner(ru
-                            ? $"🎒 Отряд собрал трофеи в радиусе {radius:F0}м: подобрано предметов — {totalCollected} шт."
-                            : $"🎒 Squad scavenged area ({radius:F0}m): collected {totalCollected} items.");
+                        BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                            $"🎒 Отряд собрал трофеи в радиусе {radius:F0}м: подобрано предметов — {totalCollected} шт.",
+                            $"🎒 Squad scavenged area ({radius:F0}m): collected {totalCollected} items.",
+                            $"🎒 小队已搜刮周围 {radius:F0}米 区域：共拾取 {totalCollected} 件战利品。"));
                     }
                 }
                 else if (!silentIfEmpty)
                 {
-                    bool ru = CompanionConfigStore.UseRussian;
-                    BaseSortingSystem.SetBanner(ru
-                        ? "Поблизости нет бесхозных предметов или трофеев для сбора."
-                        : "No loose ground items or corpse loot found nearby.");
+                    BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                        "Поблизости нет бесхозных предметов или трофеев для сбора.",
+                        "No loose ground items or corpse loot found nearby.",
+                        "附近没有可拾取的地面物品或尸体战利品。"));
                 }
             }
             catch (Exception e)

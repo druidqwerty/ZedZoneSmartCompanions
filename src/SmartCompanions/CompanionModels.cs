@@ -26,6 +26,14 @@ namespace ZedZone.SmartCompanions
         Clean = 2         // Без мата (Цензура / Стример)
     }
 
+    public enum ModLanguage
+    {
+        Auto = 0,    // Автоопределение по языку игры ZED ZONE / системы
+        Russian = 1, // Русский (RU)
+        English = 2, // English (EN)
+        Chinese = 3  // 简体中文 (ZH)
+    }
+
     [Flags]
     public enum StorageCategory
     {
@@ -213,7 +221,99 @@ namespace ZedZone.SmartCompanions
         public static readonly Dictionary<string, CompanionRuntimeState> CompanionStates =
             new Dictionary<string, CompanionRuntimeState>(StringComparer.OrdinalIgnoreCase);
 
-        public static bool UseRussian = true;
+        public static ModLanguage LanguageMode = ModLanguage.Auto;
+
+        public static ModLanguage EffectiveLanguage
+        {
+            get
+            {
+                if (LanguageMode == ModLanguage.Russian || LanguageMode == ModLanguage.English || LanguageMode == ModLanguage.Chinese)
+                    return LanguageMode;
+                return DetectGameOrSystemLanguage();
+            }
+        }
+
+        public static bool UseRussian
+        {
+            get => EffectiveLanguage == ModLanguage.Russian;
+            set => LanguageMode = value ? ModLanguage.Russian : ModLanguage.English;
+        }
+
+        public static bool IsChinese => EffectiveLanguage == ModLanguage.Chinese;
+        public static bool IsEnglish => EffectiveLanguage == ModLanguage.English;
+
+        public static string L(string ru, string en, string zh)
+        {
+            return L(EffectiveLanguage, ru, en, zh);
+        }
+
+        public static string L(ModLanguage lang, string ru, string en, string zh)
+        {
+            if (lang == ModLanguage.Auto) lang = EffectiveLanguage;
+            return lang switch
+            {
+                ModLanguage.Russian => ru,
+                ModLanguage.Chinese => zh,
+                _ => en
+            };
+        }
+
+        public static ModLanguage DetectGameOrSystemLanguage()
+        {
+            string code = "";
+            try
+            {
+                if (Il2CppSafe.IsAliveUnity(GameController.instance) && Il2CppSafe.IsAlive(GameController.instance.gameSettings))
+                {
+                    code = GameController.instance.gameSettings.languageCode ?? "";
+                }
+            }
+            catch { }
+
+            SystemLanguage sysLang = SystemLanguage.English;
+            try
+            {
+                sysLang = Application.systemLanguage;
+            }
+            catch { }
+
+            return ResolveLanguageMode(code, sysLang);
+        }
+
+        public static ModLanguage ResolveLanguageMode(string gameLanguageCode, SystemLanguage fallbackSystemLang)
+        {
+            if (!string.IsNullOrWhiteSpace(gameLanguageCode))
+            {
+                string c = gameLanguageCode.Trim().ToLowerInvariant();
+                if (c == "zh" || c == "cn" || c.StartsWith("zh-") || c.StartsWith("zh_") ||
+                    c.Contains("chinese") || c.Contains("schinese") || c.Contains("tchinese") || c.Contains("han"))
+                {
+                    return ModLanguage.Chinese;
+                }
+                if (c == "ru" || c.StartsWith("ru-") || c.StartsWith("ru_") || c.Contains("russian") || c.Contains("рус"))
+                {
+                    return ModLanguage.Russian;
+                }
+                return ModLanguage.English;
+            }
+
+            if (fallbackSystemLang == SystemLanguage.Chinese ||
+                fallbackSystemLang == SystemLanguage.ChineseSimplified ||
+                fallbackSystemLang == SystemLanguage.ChineseTraditional)
+            {
+                return ModLanguage.Chinese;
+            }
+
+            if (fallbackSystemLang == SystemLanguage.Russian ||
+                fallbackSystemLang == SystemLanguage.Belarusian ||
+                fallbackSystemLang == SystemLanguage.Ukrainian)
+            {
+                return ModLanguage.Russian;
+            }
+
+            return ModLanguage.English;
+        }
+
         public static bool EnableChatter = true;
         public static ProfanityMode Profanity = ProfanityMode.HardcoreRude;
         public static float ChatterIntervalMultiplier = 1.0f;
@@ -230,6 +330,9 @@ namespace ZedZone.SmartCompanions
 
         private static string SaveFilePath =>
             Path.Combine(Paths.ConfigPath, "SmartCompanions_Rules.txt");
+
+        private static string JsonConfigFilePath =>
+            Path.Combine(Paths.ConfigPath, "SmartCompanionsConfig.json");
 
         public static ContainerRuleProfile GetOrCreateRule(string id, string defaultName = "")
         {
@@ -274,7 +377,8 @@ namespace ZedZone.SmartCompanions
             try
             {
                 var sb = new StringBuilder();
-                sb.AppendLine("# ZED ZONE Smart Companions Saved Rules v1.1");
+                sb.AppendLine("# ZED ZONE Smart Companions Saved Rules v1.2");
+                sb.AppendLine($"SET|LanguageMode|{(int)LanguageMode}");
                 sb.AppendLine($"SET|UseRussian|{UseRussian}");
                 sb.AppendLine($"SET|EnableChatter|{EnableChatter}");
                 sb.AppendLine($"SET|Profanity|{(int)Profanity}");
@@ -307,6 +411,17 @@ namespace ZedZone.SmartCompanions
                 }
 
                 File.WriteAllText(SaveFilePath, sb.ToString(), Encoding.UTF8);
+
+                string json = "{\n" +
+                    $"  \"LanguageMode\": \"{LanguageMode}\",\n" +
+                    $"  \"LanguageModeId\": {(int)LanguageMode},\n" +
+                    $"  \"EffectiveLanguage\": \"{EffectiveLanguage}\",\n" +
+                    $"  \"Profanity\": \"{Profanity}\",\n" +
+                    $"  \"EnableChatter\": {EnableChatter.ToString().ToLowerInvariant()},\n" +
+                    $"  \"EnableSmartCombat\": {EnableSmartCombat.ToString().ToLowerInvariant()},\n" +
+                    $"  \"AutoShareFoodOnEat\": {AutoShareFoodOnEat.ToString().ToLowerInvariant()}\n" +
+                    "}\n";
+                File.WriteAllText(JsonConfigFilePath, json, Encoding.UTF8);
             }
             catch (Exception e)
             {
@@ -330,7 +445,9 @@ namespace ZedZone.SmartCompanions
                     {
                         var key = parts[1];
                         var val = parts[2];
-                        if (key == "UseRussian" && bool.TryParse(val, out var b0)) UseRussian = b0;
+                        if (key == "LanguageMode" && int.TryParse(val, out var lMode)) LanguageMode = (ModLanguage)Mathf.Clamp(lMode, 0, 3);
+                        else if (key == "LanguageMode" && Enum.TryParse<ModLanguage>(val, true, out var lEnum)) LanguageMode = lEnum;
+                        else if (key == "UseRussian" && bool.TryParse(val, out var b0) && LanguageMode == ModLanguage.Auto) { /* Keep Auto unless explicitly set */ }
                         else if (key == "EnableChatter" && bool.TryParse(val, out var b1)) EnableChatter = b1;
                         else if (key == "Profanity" && int.TryParse(val, out var pMode)) Profanity = (ProfanityMode)Mathf.Clamp(pMode, 0, 2);
                         else if (key == "ChatterIntervalMultiplier" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f1)) ChatterIntervalMultiplier = Mathf.Clamp(f1, 0.25f, 4f);

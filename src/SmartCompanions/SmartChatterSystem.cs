@@ -130,8 +130,7 @@ namespace ZedZone.SmartCompanions
 
         private static string PickLine(ChatterTopic topic)
         {
-            bool ru = CompanionConfigStore.UseRussian;
-            var lines = ChatterDatabase.GetLines(topic, ru, CompanionConfigStore.Profanity);
+            var lines = ChatterDatabase.GetLines(topic, CompanionConfigStore.EffectiveLanguage, CompanionConfigStore.Profanity);
             if (lines == null || lines.Length == 0) return null;
 
             if (topic == ChatterTopic.PlayerEatSteakMeat && !_steakSignatureSpokenThisSession)
@@ -227,10 +226,10 @@ namespace ZedZone.SmartCompanions
 
             if (!fromAutoShare && buffedCount > 0)
             {
-                bool ru = CompanionConfigStore.UseRussian;
-                BaseSortingSystem.SetBanner(ru
-                    ? $"🍖 Вы поделились пайком с отрядом ({buffedCount} чел.)! Напарники получили бафф «Сытый и злой» на 3 мин!"
-                    : $"🍖 Shared rations with squad ({buffedCount})! Companions gained 'Fed & Fierce' combat buff for 3 min!");
+                BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                    $"🍖 Вы поделились пайком с отрядом ({buffedCount} чел.)! Напарники получили бафф «Сытый и злой» на 3 мин!",
+                    $"🍖 Shared rations with squad ({buffedCount})! Companions gained 'Fed & Fierce' combat buff for 3 min!",
+                    $"🍖 已向小队（{buffedCount} 人）分享口粮！队友获得 3 分钟「饱腹狂暴」战斗增益！"));
             }
 
             return buffedCount;

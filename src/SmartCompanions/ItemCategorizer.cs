@@ -79,61 +79,91 @@ namespace ZedZone.SmartCompanions
             212 // Lager
         };
 
+        public static string GetCategoryName(StorageCategory cat)
+        {
+            return GetCategoryName(cat, CompanionConfigStore.EffectiveLanguage);
+        }
+
         public static string GetCategoryName(StorageCategory cat, bool ru)
+        {
+            return GetCategoryName(cat, ru ? ModLanguage.Russian : ModLanguage.English);
+        }
+
+        public static string GetCategoryName(StorageCategory cat, ModLanguage lang)
         {
             return cat switch
             {
-                StorageCategory.MeleeWeapons     => ru ? "Холодное оружие" : "Melee Weapons",
-                StorageCategory.RangedWeapons    => ru ? "Огнестрел и обвесы" : "Firearms & Parts",
-                StorageCategory.AmmoAndMags      => ru ? "Патроны и магазины" : "Ammo & Magazines",
-                StorageCategory.Medicine         => ru ? "Медицина и аптечки" : "Medicine & First Aid",
-                StorageCategory.FreshFood        => ru ? "Еда, мясо и кулинария" : "Fresh Food & Meals",
-                StorageCategory.CannedAndDrinks  => ru ? "Консервы и напитки" : "Canned Food & Drinks",
-                StorageCategory.Materials        => ru ? "Материалы и крафт" : "Crafting Materials",
-                StorageCategory.ToolsAndRepair   => ru ? "Инструменты и ремонт" : "Tools & Repair",
-                StorageCategory.ClothingAndArmor => ru ? "Одежда, броня, сумки" : "Clothing & Backpacks",
-                StorageCategory.VehicleAndPower  => ru ? "Авто, батареи, топливо" : "Vehicle & Power",
-                StorageCategory.FarmingAndPets   => ru ? "Фермерство и питомцы" : "Farming, Bait & Pets",
-                StorageCategory.MiscAndValuables => ru ? "Взрывчатка, турели, разное" : "Explosives & Misc",
-                _                                => ru ? "Не выбрано" : "None"
+                StorageCategory.MeleeWeapons     => CompanionConfigStore.L(lang, "Холодное оружие", "Melee Weapons", "近战武器"),
+                StorageCategory.RangedWeapons    => CompanionConfigStore.L(lang, "Огнестрел и обвесы", "Firearms & Parts", "枪械与配件"),
+                StorageCategory.AmmoAndMags      => CompanionConfigStore.L(lang, "Патроны и магазины", "Ammo & Magazines", "弹药与弹匣"),
+                StorageCategory.Medicine         => CompanionConfigStore.L(lang, "Медицина и аптечки", "Medicine & First Aid", "医疗与急救"),
+                StorageCategory.FreshFood        => CompanionConfigStore.L(lang, "Еда, мясо и кулинария", "Fresh Food & Meals", "生鲜与熟食"),
+                StorageCategory.CannedAndDrinks  => CompanionConfigStore.L(lang, "Консервы и напитки", "Canned Food & Drinks", "罐头与饮品"),
+                StorageCategory.Materials        => CompanionConfigStore.L(lang, "Материалы и крафт", "Crafting Materials", "制作材料"),
+                StorageCategory.ToolsAndRepair   => CompanionConfigStore.L(lang, "Инструменты и ремонт", "Tools & Repair", "工具与维修"),
+                StorageCategory.ClothingAndArmor => CompanionConfigStore.L(lang, "Одежда, броня, сумки", "Clothing & Backpacks", "服装与背包"),
+                StorageCategory.VehicleAndPower  => CompanionConfigStore.L(lang, "Авто, батареи, топливо", "Vehicle & Power", "载具与电力"),
+                StorageCategory.FarmingAndPets   => CompanionConfigStore.L(lang, "Фермерство и питомцы", "Farming, Bait & Pets", "农艺与宠物"),
+                StorageCategory.MiscAndValuables => CompanionConfigStore.L(lang, "Взрывчатка, турели, разное", "Explosives & Misc", "爆炸物与杂项"),
+                _                                => CompanionConfigStore.L(lang, "Не выбрано", "None", "未选择")
             };
+        }
+
+        public static string GetCategoryShortTag(StorageCategory cat)
+        {
+            return GetCategoryShortTag(cat, CompanionConfigStore.EffectiveLanguage);
         }
 
         public static string GetCategoryShortTag(StorageCategory cat, bool ru)
         {
+            return GetCategoryShortTag(cat, ru ? ModLanguage.Russian : ModLanguage.English);
+        }
+
+        public static string GetCategoryShortTag(StorageCategory cat, ModLanguage lang)
+        {
             return cat switch
             {
-                StorageCategory.MeleeWeapons     => ru ? "[Клинки]" : "[Melee]",
-                StorageCategory.RangedWeapons    => ru ? "[Огнестрел]" : "[Guns]",
-                StorageCategory.AmmoAndMags      => ru ? "[Патроны]" : "[Ammo]",
-                StorageCategory.Medicine         => ru ? "[Медицина]" : "[Meds]",
-                StorageCategory.FreshFood        => ru ? "[Свежая еда]" : "[Meals]",
-                StorageCategory.CannedAndDrinks  => ru ? "[Консервы/Вода]" : "[Cans/Drink]",
-                StorageCategory.Materials        => ru ? "[Материалы]" : "[Mats]",
-                StorageCategory.ToolsAndRepair   => ru ? "[Инструменты]" : "[Tools]",
-                StorageCategory.ClothingAndArmor => ru ? "[Одежда/Броня]" : "[Gear]",
-                StorageCategory.VehicleAndPower  => ru ? "[Авто/Энергия]" : "[Auto/Pwr]",
-                StorageCategory.FarmingAndPets   => ru ? "[Огород/Питомцы]" : "[Farm/Pet]",
-                StorageCategory.MiscAndValuables => ru ? "[Разное]" : "[Misc]",
+                StorageCategory.MeleeWeapons     => CompanionConfigStore.L(lang, "[Клинки]", "[Melee]", "[近战]"),
+                StorageCategory.RangedWeapons    => CompanionConfigStore.L(lang, "[Огнестрел]", "[Guns]", "[枪械]"),
+                StorageCategory.AmmoAndMags      => CompanionConfigStore.L(lang, "[Патроны]", "[Ammo]", "[弹药]"),
+                StorageCategory.Medicine         => CompanionConfigStore.L(lang, "[Медицина]", "[Meds]", "[医疗]"),
+                StorageCategory.FreshFood        => CompanionConfigStore.L(lang, "[Свежая еда]", "[Meals]", "[熟食]"),
+                StorageCategory.CannedAndDrinks  => CompanionConfigStore.L(lang, "[Консервы/Вода]", "[Cans/Drink]", "[罐头/水]"),
+                StorageCategory.Materials        => CompanionConfigStore.L(lang, "[Материалы]", "[Mats]", "[材料]"),
+                StorageCategory.ToolsAndRepair   => CompanionConfigStore.L(lang, "[Инструменты]", "[Tools]", "[工具]"),
+                StorageCategory.ClothingAndArmor => CompanionConfigStore.L(lang, "[Одежда/Броня]", "[Gear]", "[防具/包]"),
+                StorageCategory.VehicleAndPower  => CompanionConfigStore.L(lang, "[Авто/Энергия]", "[Auto/Pwr]", "[载具/电]"),
+                StorageCategory.FarmingAndPets   => CompanionConfigStore.L(lang, "[Огород/Питомцы]", "[Farm/Pet]", "[农/宠]"),
+                StorageCategory.MiscAndValuables => CompanionConfigStore.L(lang, "[Разное]", "[Misc]", "[杂项]"),
                 _                                => ""
             };
         }
 
+        public static string FormatCategoriesSummary(StorageCategory mask, bool isDropoff)
+        {
+            return FormatCategoriesSummary(mask, isDropoff, CompanionConfigStore.EffectiveLanguage);
+        }
+
         public static string FormatCategoriesSummary(StorageCategory mask, bool isDropoff, bool ru)
         {
+            return FormatCategoriesSummary(mask, isDropoff, ru ? ModLanguage.Russian : ModLanguage.English);
+        }
+
+        public static string FormatCategoriesSummary(StorageCategory mask, bool isDropoff, ModLanguage lang)
+        {
             if (isDropoff && mask == StorageCategory.None)
-                return ru ? "📥 Ящик-приёмник (разбор хабара)" : "📥 Drop-off Box (Unsorted Source)";
+                return CompanionConfigStore.L(lang, "📥 Ящик-приёмник (разбор хабара)", "📥 Drop-off Box (Unsorted Source)", "📥 收货中转箱（待分类物资）");
             if (mask == StorageCategory.None)
-                return ru ? "Нет категорий" : "No Categories";
+                return CompanionConfigStore.L(lang, "Нет категорий", "No Categories", "未设置分类");
             if (mask == StorageCategory.All)
-                return ru ? "Все категории (Общий склад)" : "All Categories (General)";
+                return CompanionConfigStore.L(lang, "Все категории (Общий склад)", "All Categories (General)", "所有分类（综合仓库）");
 
             var parts = new List<string>();
-            if (isDropoff) parts.Add(ru ? "📥Приёмник" : "📥Drop-off");
+            if (isDropoff) parts.Add(CompanionConfigStore.L(lang, "📥Приёмник", "📥Drop-off", "📥收货箱"));
             foreach (var c in AllCategories)
             {
                 if ((mask & c) != 0)
-                    parts.Add(GetCategoryShortTag(c, ru));
+                    parts.Add(GetCategoryShortTag(c, lang));
             }
             return string.Join(" ", parts);
         }
