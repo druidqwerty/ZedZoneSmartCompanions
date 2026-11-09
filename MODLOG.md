@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 1.3.2 VERIFIED; publication in progress (prior blockers resolved)
+## Status: 1.3.2 VERIFIED / GitHub RELEASED / locally installed; Steam upload denied, retry scheduled
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -90,3 +90,8 @@
 - FINAL acceptance PASS on freshcopy: native8m acquisition0.75s, actualsamegunshot1.36s ammo8->7;12mshot0.36s ammo7->6; nativeStopFire3s nofire. Earlierpass .15/.49/.42s also retained; timingsobserved, notguaranteed. ProtectedtargetHP avoidsownerweaponcritdeath invalidatingstopfiretest. No forcedFire/SetThreatData. NativeMenuactualpanels3languages +7nativecommands +inventoryconservation +F8UI15/15 andnativeinputrestore PASS;0modwarnings/errors in finalruns.
 - FinalDLL d4e8daf8b4f6d87e384eefa9f6a37b3b451f1e7c1c5b5a44b4cd31e676bb144b;29nativepatches. SourceKit/install/bothWorkshoplayouts synchronized1.3.2. Testplugins moved outofMods;8357originalsavefiles SHA256unchanged. ZIP1622475bytes SHA25699d9f598934929351a6b7ca477771f22d170819e92218e0b738d24e151d85813.
 - Verification report RELEASE_READY:true; independent native-code review completed, no criticalinventory/globalhook/ceasefire defect. Currentremainingstep: publishGitHub/Steam/Boosty andverifypublicresults.
+
+- GitHub1.3.2 release published at https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.2 (runtime commitfd0e753). Anonymous final ZIP download1622465bytes SHA256f5def39bce6ef530eb20878e869cd033ee3aa7ac2b8e95ea46c17a891cedff8a; earlierarchivehash superseded by RU/ZH install-path documentation correction only, DLLunchanged.
+- Steam currentpublic item remains1.3.1 visibility0 banned0. Fullupload thencontent-onlybothrejected EResult15 AccessDenied; authBLoggedOntrue, ownerSteamIDmatches. Contentstaging succeededbutfinalpublishedmetadata/serverupdate denied. Do notclaimSteam1.3.2 live.
+- One deferred retry scheduled2026-11-10 08:05Europe/Moscow, job54cdd362-c77a-4d4a-ba79-a95bbb28586d, exactverifiedhelper tools/retry_workshop_132.py (guardsnewerversion/staginghashes; one attemptonly). Bothcorrectforumdiscussionsremainpinned.
+- BOOSTY1.3.2 queued replacingpending1.3.1 only; carddirectsuserstoGitHub ifWorkshopold. DiscoveredexistingBoostypublisherautomation a6fd0309-cb41-4b52-819d-912b369704eb disabled; leftunchanged toavoidpublishingunrelatedqueuedPZposts. Queueacceptance NOT publication.

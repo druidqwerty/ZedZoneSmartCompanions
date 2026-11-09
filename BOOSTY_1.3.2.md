@@ -7,6 +7,8 @@ Enjoy the mod? Support its development on Boosty.
 
 ## Smart Companions 1.3.2
 
+Version 1.3.2 is available on GitHub. If Workshop still shows an older version, download the release ZIP below.
+
 Give your companions readable orders and help them react before danger reaches your feet.
 
 - Fixed the blank categories and commands in the game's native companion menu.
@@ -31,6 +33,8 @@ Requires [ZED ZONE Code Mod Loader](https://steamcommunity.com/sharedfiles/filed
 
 ## Умные напарники 1.3.2
 
+Версия 1.3.2 доступна на GitHub. Если Workshop пока показывает старую версию, скачайте архив релиза по ссылке ниже.
+
 Понятные приказы и реакция на опасность до того, как она окажется под носом.
 
 - Исправлены пустые категории и команды в штатном меню напарников.
@@ -46,3 +50,4 @@ Requires [ZED ZONE Code Mod Loader](https://steamcommunity.com/sharedfiles/filed
 [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312) · [Релиз GitHub и подробные проверки](https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.2)
 
 © 2026 druidqwerty. Лицензия MIT. Бесплатный открытый мод; код с помощью ИИ, идея и тестирование — druid.
+

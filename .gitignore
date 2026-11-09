@@ -10,3 +10,5 @@ src/*/bin/
 src/*/obj/
 *.user
 *.tmp
+__pycache__/
+*.pyc

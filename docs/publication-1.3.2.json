@@ -1,0 +1,26 @@
+{
+  "github_release": "https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.2",
+  "anonymous_zip_sha256": "f5def39bce6ef530eb20878e869cd033ee3aa7ac2b8e95ea46c17a891cedff8a",
+  "local_version": "1.3.2",
+  "steam_current_title": "ZED ZONE: Smart Companions 1.3.1",
+  "steam_visibility": 0,
+  "steam_banned": 0,
+  "steam_update_error": "EResult=15 Access Denied; authenticated owner matches; content-only retry also rejected",
+  "steam_published_132": false,
+  "steam_topics": [
+    {
+      "id": "570428419877202938",
+      "pinned": true,
+      "title": "0 11 hours ago PINNED: Ideas & Suggestions / Идеи и предложения Иван Тугаринский"
+    },
+    {
+      "id": "570428419877202927",
+      "pinned": true,
+      "title": "0 11 hours ago PINNED: Error Logs & Bug Reports / Логи ошибок и баги Иван Тугаринский"
+    }
+  ],
+  "retry_at_moscow": "2026-11-10 08:05",
+  "retry_job": "54cdd362-c77a-4d4a-ba79-a95bbb28586d",
+  "boosty": "1.3.2 queued; existing publisher automation is disabled; unrelated queue items preserved",
+  "zip_bytes": 1622465
+}

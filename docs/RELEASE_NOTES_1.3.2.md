@@ -2,6 +2,8 @@
 
 ## English
 
+**Download/install:** if Workshop still shows an older version, use the ZIP assets here. Extract the archive into the ZED ZONE game root (it already contains `Mods/SmartCompanions/`).
+
 ### Native companion menus
 
 - Fixed the separate blank-menu problem in the game's own NPC command menu, not just the F8 hub.
@@ -36,6 +38,8 @@ No new chatter lines in this hotfix. Existing F8 rendering, fonts and input-capt
 ---
 
 ## Русский
+
+**Скачивание/установка:** если Workshop пока показывает старую версию, используйте ZIP этого релиза. Распакуйте его в корень игры ZED ZONE: каталог `Mods/SmartCompanions/` уже находится внутри архива.
 
 ### Штатное меню приказов
 
