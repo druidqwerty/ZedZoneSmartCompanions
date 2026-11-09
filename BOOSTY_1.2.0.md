@@ -1,5 +1,5 @@
-TITLE: ZED ZONE: Smart Companions 1.2.0 — Chinese Localization, Auto Language Detection & 987 Lines / Китайская локализация, автоопределение языка и 987 фраз
-TAGS: zed zone, mod, smart companions, ai, npc, base sorting, update
+Title / Заголовок: ZED ZONE: Smart Companions 1.2.0 — Chinese Localization, Auto Language Detection & 987 Lines / ZED ZONE: Smart Companions 1.2.0 — Китайская локализация, автоопределение языка и 987 фраз
+---
 
 <p align="center"><a href="https://boosty.to/lrgpp"><img src="https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png" alt="LrgPP mods on Boosty" width="640"></a></p>
 <p align="center"><em>Enjoy the mod? Support its development on <a href="https://boosty.to/lrgpp">Boosty</a>.</em></p>
