@@ -1,7 +1,7 @@
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 var asm=AssemblyDefinition.ReadAssembly(@"G:\Steam\steamapps\common\ZED ZONE\BepInEx\interop\Assembly-CSharp.dll");
-foreach(var type in asm.MainModule.Types.Where(t=>args.Contains(t.Name)))
+foreach(var type in asm.MainModule.Types.SelectMany(t=>new[]{t}.Concat(t.NestedTypes)).Where(t=>args.Length==0 || args.Contains(t.Name)))
 {
     var init=type.Methods.FirstOrDefault(m=>m.Name==".cctor");
     if(init==null)continue;

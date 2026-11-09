@@ -1,18 +1,18 @@
 version=1
 id=3836613312
-title=ZED ZONE: Smart Companions 1.3.2
+title=ZED ZONE: Smart Companions 1.4.0
 visibility=public
-description=[h1]Smart Companions 1.3.2[/h1]
-description=Smarter recruited companions: tactical combat, base sorting and live chatter in English, Russian and Simplified Chinese.
+description=[h1]Smart Companions 1.4.0[/h1]
+description=Smarter recruited companions: tactical combat, co-op multiplayer sync, base sorting and live chatter in English, Russian and Simplified Chinese.
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Enjoy the mod? Support development on Boosty.
-description=[h2]Fixed in 1.3.2[/h2]
-description=[list][*]Fixed blank categories and commands in the game's native companion menu.[*]Repaired combat orders and quicker threat checks, respecting visibility, weapon range and Hold Fire.[*]Companions stop sorting when threatened; less unnecessary sidestepping and firing interruptions.[*]Companion-centered looting and safer transfers into full inventories; XP progress saves between rank-ups and on exit.[*]Manual rations now consume food and have a separate cooldown per companion.[/list]
+description=[h2]New in 1.4.0 (Co-op Multiplayer & Combat)[/h2]
+description=[list][*]Co-op container category sync: when a friend sets a category on a base chest, it syncs so both players see the same category.[*]Co-op companion ownership & mutual healing: each player commands their own companions, while a friend's companions can heal and rescue you in combat (and vice versa).[*]Fixed fire-lighting menu popping up on the local screen when a friend opens a container.[*]Fixed NPCs and companions being invisible to co-op clients.[*]Fixed companions not shooting at hostile human NPCs (looters/bandits).[/list]
 description=[h2]Your squad and base[/h2]
 description=6 combat doctrines, companion personalities and veteran ranks, field aid, camp chores, vehicle unloading, 12-category chest sorting and RU/EN/ZH chatter with 18+, Mixed or Clean modes. All settings change in-game.
 description=[h2]Install and controls[/h2]
-description=Required: [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]. Subscribe and run its install.cmd once, then launch through Steam.
-description=F8: squad/base/settings. F7: sort base. F6: share rations. F9: battle cry. No save reset required. Code mods are local and do not auto-sync between co-op players.
+description=Required: [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]. Subscribe and run its install.cmd once, then launch through Steam. Both co-op players should have the mod installed for full category and doctrine sync.
+description=F8: squad/base/settings. F7: sort base. F6: share rations. F9: battle cry. No save reset required.
 description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]Source, release downloads and detailed checks[/url]
 description=[h2]My ZED ZONE mods[/h2][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]Code Mod Loader[/url]
 description=© 2026 druidqwerty. MIT License. Free and open source; AI-assisted code, direction and testing by druid.

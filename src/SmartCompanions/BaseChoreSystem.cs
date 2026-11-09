@@ -38,6 +38,11 @@ namespace ZedZone.SmartCompanions
             }
 
             if (!CompanionConfigStore.EnableBaseChores) return;
+            try
+            {
+                if (ZedZone.Net.NetworkManager.isClient) return;
+            }
+            catch { }
             if (gc.isPlayerInCombat) return;
             if (now - _lastCampChoreScanTime < 6.5f) return;
             _lastCampChoreScanTime = now;
@@ -84,15 +89,22 @@ namespace ZedZone.SmartCompanions
                     if (dist > 14f) continue;
 
                     // If campfire is unlit at night or during rain, companion lights it up!
+                    // Never call fp.IgnitionFire(true) here: native IgnitionFire(true) (0x5B29F0)
+                    // opens the local player's ToolSelectManager fire-lighting UI (0x1529D30)!
+                    // Instead, check fuel and call fp.OnIgnite() (0x5B4450) directly.
                     if (!fp.isBurning && isNightOrRain)
                     {
-                        fp.IgnitionFire(true);
-                        st.LastChoreTime = now;
-                        st.ChoresDoneThisSession++;
-                        st.AddExperience(8, ag);
-                        st.CurrentTaskText = CompanionConfigStore.L("🔥 Разжёг костёр в лагере", "🔥 Lit the camp fire", "🔥 已点燃营地篝火");
-                        SmartChatterSystem.Speak(ag, ChatterTopic.CampfireStory, minCooldown: 5f, bubbleDuration: 6f);
-                        return true;
+                        var fuelInv = fp.fuelInventoryData;
+                        if (Il2CppSafe.IsAlive(fuelInv) && ProductionManager.FindLastCombustibleIndex(fuelInv) >= 0)
+                        {
+                            fp.OnIgnite();
+                            st.LastChoreTime = now;
+                            st.ChoresDoneThisSession++;
+                            st.AddExperience(8, ag);
+                            st.CurrentTaskText = CompanionConfigStore.L("🔥 Разжёг костёр в лагере", "🔥 Lit the camp fire", "🔥 已点燃营地篝火");
+                            SmartChatterSystem.Speak(ag, ChatterTopic.CampfireStory, minCooldown: 5f, bubbleDuration: 6f);
+                            return true;
+                        }
                     }
 
                     // If campfire is burning and companion is nearby, warm hands & restore comfort/morale

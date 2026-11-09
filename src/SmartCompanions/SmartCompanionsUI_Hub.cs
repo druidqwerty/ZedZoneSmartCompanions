@@ -204,9 +204,20 @@ namespace ZedZone.SmartCompanions
                 string rankTitle = CompanionConfigStore.GetRankDisplayName(st.Rank, lang);
                 int nextXp = CompanionConfigStore.GetNextRankXpThreshold(st.Rank);
                 string archTitle = CompanionConfigStore.GetArchetypeDisplayName(st.EffectiveArchetype, lang);
+                string ownerBadge = "";
+                if (MultiplayerSyncSystem.IsMultiplayerOnline)
+                {
+                    bool isMine = MultiplayerSyncSystem.IsCompanionOwnedByLocalPlayer(ag.npcData);
+                    string ownerLabel = !string.IsNullOrEmpty(st.OwnerPlayerName)
+                        ? st.OwnerPlayerName
+                        : CompanionConfigStore.L(lang, "Союзник", "Ally", "盟友");
+                    ownerBadge = isMine
+                        ? CompanionConfigStore.L(lang, " [Ваш]", " [Yours]", " [你的]")
+                        : $" [{ownerLabel}]";
+                }
 
                 GUI.Label(new Rect(cx, cy, 415f, 22f),
-                    $"* {name} [{rankTitle} · {st.ExperiencePoints}/{nextXp} XP]  |  HP: {hp:F0}/{maxHp:F0}  |   {wepName}",
+                    $"* {name}{ownerBadge} [{rankTitle} · {st.ExperiencePoints}/{nextXp} XP]  |  HP: {hp:F0}/{maxHp:F0}  |   {wepName}",
                     _subHeaderStyle);
 
                 if (GUI.Button(new Rect(cx + 420f, cy, 170f, 22f), archTitle, _btnStyle))
@@ -318,6 +329,7 @@ namespace ZedZone.SmartCompanions
                 {
                     st.Doctrine = d.Item1;
                     SmartCombatAI.ApplyDoctrineToNpcData(agent, st);
+                    MultiplayerSyncSystem.SyncCompanionStateChange(st);
                     CompanionConfigStore.Save();
                 }
             }
@@ -429,6 +441,7 @@ namespace ZedZone.SmartCompanions
                 if (GUI.Button(new Rect(rx, ry, rw, 28f), dropText, rule.IsDropoffSource ? _catOnStyle : _catOffStyle))
                 {
                     rule.IsDropoffSource = !rule.IsDropoffSource;
+                    MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
 
@@ -440,6 +453,7 @@ namespace ZedZone.SmartCompanions
                         $"存放优先级：*{rule.Priority}（点击切换）"), _btnStyle))
                 {
                     rule.Priority = (rule.Priority % 5) + 1;
+                    MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
                 if (GUI.Button(new Rect(rx + rw * 0.50f, ry, rw * 0.50f, 26f),
@@ -447,6 +461,7 @@ namespace ZedZone.SmartCompanions
                     rule.AutoCompact ? _catOnStyle : _catOffStyle))
                 {
                     rule.AutoCompact = !rule.AutoCompact;
+                    MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
 
@@ -474,6 +489,7 @@ namespace ZedZone.SmartCompanions
                     {
                         if (on) rule.Categories &= ~cat;
                         else rule.Categories |= cat;
+                        MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                         CompanionConfigStore.Save();
                     }
                 }
@@ -483,11 +499,13 @@ namespace ZedZone.SmartCompanions
                 if (GUI.Button(new Rect(rx, ry, pw, 26f), CompanionConfigStore.L(lang, "Выбрать все", "Select All", "全选分类"), _btnStyle))
                 {
                     rule.Categories = StorageCategory.All;
+                    MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
                 if (GUI.Button(new Rect(rx + pw + 6f, ry, pw, 26f), CompanionConfigStore.L(lang, "Очистить все", "Clear All", "清空全选"), _btnStyle))
                 {
                     rule.Categories = StorageCategory.None;
+                    MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
                 if (GUI.Button(new Rect(rx + (pw + 6f) * 2f, ry, pw, 26f),

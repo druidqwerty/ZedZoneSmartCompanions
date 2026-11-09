@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.2"><strong>下载 v1.3.2 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.0"><strong>下载 v1.4.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v1.4.0 更新 — 联机多人同步与人类敌对 NPC 射击修复
+
+- **完整联机多人同步 (`MultiplayerSyncSystem`)：**
+  - **基地储物箱分类实时同步：**当联机好友为箱子设置分类、收货中转箱或优先级时，主机与客户端自动同步（通过 `TerrainObjectData` 属性与静默同步包），双方看到完全一致的箱子分类。
+  - **队友归属权与跨玩家急救：**联机中每位玩家拥有并指挥自己的专属队友（`F8` 显示归属标签），但好友的队友可以在战斗中为你包扎急救与解围，反之亦然。
+- **修复联机 Bug 1（打开箱子弹出点火菜单）：**修复基地内务自动生火调用 `IgnitionFire(true)` 导致好友开箱时主机弹出点火工具选择界面的问题（改为直接调用 `OnIgnite()`）。
+- **修复联机 Bug 2（客户端看不见 NPC）：**修复人类 NPC 因 `characterAttrId = 0` 被 `NetMonsterSync.SpawnPuppet` 丢弃以及客户端 `spriteParent` 未激活导致看不见 NPC 的问题。
+- **修复战斗 Bug 3（队友不向敌对人类 NPC 开枪）：**修复原版 `UpdateAgentSight` 因 `(21 % 10) == (1 % 10)` 将强盗（阵营 21）误判为友军（阵营 1）、`GOAPGoal_WarningHumanEnemy` 阻塞射击以及人类威胁值缺失的问题，队友现在能像射击丧尸一样立即向敌对人类 NPC 开火。[验证报告](docs/verification-1.4.0.md)。
 
 ## v1.3.2 修复
 

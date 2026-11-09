@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.2"><strong>Release v1.3.2 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.0"><strong>Release v1.4.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v1.4.0 — Co-op Multiplayer Synchronization & Hostile Human Combat Fix
+
+- **Full Co-op Multiplayer Synchronization (`MultiplayerSyncSystem`):**
+  - **Shared Base Container Categories:** when any player assigns or changes categories, drop-off mode, or priority on a chest, it syncs across Host and Clients via `TerrainObjectData` property slot `7` (`SC14:...`) and silent `MsgChat` sync packets (`\u200B[SC14]|BOX|...`) so both players see the exact same box categories in real time.
+  - **Per-Player Companion Ownership & Cross-Player Field Aid:** each player commands their own companions (`leaderCharacterGUID` / owner badge in `F8`), companions follow their owner across Z-layers in co-op, and any companion can perform emergency field healing and rescue on injured allied players (`HEAL` packet sync).
+- **Fixed Bug 1 (Co-op Fire-Lighting Menu):** opening a chest on a Client no longer triggers the fire-lighting (`ToolSelectManager.SelectTool_Player`) menu on the Host's screen (`BaseChoreSystem` now ignites fueled campfires directly via `TerrainObject_FirePlace.OnIgnite()` and guards `IgnitionFire(true)` while `LootInventoryPanel` is open).
+- **Fixed Bug 2 (Co-op Invisible NPCs):** fixed `ScavengerCamp` human NPCs having `characterAttrId = 0`, which caused `NetMonsterSync.SpawnPuppet` (`0xBD0A37`) to abort on Clients, and fixed `BasicCharacterController.Start()` leaving client puppet `spriteParent` disabled (`OnEnterScreen()` / `OnEnterSight()`).
+- **Fixed Bug 3 (Companions Not Shooting Hostile Human NPCs):** fixed native `GOAPAgent.UpdateAgentSight` (`0x679CC3`) treating Looters (`camp = 21`) as same-camp allies of companions (`camp = 1`) due to `(21 % 10) == (1 % 10)`, suppressed `GOAPGoal_WarningHumanEnemy` (`priority 100`) for player teammates, and configured human `MonsterAttr` (`201`/`202`) threat values so companions immediately aim and shoot hostile human NPCs just like zombies. [Verification report](docs/verification-1.4.0.md).
 
 ## Fixed in v1.3.2
 

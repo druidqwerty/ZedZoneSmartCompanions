@@ -64,11 +64,26 @@ namespace ZedZone.SmartCompanions
                         if (!Il2CppSafe.IsAliveUnity(candidate) || candidate.Pointer == self.Pointer ||
                             candidate.deadFlag || !candidate.enabled || !candidate.gameObject.activeInHierarchy ||
                             !Il2CppSafe.IsAlive(candidate.characterData) ||
-                            candidate.characterData.zLevel != floor || candidate.isOnScreen) continue;
+                            candidate.characterData.zLevel != floor) continue;
+
+                        var candidateHuman = candidate.TryCast<HumanCharacterController>();
+                        bool isHostileHuman = Il2CppSafe.IsAliveUnity(candidateHuman) &&
+                            SmartCombatAI.IsHostileHumanTarget(agent, candidateHuman);
+                        if (Il2CppSafe.IsAliveUnity(candidateHuman))
+                        {
+                            MultiplayerSyncSystem.NormalizeHumanCharacterData(candidate.characterData, isHostileHuman);
+                        }
+
                         Vector3 targetPosition = candidate.transform.position;
                         if (((Vector2)targetPosition - selfPosition).sqrMagnitude > squaredRange ||
-                            !agent.IsInSight(targetPosition) ||
                             !agent.HasClearFireLine(from, candidate.GetTorsePositionOrRoot())) continue;
+
+                        if (isHostileHuman)
+                        {
+                            try { agent.SetThreatData(candidate); } catch { }
+                        }
+
+                        if (candidate.isOnScreen || (!isHostileHuman && !agent.IsInSight(targetPosition))) continue;
                         // Record before mutating so even a native setter failure cannot
                         // leave an earlier character's temporary flag behind.
                         changed.Add(new CameraFlag(candidate, candidate.isOnScreen));

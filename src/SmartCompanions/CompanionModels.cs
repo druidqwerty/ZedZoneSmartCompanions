@@ -201,6 +201,8 @@ namespace ZedZone.SmartCompanions
     {
         public string NpcGuid = "";
         public string LastKnownName = "";
+        public string OwnerCharacterId = "";
+        public string OwnerPlayerName = "";
         public TacticalDoctrine Doctrine = TacticalDoctrine.Balanced;
         public CompanionArchetype Archetype = CompanionArchetype.Auto;
         public int ExperiencePoints = 0;
@@ -594,7 +596,9 @@ namespace ZedZone.SmartCompanions
                 {
                     var c = kv.Value;
                     var safeName = (c.LastKnownName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
-                    sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}|{(int)c.Archetype}|{c.ExperiencePoints}|{c.AllowBaseChores}");
+                    var safeOwnerId = (c.OwnerCharacterId ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
+                    var safeOwnerName = (c.OwnerPlayerName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
+                    sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}|{(int)c.Archetype}|{c.ExperiencePoints}|{c.AllowBaseChores}|{safeOwnerId}|{safeOwnerName}");
                 }
 
                 File.WriteAllText(SaveFilePath, sb.ToString(), Encoding.UTF8);
@@ -692,6 +696,8 @@ namespace ZedZone.SmartCompanions
                         if (parts.Length >= 11 && int.TryParse(parts[10], out var xpParsed)) xp = Mathf.Max(0, xpParsed);
                         bool chores = true;
                         if (parts.Length >= 12 && bool.TryParse(parts[11], out var chParsed)) chores = chParsed;
+                        var ownerId = parts.Length >= 13 ? parts[12] : "";
+                        var ownerName = parts.Length >= 14 ? parts[13] : "";
 
                         CompanionStates[guid] = new CompanionRuntimeState
                         {
@@ -705,7 +711,9 @@ namespace ZedZone.SmartCompanions
                             Archetype = arch,
                             ExperiencePoints = xp,
                             AllowBaseChores = chores,
-                            LastKnownName = name
+                            LastKnownName = name,
+                            OwnerCharacterId = ownerId,
+                            OwnerPlayerName = ownerName
                         };
                     }
                 }

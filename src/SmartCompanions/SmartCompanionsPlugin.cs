@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "1.3.2";
+        public const string PluginVersion = "1.4.0";
 
         internal static ManualLogSource Logs;
 
@@ -171,7 +171,7 @@ namespace ZedZone.SmartCompanions
                     throw new Exception("CompanionRank XP threshold check failed!");
                 }
 
-                LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}], {uniqueZh.Count} unique ZH lines [Rude={rudeZhCount}, Clean={cleanZhCount}]), 12 storage categories (RU/EN/ZH), {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, ModLanguage Auto/RU/EN/ZH verified.");
+                LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}], {uniqueZh.Count} unique ZH lines [Rude={rudeZhCount}, Clean={cleanZhCount}]), 12 storage categories (RU/EN/ZH), {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, MP Sync & Hostile Human Combat AI, ModLanguage Auto/RU/EN/ZH verified.");
             }
             catch (Exception e)
             {
@@ -225,6 +225,7 @@ namespace ZedZone.SmartCompanions
 
                 float now = Time.unscaledTime;
                 CompanionConfigStore.FlushPendingProgress();
+                MultiplayerSyncSystem.Tick();
 
                 if (now - _lastCombatTickTime >= 0.15f)
                 {

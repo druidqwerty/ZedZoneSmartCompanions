@@ -14,6 +14,12 @@ namespace ZedZone.SmartCompanions.LiveSmoke
         private static float _stableWeaponSince;
         private static GOAPAgent _agent;
         private static ZombieController _zombie;
+        private static HumanCharacterController _hostileHuman;
+        private static Vector2 _originalHumanPosition;
+        private static float _originalHumanHp;
+        private static int _originalHumanCamp, _originalHumanAttrId;
+        private static string _originalHumanLeaderGuid;
+        private static bool _originalHumanBandit, _originalHumanInTeamList, _originalHumanInPlayerGuids, _humanWasFrozen, _humanAgentWasEnabled;
         private static Vector2 _originalZombiePosition;
         private static bool _zombieEnabled, _zombieWasFrozen;
         private static float _originalHp;
@@ -90,6 +96,13 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     // Survive the owner's high-damage/critical weapon rolls through
                     // the cease-fire observation. We verify shots, not target damage.
                     _zombie.hp = 10000000f;
+                    if (Il2CppSafe.IsAlive(_zombie.characterData?.characterStatusData))
+                    {
+                        _zombie.characterData.characterStatusData.maxhp = 10000000f;
+                        _zombie.characterData.characterStatusData.hp = 10000000f;
+                    }
+                    var zAttr = MonsterManager.instance?.GetMonsterAttrById(_zombie.characterData.characterAttrId);
+                    if (Il2CppSafe.IsAliveUnity(zAttr)) zAttr.deathShotRate = 0f;
                     _state.Doctrine = TacticalDoctrine.SniperKite;
                     // Returning-to-base deliberately suppresses native combat. Put the
                     // disposable test NPC on the normal escort order, not a forced goal.
@@ -110,23 +123,30 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 float requiredRange = _phase == 1 ? 12f : 8f;
                 if (_phase < 2 && gun.fireRange + 0.01f < requiredRange && now - _phaseStart > 2f)
                     return End(false, $"BLOCKED: native weapon selection uses weaponId={gun.weaponData.itemId} range={gun.fireRange:F2}m for the {requiredRange:F0}m phase; target={DescribeCurrentTarget()}. A suitable weapon/arena fixture is required.");
-                float distance = Vector2.Distance(_agent.humanCharacter.transform.position, _zombie.transform.position);
+                float distance = _phase == 3 && Il2CppSafe.IsAliveUnity(_hostileHuman)
+                    ? Vector2.Distance(_agent.humanCharacter.transform.position, _hostileHuman.transform.position)
+                    : Vector2.Distance(_agent.humanCharacter.transform.position, _zombie.transform.position);
+                var expectedTarget = _phase == 3 && Il2CppSafe.IsAliveUnity(_hostileHuman)
+                    ? (BasicCharacterController)_hostileHuman
+                    : (BasicCharacterController)_zombie;
                 bool acquired = Il2CppSafe.IsAliveUnity(_agent.mostThreateningCharacter) &&
-                    _agent.mostThreateningCharacter.Pointer == _zombie.Pointer;
+                    _agent.mostThreateningCharacter.Pointer == expectedTarget.Pointer;
                 if (acquired && _seenAt < 0f)
                 {
                     _seenAt = now;
-                    LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Acquired phase={_phase} after={now-_phaseStart:F2}s distance={distance:F2}m sight={_agent.sightRange:F2}.");
+                    LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Acquired phase={_phase} target={expectedTarget.name} after={now-_phaseStart:F2}s distance={distance:F2}m sight={_agent.sightRange:F2}.");
                 }
                 bool fired = ObserveDischarge(gun, now);
-                if (_phase < 2 && fired)
+                if ((_phase < 2 || _phase == 3) && fired)
                 {
                     if (gun.fireRange + 0.01f < requiredRange)
                         return End(false, $"BLOCKED: weaponId={gun.weaponData.itemId} range={gun.fireRange:F2}m discharged during the {requiredRange:F0}m phase; this does not verify the requested ranged fixture.");
                     if (!acquired)
                         return End(false, "BLOCKED: native AI discharged while selecting another threat: " + DescribeCurrentTarget() + "; isolate the test arena before attributing this shot to the intended target.");
                     if (distance < 6f) return End(false, "FAIL: discharge was not at the ranged test target/distance.");
-                    LiveSmokePlugin.Logger.LogInfo($"[CombatLive] PASS native AI discharge phase={_phase} distance={distance:F2}m after={now-_phaseStart:F2}s.");
+                    LiveSmokePlugin.Logger.LogInfo($"[CombatLive] PASS native AI discharge phase={_phase} target={expectedTarget.name} distance={distance:F2}m after={now-_phaseStart:F2}s.");
+                    if (_phase == 3)
+                        return End(true, "PASS ranged acquisition/discharge at 8m & 12m (Zombie), StopFire negative case, v1.4.0 MP Sync & 8m Hostile Human NPC ranged discharge.");
                     _phase++;
                     StartPhase(now);
                 }
@@ -136,15 +156,50 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     // A gun replacement is not a shot, but it starts a fresh full
                     // cease-fire observation window rather than shortening this check.
                     if (now - _stableWeaponSince > 3f)
-                        return End(true, "PASS ranged acquisition/discharge at 8m and 12m; StopFire negative case.");
+                    {
+                        VerifyV140MultiplayerSyncInEngine();
+                        _phase = 3;
+                        StartPhase(now);
+                    }
                 }
                 else if (now - _phaseStart > 12f)
                 {
-                    return End(false, $"FAIL: no native shot within12s phase={_phase}, distance={distance:F2}m acquired={acquired}, sight={_agent.sightRange:F2}, command={_agent.npcData.combatCommand}.");
+                    return End(false, $"FAIL: no native shot within 12s phase={_phase}, distance={distance:F2}m acquired={acquired}, sight={_agent.sightRange:F2}, command={_agent.npcData.combatCommand}, target={DescribeCurrentTarget()}.");
                 }
             }
             catch (Exception error) { return End(false, "FAIL: " + error); }
             return false;
+        }
+
+        private static void VerifyV140MultiplayerSyncInEngine()
+        {
+            var testData = new CharacterData { characterAttrId = 0, camp = 21, characterName = "TestLooter" };
+            MultiplayerSyncSystem.NormalizeHumanCharacterData(testData, isLooterHint: true);
+            if (testData.characterAttrId != MultiplayerSyncSystem.LooterMonsterAttrId || testData.camp != MultiplayerSyncSystem.RemappedLooterCamp)
+                throw new Exception($"NormalizeHumanCharacterData failed: attr={testData.characterAttrId}, camp={testData.camp}");
+
+            var attr202 = MonsterManager.instance.GetMonsterAttrById(MultiplayerSyncSystem.LooterMonsterAttrId);
+            if (!Il2CppSafe.IsAliveUnity(attr202) || attr202.monsterThreatLevel < 25f || attr202.monsterThreatRange < 28f)
+                throw new Exception("MonsterAttr(202) threat level/range not configured!");
+
+            var warnGoal = new GOAPGoal_WarningHumanEnemy();
+            if (warnGoal.IsValid(_agent))
+                throw new Exception("GOAPGoal_WarningHumanEnemy.IsValid was not suppressed for player teammate!");
+
+            var boxMsg = new ZedZone.Net.MsgChat
+            {
+                senderId = 2,
+                senderName = "CoopFriend",
+                text = MultiplayerSyncSystem.PacketPrefix + "BOX|test_mp_box|12|1|4|10.5|20.5|CoopAmmoBox"
+            };
+            if (!MultiplayerSyncSystem.TryHandleIncomingChatPacket(boxMsg, null, receivedOnHost: false))
+                throw new Exception("TryHandleIncomingChatPacket did not intercept BOX sync packet!");
+            if (!CompanionConfigStore.ContainerRules.TryGetValue("test_mp_box", out var syncedRule) ||
+                (int)syncedRule.Categories != 12 || !syncedRule.IsDropoffSource || syncedRule.Priority != 4 || syncedRule.CustomName != "CoopAmmoBox")
+                throw new Exception("BOX sync packet did not apply container rule!");
+            CompanionConfigStore.ContainerRules.Remove("test_mp_box");
+
+            LiveSmokePlugin.Logger.LogInfo("[CombatLive] PASS v1.4.0 MP Sync & WarningHumanEnemy checks (NormalizeHumanCharacterData attr=202 camp=23, MonsterAttr threat=25/28, BOX packet sync).");
         }
 
         private static void StartPhase(float now)
@@ -152,18 +207,82 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             float distance = _phase == 1 ? 12f : 8f;
             bool found = FindOpenTestPlacement(distance);
             if (!found) throw new Exception("BLOCKED: no clear native fire line at " + distance + "m.");
-            _zombie.TeleportTo(_placement, false);
-            _agent.humanCharacter.LookAtPosition(_placement, true);
-            if (_phase == 2)
+            if (_phase == 3)
             {
-                _state.Doctrine = TacticalDoctrine.Passive;
+                SetupHostileHumanTarget();
+                _zombie.gameObject.SetActive(false);
+                _hostileHuman.TeleportTo(_placement, false);
+                _agent.humanCharacter.LookAtPosition(_placement, true);
+                _state.Doctrine = TacticalDoctrine.SniperKite;
                 SmartCombatAI.ApplyDoctrineToNpcData(_agent, _state);
+                MultiplayerSyncSystem.NormalizeHumanCharacterData(_hostileHuman.characterData, isLooterHint: true);
+            }
+            else
+            {
+                _zombie.TeleportTo(_placement, false);
+                _agent.humanCharacter.LookAtPosition(_placement, true);
+                if (_phase == 2)
+                {
+                    _state.Doctrine = TacticalDoctrine.Passive;
+                    SmartCombatAI.ApplyDoctrineToNpcData(_agent, _state);
+                }
             }
             _phaseStart = now;
             _seenAt = -1f;
             var gun = _agent.humanCharacter.rangedWeapon;
             ResetDischargeBaseline(gun, now);
             LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Begin phase={_phase} distance={distance}m rounds={_initialAmmo} weaponId={gun.weaponData.itemId} range={gun.fireRange:F2} command={_agent.npcData.combatCommand}.");
+        }
+
+        private static void SetupHostileHumanTarget()
+        {
+            var gc = GameController.instance;
+            var mgr = GOAPNPCManager.instance;
+            foreach (var ch in gc.characterList)
+            {
+                if (!Il2CppSafe.IsAliveUnity(ch) || ch.deadFlag || ch.isPlayer) continue;
+                var h = ch.TryCast<HumanCharacterController>();
+                if (!Il2CppSafe.IsAliveUnity(h) || h.Pointer == _agent.humanCharacter.Pointer) continue;
+                _hostileHuman = h;
+                break;
+            }
+            if (!Il2CppSafe.IsAliveUnity(_hostileHuman))
+                throw new Exception("BLOCKED: no second HumanCharacterController in lab scene for Phase 3 hostile human combat test.");
+
+            _originalHumanPosition = _hostileHuman.transform.position;
+            _originalHumanHp = _hostileHuman.hp;
+            _originalHumanCamp = _hostileHuman.characterData.camp;
+            _originalHumanAttrId = _hostileHuman.characterData.characterAttrId;
+            _humanWasFrozen = _hostileHuman.isScriptedMoveFreezeActive;
+
+            var ag = _hostileHuman.GetCachedGOAPAgent();
+            if (Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAlive(ag.npcData))
+            {
+                _originalHumanLeaderGuid = ag.npcData.leaderCharacterGUID;
+                _originalHumanBandit = ag.npcData.isBandit;
+                _originalHumanInTeamList = mgr.teammateNPCs != null && mgr.teammateNPCs.Contains(ag.npcData);
+                _originalHumanInPlayerGuids = gc.playerCharacter?.characterData?.teamNPCGuids != null &&
+                    gc.playerCharacter.characterData.teamNPCGuids.Contains(ag.npcData.npcGUID);
+
+                ag.npcData.leaderCharacterGUID = "";
+                ag.npcData.isBandit = true;
+                if (_originalHumanInTeamList) mgr.teammateNPCs.Remove(ag.npcData);
+                if (_originalHumanInPlayerGuids) gc.playerCharacter.characterData.teamNPCGuids.Remove(ag.npcData.npcGUID);
+                ag.leaderCharacter = null;
+                _humanAgentWasEnabled = ag.enabled;
+                ag.enabled = false;
+            }
+
+            // Start with vanilla Looter camp=21 and characterAttrId=0 to verify our fix normalizes it!
+            _hostileHuman.characterData.camp = 21;
+            _hostileHuman.characterData.characterAttrId = 0;
+            _hostileHuman.hp = 10000000f;
+            if (Il2CppSafe.IsAlive(_hostileHuman.characterData?.characterStatusData))
+            {
+                _hostileHuman.characterData.characterStatusData.maxhp = 10000000f;
+                _hostileHuman.characterData.characterStatusData.hp = 10000000f;
+            }
+            if (!_humanWasFrozen) _hostileHuman.BeginScriptedMoveFreeze();
         }
 
         private static void ResetDischargeBaseline(BasicRangedWeapon gun, float now)
@@ -204,7 +323,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             var target = _agent.mostThreateningCharacter;
             if (!Il2CppSafe.IsAliveUnity(target)) return "none";
             float distance = Vector2.Distance(_agent.humanCharacter.transform.position, target.transform.position);
-            return $"{target.name}#{target.GetInstanceID()} at {distance:F2}m (testTarget={target.Pointer == _zombie.Pointer})";
+            var expected = _phase == 3 && Il2CppSafe.IsAliveUnity(_hostileHuman) ? _hostileHuman.Pointer : _zombie.Pointer;
+            return $"{target.name}#{target.GetInstanceID()} at {distance:F2}m (testTarget={target.Pointer == expected})";
         }
 
         private static bool End(bool success, string message)
@@ -226,8 +346,33 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         _agent.npcData.ExecuteNPCCommand("Basic." + _originalBasic);
                     _agent.executeSelectPriorityGoalFlag = true;
                 }
+                if (Il2CppSafe.IsAliveUnity(_hostileHuman))
+                {
+                    _hostileHuman.TeleportTo(_originalHumanPosition, false);
+                    _hostileHuman.hp = _originalHumanHp;
+                    if (Il2CppSafe.IsAlive(_hostileHuman.characterData))
+                    {
+                        _hostileHuman.characterData.camp = _originalHumanCamp;
+                        _hostileHuman.characterData.characterAttrId = _originalHumanAttrId;
+                    }
+                    var ag = _hostileHuman.GetCachedGOAPAgent();
+                    if (Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAlive(ag.npcData))
+                    {
+                        ag.npcData.leaderCharacterGUID = _originalHumanLeaderGuid;
+                        ag.npcData.isBandit = _originalHumanBandit;
+                        if (_originalHumanInTeamList && GOAPNPCManager.instance?.teammateNPCs != null &&
+                            !GOAPNPCManager.instance.teammateNPCs.Contains(ag.npcData))
+                            GOAPNPCManager.instance.teammateNPCs.Add(ag.npcData);
+                        if (_originalHumanInPlayerGuids && GameController.instance?.playerCharacter?.characterData?.teamNPCGuids != null &&
+                            !GameController.instance.playerCharacter.characterData.teamNPCGuids.Contains(ag.npcData.npcGUID))
+                            GameController.instance.playerCharacter.characterData.teamNPCGuids.Add(ag.npcData.npcGUID);
+                        ag.enabled = _humanAgentWasEnabled;
+                    }
+                    if (!_humanWasFrozen) _hostileHuman.EndScriptedMoveFreeze();
+                }
                 if (Il2CppSafe.IsAliveUnity(_zombie))
                 {
+                    _zombie.gameObject.SetActive(true);
                     _zombie.TeleportTo(_originalZombiePosition, false);
                     _zombie.hp = _originalHp;
                     _zombie.enabled = _zombieEnabled;

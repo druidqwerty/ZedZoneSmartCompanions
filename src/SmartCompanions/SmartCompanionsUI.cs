@@ -295,6 +295,7 @@ namespace ZedZone.SmartCompanions
             if (GUI.Button(new Rect(rx + 255f, ry, 185f, 24f), dropLabel, dropStyle))
             {
                 rule.IsDropoffSource = !rule.IsDropoffSource;
+                MultiplayerSyncSystem.SyncBoxRuleChange(rule);
                 CompanionConfigStore.Save();
             }
 
@@ -302,6 +303,7 @@ namespace ZedZone.SmartCompanions
             if (GUI.Button(new Rect(rx + 446f, ry, 110f, 24f), prioLabel, _btnStyle))
             {
                 rule.Priority = (rule.Priority % 5) + 1;
+                MultiplayerSyncSystem.SyncBoxRuleChange(rule);
                 CompanionConfigStore.Save();
             }
 
@@ -328,30 +330,35 @@ namespace ZedZone.SmartCompanions
             {
                 rule.Categories = StorageCategory.MeleeWeapons | StorageCategory.RangedWeapons | StorageCategory.AmmoAndMags;
                 rule.IsDropoffSource = false;
+                MultiplayerSyncSystem.SyncBoxRuleChange(rule);
                 CompanionConfigStore.Save();
             }
             if (GUI.Button(new Rect(rx + (bw + 6f) * 1, ry, bw, 24f), CompanionConfigStore.L(lang, " Провизия", " Food/Drink", " 食品饮水"), _btnStyle))
             {
                 rule.Categories = StorageCategory.FreshFood | StorageCategory.CannedAndDrinks;
                 rule.IsDropoffSource = false;
+                MultiplayerSyncSystem.SyncBoxRuleChange(rule);
                 CompanionConfigStore.Save();
             }
             if (GUI.Button(new Rect(rx + (bw + 6f) * 2, ry, bw, 24f), CompanionConfigStore.L(lang, " Медицина", " Medical", " 医疗品"), _btnStyle))
             {
                 rule.Categories = StorageCategory.Medicine;
                 rule.IsDropoffSource = false;
+                MultiplayerSyncSystem.SyncBoxRuleChange(rule);
                 CompanionConfigStore.Save();
             }
             if (GUI.Button(new Rect(rx + (bw + 6f) * 3, ry, bw, 24f), CompanionConfigStore.L(lang, " Мастерская", " Workshop", " 工坊材料"), _btnStyle))
             {
                 rule.Categories = StorageCategory.Materials | StorageCategory.ToolsAndRepair | StorageCategory.VehicleAndPower;
                 rule.IsDropoffSource = false;
+                MultiplayerSyncSystem.SyncBoxRuleChange(rule);
                 CompanionConfigStore.Save();
             }
             if (GUI.Button(new Rect(rx + (bw + 6f) * 4, ry, bw, 24f), CompanionConfigStore.L(lang, " Сбросить", " Clear", " 清空"), _btnStyle))
             {
                 rule.Categories = StorageCategory.None;
                 rule.IsDropoffSource = false;
+                MultiplayerSyncSystem.SyncBoxRuleChange(rule);
                 CompanionConfigStore.Save();
             }
             if (GUI.Button(new Rect(rx + (bw + 6f) * 5, ry, bw * 2f + 6f, 24f),
@@ -393,6 +400,7 @@ namespace ZedZone.SmartCompanions
                 {
                     if (isOn) rule.Categories &= ~cat;
                     else rule.Categories |= cat;
+                    MultiplayerSyncSystem.SyncBoxRuleChange(rule);
                     CompanionConfigStore.Save();
                 }
             }

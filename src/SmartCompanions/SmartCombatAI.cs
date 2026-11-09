@@ -7,7 +7,69 @@ namespace ZedZone.SmartCompanions
     public static class SmartCombatAI
     {
         private static readonly Dictionary<int, string> RecentTargetEngageOwner = new Dictionary<int, string>();
+        private static readonly Dictionary<IntPtr, float> ProvokedHumanTargets = new Dictionary<IntPtr, float>();
         private static float _lastEngageDictCleanupTime = 0f;
+
+        public static void RecordProvokedHuman(BasicCharacterController actor)
+        {
+            if (!Il2CppSafe.IsAliveUnity(actor) || actor.deadFlag || actor.isPlayer) return;
+            try
+            {
+                if (ZedZone.Net.NetSessionConfig.IsNetworkPlayer(actor)) return;
+                var human = actor.TryCast<HumanCharacterController>();
+                if (!Il2CppSafe.IsAliveUnity(human)) return;
+                var ag = human.GetCachedGOAPAgent();
+                if (Il2CppSafe.IsAliveUnity(ag) && ag.IsPlayerTeammate()) return;
+
+                ProvokedHumanTargets[human.Pointer] = Time.unscaledTime + 120f;
+                if (Il2CppSafe.IsAlive(human.characterData))
+                {
+                    MultiplayerSyncSystem.NormalizeHumanCharacterData(human.characterData, isLooterHint: true);
+                    if (!CharacterData.IsHostileCamp(human.characterData.camp))
+                        human.characterData.camp = MultiplayerSyncSystem.RemappedLooterCamp;
+                }
+                if (Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAlive(ag.npcData))
+                    ag.npcData.isBandit = true;
+            }
+            catch { }
+        }
+
+        public static bool IsHostileHumanTarget(GOAPAgent selfAgent, HumanCharacterController targetHuman)
+        {
+            if (!Il2CppSafe.IsAliveUnity(targetHuman) || targetHuman.deadFlag || targetHuman.isPlayer)
+                return false;
+            try
+            {
+                if (ZedZone.Net.NetSessionConfig.IsNetworkPlayer(targetHuman)) return false;
+                var targetAgent = targetHuman.GetCachedGOAPAgent();
+                if (Il2CppSafe.IsAliveUnity(targetAgent) && targetAgent.IsPlayerTeammate())
+                    return false;
+                if (Il2CppSafe.IsAlive(targetHuman.characterData))
+                {
+                    string leaderId = targetAgent?.npcData?.leaderCharacterGUID;
+                    if (!string.IsNullOrEmpty(leaderId)) return false;
+                    if (CharacterData.IsHostileCamp(targetHuman.characterData.camp)) return true;
+                }
+                if (Il2CppSafe.IsAliveUnity(targetAgent))
+                {
+                    if (targetAgent.TryCast<GOAPAgent_Looter>() != null) return true;
+                    if (Il2CppSafe.IsAlive(targetAgent.npcData) && targetAgent.npcData.isBandit) return true;
+                    var theirTarget = targetAgent.mostThreateningCharacter;
+                    if (Il2CppSafe.IsAliveUnity(theirTarget))
+                    {
+                        if (theirTarget.isPlayer || ZedZone.Net.NetSessionConfig.IsNetworkPlayer(theirTarget))
+                            return true;
+                        var theirTargetAg = theirTarget.GetCachedGOAPAgent();
+                        if (Il2CppSafe.IsAliveUnity(theirTargetAg) && theirTargetAg.IsPlayerTeammate())
+                            return true;
+                    }
+                }
+                if (ProvokedHumanTargets.TryGetValue(targetHuman.Pointer, out float until) && Time.unscaledTime < until)
+                    return true;
+            }
+            catch { }
+            return false;
+        }
 
         public static void ApplyDoctrineToNpcData(GOAPAgent agent, CompanionRuntimeState st)
         {
@@ -44,6 +106,10 @@ namespace ZedZone.SmartCompanions
                 agent.npcData.ExecuteNPCCommand("Combat." + combat);
                 if (weapon != null) agent.npcData.ExecuteNPCCommand("WeaponPreference." + weapon);
                 agent.executeSelectPriorityGoalFlag = true;
+                if (st.Doctrine == TacticalDoctrine.Passive)
+                {
+                    agent.SelectPriorityGoalExecute();
+                }
             }
             catch { }
         }
@@ -85,10 +151,14 @@ namespace ZedZone.SmartCompanions
                     }
                 }
 
-                // 2. Hostile human NPCs (Bandits / Looters / Raiders)
+                // 2. Hostile human NPCs (Bandits / Looters / Raiders / Provoked Survivors)
                 var targetHuman = target.TryCast<HumanCharacterController>();
                 if (Il2CppSafe.IsAliveUnity(targetHuman))
                 {
+                    if (score <= 0.01f && IsHostileHumanTarget(agent, targetHuman))
+                    {
+                        score = 35f / Mathf.Max(1f, distToSelf * 0.15f);
+                    }
                     score *= 1.80f;
                     if (Il2CppSafe.IsAliveUnity(targetHuman.rangedWeapon))
                         score *= 1.35f;
@@ -262,16 +332,20 @@ namespace ZedZone.SmartCompanions
                 TickSmartFlashlight(agent, st, hc);
             }
 
-            if (Il2CppSafe.IsAliveUnity(player) && !player.deadFlag)
+            var alliedPlayers = MultiplayerSyncSystem.GetAllAlliedPlayers();
+            for (int pIdx = 0; pIdx < alliedPlayers.Count; pIdx++)
             {
-                // Emergency Adrenaline Rescue if player is downed or critically wounded (< 22% HP)
+                var allyPlayer = alliedPlayers[pIdx];
+                if (!Il2CppSafe.IsAliveUnity(allyPlayer) || allyPlayer.deadFlag) continue;
                 if (CompanionConfigStore.EnablePlayerRescue)
                 {
-                    TryEmergencyPlayerRescue(agent, st, player, now);
+                    TryEmergencyPlayerRescue(agent, st, allyPlayer, now);
                 }
+                TickFieldSupport(agent, st, allyPlayer, now);
+            }
 
-                TickFieldSupport(agent, st, player, now);
-
+            if (Il2CppSafe.IsAliveUnity(player) && !player.deadFlag)
+            {
                 // Anti-Friendly-Fire Corridor
                 if (CompanionConfigStore.EnableAntiFriendlyFire && player.isRangedWeaponAiming)
                 {
@@ -623,6 +697,7 @@ namespace ZedZone.SmartCompanions
                 status.energy = Mathf.Min(status.maxEnergy > 0 ? status.maxEnergy : 100f, status.energy + 45f);
                 player.hp = status.hp;
                 try { player.HealAllBodyPartInjuries(); } catch { }
+                MultiplayerSyncSystem.SendCrossPlayerHeal(player, rescueHeal, true, st.LastKnownName);
 
                 st.AddExperience(30, agent);
                 SmartChatterSystem.Speak(agent, ChatterTopic.CombatPlayerDownedRescue, minCooldown: 0.5f, bubbleDuration: 6.5f, force: true);
@@ -655,6 +730,7 @@ namespace ZedZone.SmartCompanions
                     status.hp = Mathf.Min(status.maxhp, status.hp + healAmount);
                     player.hp = status.hp;
                     try { player.HealAllBodyPartInjuries(); } catch { }
+                    MultiplayerSyncSystem.SendCrossPlayerHeal(player, healAmount, true, st.LastKnownName);
 
                     try
                     {

@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 1.3.2 VERIFIED / GitHub RELEASED / locally installed; Steam upload denied, retry scheduled
+## Status: 1.4.0 VERIFIED / Locally Installed / Releasing to GitHub, Steam & Boosty
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -28,6 +28,9 @@
 - [x] `SmartCompanionsUI.cs`
 - [x] `SmartCompanionsUI_Hub.cs`
 - [x] `SmartCompanionsPlugin.cs`
+- [x] `MultiplayerSyncSystem.cs`
+- [x] `MultiplayerSyncSystem_Npcs.cs`
+- [x] `MultiplayerSyncSystem_Protocol.cs`
 
 ## Cover 2026 — completed (2026-11-09)
 
@@ -95,3 +98,17 @@
 - Steam currentpublic item remains1.3.1 visibility0 banned0. Fullupload thencontent-onlybothrejected EResult15 AccessDenied; authBLoggedOntrue, ownerSteamIDmatches. Contentstaging succeededbutfinalpublishedmetadata/serverupdate denied. Do notclaimSteam1.3.2 live.
 - One deferred retry scheduled2026-11-10 08:05Europe/Moscow, job54cdd362-c77a-4d4a-ba79-a95bbb28586d, exactverifiedhelper tools/retry_workshop_132.py (guardsnewerversion/staginghashes; one attemptonly). Bothcorrectforumdiscussionsremainpinned.
 - BOOSTY1.3.2 queued replacingpending1.3.1 only; carddirectsuserstoGitHub ifWorkshopold. DiscoveredexistingBoostypublisherautomation a6fd0309-cb41-4b52-819d-912b369704eb disabled; leftunchanged toavoidpublishingunrelatedqueuedPZposts. Queueacceptance NOT publication.
+
+## 1.4.0 Co-op Multiplayer Synchronization & Hostile Human Combat — completed (2026-11-10)
+- **Root-Cause Disassembly & Fixes:**
+  1. **Bug 1 (Fire-lighting UI opening on Host when friend opens container):** `BaseChoreSystem` called `TerrainObject_FirePlace.IgnitionFire(true)` (`0x5B29F0`), which invokes `ToolSelectManager.SelectTool_Player` (`0x1529D30`) on the local screen. Fixed by skipping chores on MP Clients (`NetworkManager.isClient`), igniting fueled campfires via `TerrainObject_FirePlace.OnIgnite()` (`0x5B4450`) after checking `ProductionManager.FindLastCombustibleIndex(fp.fuelInventoryData) >= 0`, and guarding `IgnitionFire(true)` in Harmony while `LootInventoryPanel` is active.
+  2. **Bug 2 (NPCs invisible on MP Clients & per-player companion ownership + cross-player healing):** `ScavengerCamp` human NPCs have `characterAttrId = 0`, causing `NetMonsterSync.SpawnPuppet` (`0xBD0A37`) to abort on Clients, and `BasicCharacterController.Start()` sets `inSightFlag = 1` after `Init() -> OnExitSight()`, leaving `spriteParent` disabled. Fixed in `MultiplayerSyncSystem`: normalizes human `characterAttrId` (`201` Survivor / `202` Looter) before `SerializeCharacterData` and after `DeserializeCharacterData`, clears stale `m_spawnBytesScratch` entries on Host, calls `HostResendSpawn` & `HostSendEquipment`, enables Client puppet `spriteParent` (`OnEnterScreen()` / `OnEnterSight()`), binds `GOAPNPCData`, tracks companion ownership (`leaderCharacterGUID` / `OwnerPlayerName`), syncs remote leader position & `zLevel`, and adds cross-player companion healing/rescue (`HEAL` packet sync).
+  3. **Bug 3 (Companions not shooting hostile human NPCs):** Native `GOAPAgent.UpdateAgentSight` (`0x679CC3`) checks `(target.camp % 10) == (self.camp % 10)`, treating Looters (`camp = 21`, `21 % 10 == 1`) as same-camp allies of companions (`camp = 1`). Furthermore, `GOAPGoal_WarningHumanEnemy` (`0x8B1AB0`, priority 100) preempted `EliminateThreat`, and human `MonsterAttr` (`201`/`202`) lacked threat values. Fixed by remapping Looter `camp = 21 -> 23`, configuring `MonsterAttr(201/202)` threat values (`>= 25` threat, `>= 28m` range), suppressing `GOAPGoal_WarningHumanEnemy.IsValid` for player teammates, guarding `SetThreatData` against duplicate `threatDataDic` keys, and setting `hasTargetEnemy` / `targetEnemyInSight` / `isThreatened`.
+  4. **Full MP Container Category & Doctrine Sync:** Syncs box categories (`ContainerRuleProfile`) and companion doctrines across Host and Clients via `TerrainObjectData` property slot `7` (`SC14:...`) and silent `MsgChat` packets (`\u200B[SC14]|BOX|...`, `NPC|...`, `HEAL|...`, `SORT`, `LOOT`, `REQ_SYNC`) intercepted before `NetChatSync.Append`.
+- **Verification & Packaging:**
+  - Build: 0 warnings, 0 errors (`--warnaserror`).
+  - Final DLL SHA-256: `557cd4e0341cb089c4f669b72fbeab5c7e4ea9618e63ec6c7cb506fa12bd9be8` (41 Harmony patches, `[SelfVerify] PASS v1.4.0`).
+  - Live in-engine verification (`docs/combat-acceptance-1.4.0.log`): Phase 0 (8m Zombie shot in 1.65s), Phase 1 (12m Zombie shot in 0.29s), Phase 2 (StopFire 0 shots), MP Sync & Warning checks PASS, Phase 3 (8m Hostile Human NPC `Survivor(Clone)` acquired in 0.01s, rifle shot in 1.01s), 0 errors/exceptions.
+  - Release ZIP: `dist/ZedZoneSmartCompanions-1.4.0.zip` (`1,639,881` bytes, SHA-256 `8be98fb41fe31628ec72cc21f973dafb9520531ad54ebb0fe3c88fc1e1be8b9f`).
+  - `BOOSTY_1.4.0.md` queued via `queue.py add`.
+

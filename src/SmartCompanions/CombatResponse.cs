@@ -147,11 +147,33 @@ namespace ZedZone.SmartCompanions
                         state.IsSortingActive = false;
                         state.SortingPhase = 0;
                     }
+                    if (Il2CppSafe.IsAlive(agent.agentState))
+                    {
+                        agent.agentState.SetState("isThreatened", true);
+                        agent.agentState.SetState("isSafe", false);
+                        if (target.TryCast<HumanCharacterController>() != null)
+                        {
+                            agent.agentState.SetState("hasTargetEnemy", true);
+                            agent.agentState.SetState("targetEnemyGameObject", target.gameObject);
+                            agent.agentState.SetState("targetEnemyInSight", true);
+                        }
+                    }
                     if (reaction.Target != targetPointer)
                     {
                         // Replan only at acquisition/target change; restarting a current
                         // firing action every tick would reset its native aiming timer.
                         agent.UpdateAgentState();
+                        if (Il2CppSafe.IsAlive(agent.agentState))
+                        {
+                            agent.agentState.SetState("isThreatened", true);
+                            agent.agentState.SetState("isSafe", false);
+                            if (target.TryCast<HumanCharacterController>() != null)
+                            {
+                                agent.agentState.SetState("hasTargetEnemy", true);
+                                agent.agentState.SetState("targetEnemyGameObject", target.gameObject);
+                                agent.agentState.SetState("targetEnemyInSight", true);
+                            }
+                        }
                         agent.SelectPriorityGoal();
                     }
                 }

@@ -125,6 +125,7 @@ namespace ZedZone.SmartCompanions
             {
                 st.Doctrine = TacticalDoctrine.Assault;
                 SmartCombatAI.ApplyDoctrineToNpcData(agent, st);
+                MultiplayerSyncSystem.SyncCompanionStateChange(st);
                 CompanionConfigStore.Save();
                 if (agent != null)
                     SmartChatterSystem.SpeakCustom(agent, CompanionConfigStore.L(
@@ -138,6 +139,7 @@ namespace ZedZone.SmartCompanions
             {
                 st.Doctrine = TacticalDoctrine.Bodyguard;
                 SmartCombatAI.ApplyDoctrineToNpcData(agent, st);
+                MultiplayerSyncSystem.SyncCompanionStateChange(st);
                 CompanionConfigStore.Save();
                 if (agent != null)
                     SmartChatterSystem.SpeakCustom(agent, CompanionConfigStore.L(
@@ -151,6 +153,7 @@ namespace ZedZone.SmartCompanions
             {
                 st.Doctrine = TacticalDoctrine.SniperKite;
                 SmartCombatAI.ApplyDoctrineToNpcData(agent, st);
+                MultiplayerSyncSystem.SyncCompanionStateChange(st);
                 CompanionConfigStore.Save();
                 if (agent != null)
                     SmartChatterSystem.SpeakCustom(agent, CompanionConfigStore.L(
@@ -164,6 +167,7 @@ namespace ZedZone.SmartCompanions
             {
                 st.Doctrine = TacticalDoctrine.StealthMelee;
                 SmartCombatAI.ApplyDoctrineToNpcData(agent, st);
+                MultiplayerSyncSystem.SyncCompanionStateChange(st);
                 CompanionConfigStore.Save();
                 if (agent != null)
                     SmartChatterSystem.SpeakCustom(agent, CompanionConfigStore.L(
@@ -391,6 +395,237 @@ namespace ZedZone.SmartCompanions
             {
                 if (CustomNpcCommands.ExecuteCustomCommand(__instance, commandStr))
                     return false;
+            }
+            catch { }
+            return true;
+        }
+
+        // 12. Prevent GOAPGoal_WarningHumanEnemy (priority 100) from blocking companions from shooting hostile human NPCs
+        [HarmonyPatch(typeof(GOAPGoal_WarningHumanEnemy), nameof(GOAPGoal_WarningHumanEnemy.IsValid))]
+        [HarmonyPostfix]
+        public static void WarningHumanEnemy_IsValid_Postfix(GOAPAgent agent, ref bool __result)
+        {
+            try
+            {
+                if (__result && Il2CppSafe.IsAliveUnity(agent) && agent.IsPlayerTeammate())
+                {
+                    __result = false;
+                }
+            }
+            catch { }
+        }
+
+        // 13. Ensure hostile human NPCs have valid MonsterAttr ID & non-colliding camp before SetThreatData,
+        // and guard against duplicate dictionary key insertion in GOAPAgent.threats.
+        [HarmonyPatch(typeof(GOAPAgent), nameof(GOAPAgent.SetThreatData))]
+        [HarmonyPrefix]
+        public static bool SetThreatData_Prefix(GOAPAgent __instance, BasicCharacterController character, ref GOAPAgent.ThreatData __result)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(character)) return true;
+                var human = character.TryCast<HumanCharacterController>();
+                if (Il2CppSafe.IsAliveUnity(human) && Il2CppSafe.IsAlive(human.characterData))
+                {
+                    MultiplayerSyncSystem.NormalizeHumanCharacterData(human.characterData, isLooterHint: true);
+                }
+                if (Il2CppSafe.IsAliveUnity(__instance) && __instance.threatDataDic != null &&
+                    __instance.threatDataDic.TryGetValue(character, out var existing) && Il2CppSafe.IsAlive(existing))
+                {
+                    existing.position = character.transform.position;
+                    if (Il2CppSafe.IsAlive(character.characterData))
+                        existing.zLevel = character.characterData.zLevel;
+                    existing.memoryExpirationTimeFlag = Time.time + 15f;
+                    __result = existing;
+                    return false;
+                }
+            }
+            catch { }
+            return true;
+        }
+
+        [HarmonyPatch(typeof(GOAPAgent), nameof(GOAPAgent.SetThreatData))]
+        [HarmonyPostfix]
+        public static void SetThreatData_Postfix(BasicCharacterController character, ref GOAPAgent.ThreatData __result)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAlive(__result) || !Il2CppSafe.IsAliveUnity(character)) return;
+                if (character.TryCast<HumanCharacterController>() != null)
+                {
+                    if (__result.threatLevel < 35f) __result.threatLevel = 35f;
+                    if (__result.threatAffectRange < 30f) __result.threatAffectRange = 30f;
+                }
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(GOAPAgent_Survivor), nameof(GOAPAgent_Survivor.SetThreatData))]
+        [HarmonyPostfix]
+        public static void Survivor_SetThreatData_Postfix(BasicCharacterController character, ref GOAPAgent.ThreatData __result)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAlive(__result) || !Il2CppSafe.IsAliveUnity(character)) return;
+                if (character.TryCast<HumanCharacterController>() != null)
+                {
+                    if (__result.threatLevel < 35f) __result.threatLevel = 35f;
+                    if (__result.threatAffectRange < 30f) __result.threatAffectRange = 30f;
+                }
+            }
+            catch { }
+        }
+
+        // 14. Track human-vs-player/companion combat hits so companions immediately engage hostile humans
+        [HarmonyPatch(typeof(HumanCharacterController), nameof(HumanCharacterController.OnHitByCharacter))]
+        [HarmonyPostfix]
+        public static void OnHitByCharacter_Postfix(HumanCharacterController __instance, BasicCharacterController offenseCharacter)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(__instance) || !Il2CppSafe.IsAliveUnity(offenseCharacter)) return;
+                bool victimIsPlayerOrAlly = __instance.isPlayer ||
+                    ZedZone.Net.NetSessionConfig.IsNetworkPlayer(__instance) ||
+                    (__instance.GetCachedGOAPAgent() != null && __instance.GetCachedGOAPAgent().IsPlayerTeammate());
+                bool attackerIsPlayerOrAlly = offenseCharacter.isPlayer ||
+                    ZedZone.Net.NetSessionConfig.IsNetworkPlayer(offenseCharacter) ||
+                    (offenseCharacter.GetCachedGOAPAgent() != null && offenseCharacter.GetCachedGOAPAgent().IsPlayerTeammate());
+
+                BasicCharacterController hostileActor = null;
+                if (victimIsPlayerOrAlly && !attackerIsPlayerOrAlly)
+                    hostileActor = offenseCharacter;
+                else if (attackerIsPlayerOrAlly && !victimIsPlayerOrAlly)
+                    hostileActor = __instance;
+
+                if (Il2CppSafe.IsAliveUnity(hostileActor))
+                {
+                    SmartCombatAI.RecordProvokedHuman(hostileActor);
+                    foreach (var mate in SmartChatterSystem.GetActiveTeammateAgents())
+                    {
+                        if (Il2CppSafe.IsAliveUnity(mate))
+                        {
+                            try
+                            {
+                                if (mate.threatDataDic == null || !mate.threatDataDic.ContainsKey(hostileActor))
+                                    mate.SetThreatData(hostileActor);
+                            }
+                            catch { }
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        // 15. Multiplayer NPC replication: ensure CharacterData always has valid characterAttrId (201/202) before Serialize & after Deserialize
+        [HarmonyPatch(typeof(ZedZone.Net.NetMonsterSync), "SerializeCharacterData")]
+        [HarmonyPrefix]
+        public static void NetMonsterSync_SerializeCharacterData_Prefix(CharacterData data)
+        {
+            try
+            {
+                MultiplayerSyncSystem.NormalizeHumanCharacterData(data);
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(ZedZone.Net.NetMonsterSync), "DeserializeCharacterData")]
+        [HarmonyPostfix]
+        public static void NetMonsterSync_DeserializeCharacterData_Postfix(ref CharacterData __result)
+        {
+            try
+            {
+                MultiplayerSyncSystem.NormalizeHumanCharacterData(__result);
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(ZedZone.Net.NetMonsterSync), "SpawnPuppet")]
+        [HarmonyPostfix]
+        public static void NetMonsterSync_SpawnPuppet_Postfix(ZedZone.Net.NetMonsterSync __instance, ZedZone.Net.MsgMonsterSpawn msg)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(__instance) || !Il2CppSafe.IsAlive(msg) || __instance.m_puppets == null) return;
+                if (__instance.m_puppets.TryGetValue(msg.netId, out var puppet) &&
+                    Il2CppSafe.IsAlive(puppet) && Il2CppSafe.IsAliveUnity(puppet.controller))
+                {
+                    sbyte localZ = Il2CppSafe.IsAliveUnity(MapController.instance) ? MapController.instance.currentZLevel : (sbyte)0;
+                    MultiplayerSyncSystem.EnsureClientPuppetVisibleAndBound(puppet.controller, localZ);
+                }
+            }
+            catch { }
+        }
+
+        // 16. Multiplayer Companion Ownership & Remote Player Leader Resolution
+        [HarmonyPatch(typeof(GOAPAgent), "UpdateLeaderState")]
+        [HarmonyPostfix]
+        public static void GOAPAgent_UpdateLeaderState_Postfix(GOAPAgent __instance)
+        {
+            try
+            {
+                MultiplayerSyncSystem.SyncCompanionOwnerAndLeader(__instance);
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(GOAPAgent), nameof(GOAPAgent.IsPlayerTeammate))]
+        [HarmonyPostfix]
+        public static void GOAPAgent_IsPlayerTeammate_Postfix(GOAPAgent __instance, ref bool __result)
+        {
+            try
+            {
+                if (!__result && Il2CppSafe.IsAliveUnity(__instance) && Il2CppSafe.IsAlive(__instance.npcData))
+                {
+                    if (!__instance.npcData.isBandit && !string.IsNullOrEmpty(__instance.npcData.leaderCharacterGUID))
+                    {
+                        __result = true;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        // 17. Intercept internal SmartCompanions MP sync packets on NetChatSync before Append
+        [HarmonyPatch(typeof(ZedZone.Net.NetChatSync), "OnHostReceive")]
+        [HarmonyPrefix]
+        public static bool NetChatSync_OnHostReceive_Prefix(ZedZone.Net.MsgChat msg, LiteNetLib.NetPeer peer)
+        {
+            try
+            {
+                if (MultiplayerSyncSystem.TryHandleIncomingChatPacket(msg, peer, receivedOnHost: true))
+                    return false;
+            }
+            catch { }
+            return true;
+        }
+
+        [HarmonyPatch(typeof(ZedZone.Net.NetChatSync), "OnClientReceive")]
+        [HarmonyPrefix]
+        public static bool NetChatSync_OnClientReceive_Prefix(ZedZone.Net.MsgChat msg, LiteNetLib.NetPeer peer)
+        {
+            try
+            {
+                if (MultiplayerSyncSystem.TryHandleIncomingChatPacket(msg, peer, receivedOnHost: false))
+                    return false;
+            }
+            catch { }
+            return true;
+        }
+
+        // 18. Guard TerrainObject_FirePlace.IgnitionFire(true) from opening fire-lighting UI while container loot panel is open
+        [HarmonyPatch(typeof(TerrainObject_FirePlace), "IgnitionFire")]
+        [HarmonyPrefix]
+        public static bool FirePlace_IgnitionFire_Prefix(TerrainObject_FirePlace __instance, bool __0)
+        {
+            try
+            {
+                if (!__0) return true;
+                var lootPanel = LootInventoryPanel.instance;
+                if (Il2CppSafe.IsAliveUnity(lootPanel) && lootPanel.gameObject.activeInHierarchy)
+                {
+                    return false;
+                }
             }
             catch { }
             return true;

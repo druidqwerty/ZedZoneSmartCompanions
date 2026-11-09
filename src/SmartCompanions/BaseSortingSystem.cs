@@ -25,13 +25,126 @@ namespace ZedZone.SmartCompanions
 
         public static string GetContainerStableId(InventoryData inv, TerrainObject tobj = null)
         {
-            if (inv != null && !string.IsNullOrEmpty(inv.inventoryId))
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(tobj))
+                {
+                    if (ZedZone.Net.NetContainerSync.ClientHasActiveContainer &&
+                        Il2CppSafe.IsAlive(ZedZone.Net.NetContainerSync.ClientActiveReplica) &&
+                        Il2CppSafe.IsAlive(inv) &&
+                        ZedZone.Net.NetContainerSync.ClientActiveReplica.Pointer == inv.Pointer &&
+                        Il2CppSafe.IsAliveUnity(ZedZone.Net.NetContainerSync.ClientActiveLocalObject))
+                    {
+                        tobj = ZedZone.Net.NetContainerSync.ClientActiveLocalObject;
+                    }
+                    else if (Il2CppSafe.IsAlive(inv))
+                    {
+                        tobj = FindTerrainObjectByInventory(inv);
+                    }
+                }
+
+                if (Il2CppSafe.IsAliveUnity(tobj))
+                {
+                    int z = Il2CppSafe.IsAlive(tobj.objectData) ? tobj.objectData.zLayer : 0;
+                    string posKey = MultiplayerSyncSystem.BuildPositionBoxKey(tobj.transform.position, z);
+
+                    // Migrate any legacy rule saved under inventoryId or terrainObejctGUID to the canonical posKey
+                    string legacyInvId = Il2CppSafe.IsAlive(inv) ? inv.inventoryId : null;
+                    string legacyGuid = Il2CppSafe.IsAlive(tobj.objectData) ? tobj.objectData.terrainObejctGUID : null;
+                    MigrateLegacyBoxRule(legacyInvId, posKey);
+                    MigrateLegacyBoxRule(legacyGuid, posKey);
+                    return posKey;
+                }
+            }
+            catch { }
+
+            if (Il2CppSafe.IsAlive(inv) && !string.IsNullOrEmpty(inv.inventoryId))
                 return inv.inventoryId;
-            if (tobj != null && tobj.objectData != null && !string.IsNullOrEmpty(tobj.objectData.terrainObejctGUID))
-                return tobj.objectData.terrainObejctGUID;
-            if (tobj != null)
-                return $"pos_{Mathf.RoundToInt(tobj.transform.position.x * 10f)}_{Mathf.RoundToInt(tobj.transform.position.y * 10f)}";
             return "unknown_box";
+        }
+
+        private static void MigrateLegacyBoxRule(string oldKey, string newKey)
+        {
+            if (string.IsNullOrEmpty(oldKey) || string.IsNullOrEmpty(newKey) ||
+                string.Equals(oldKey, newKey, StringComparison.OrdinalIgnoreCase))
+                return;
+            if (CompanionConfigStore.ContainerRules.TryGetValue(oldKey, out var oldRule) &&
+                (oldRule.Categories != StorageCategory.None || oldRule.IsDropoffSource))
+            {
+                if (!CompanionConfigStore.ContainerRules.TryGetValue(newKey, out var newRule) ||
+                    (newRule.Categories == StorageCategory.None && !newRule.IsDropoffSource))
+                {
+                    var migrated = CompanionConfigStore.GetOrCreateRule(newKey, oldRule.CustomName);
+                    migrated.Categories = oldRule.Categories;
+                    migrated.IsDropoffSource = oldRule.IsDropoffSource;
+                    migrated.Priority = oldRule.Priority;
+                    migrated.LastKnownPos = oldRule.LastKnownPos;
+                }
+            }
+        }
+
+        public static TerrainObject FindTerrainObjectByInventory(InventoryData inv)
+        {
+            if (!Il2CppSafe.IsAlive(inv)) return null;
+            try
+            {
+                var parent = GameController.instance?.terrainObjectsParent;
+                if (!Il2CppSafe.IsAliveUnity(parent)) return null;
+                int count = parent.childCount;
+                for (int i = 0; i < count; i++)
+                {
+                    var tr = parent.GetChild(i);
+                    if (!Il2CppSafe.IsAliveUnity(tr) || !tr.gameObject.activeInHierarchy) continue;
+                    var tobj = tr.GetComponent<TerrainObject>();
+                    if (!Il2CppSafe.IsAliveUnity(tobj) || !Il2CppSafe.IsAlive(tobj.objectData)) continue;
+                    var objInv = tobj.objectData.inventoryData;
+                    if (Il2CppSafe.IsAlive(objInv) && objInv.Pointer == inv.Pointer)
+                        return tobj;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        public static TerrainObject FindTerrainObjectNearPosition(Vector2 pos, float maxDist = 1.5f)
+        {
+            try
+            {
+                var parent = GameController.instance?.terrainObjectsParent;
+                if (!Il2CppSafe.IsAliveUnity(parent)) return null;
+                float bestSqr = maxDist * maxDist;
+                TerrainObject best = null;
+                int count = parent.childCount;
+                for (int i = 0; i < count; i++)
+                {
+                    var tr = parent.GetChild(i);
+                    if (!Il2CppSafe.IsAliveUnity(tr) || !tr.gameObject.activeInHierarchy) continue;
+                    float sqr = ((Vector2)tr.position - pos).sqrMagnitude;
+                    if (sqr > bestSqr) continue;
+                    var tobj = tr.GetComponent<TerrainObject>();
+                    if (!Il2CppSafe.IsAliveUnity(tobj) || !Il2CppSafe.IsAlive(tobj.objectData)) continue;
+                    if (tobj.objectData.inventoryData == null) continue;
+                    bestSqr = sqr;
+                    best = tobj;
+                }
+                return best;
+            }
+            catch { return null; }
+        }
+
+        public static TerrainObject FindTerrainObjectForRule(ContainerRuleProfile rule)
+        {
+            if (rule == null) return null;
+            for (int i = 0; i < CachedContainers.Count; i++)
+            {
+                var c = CachedContainers[i];
+                if (c != null && string.Equals(c.ContainerId, rule.ContainerId, StringComparison.OrdinalIgnoreCase) &&
+                    Il2CppSafe.IsAliveUnity(c.TerrainObj))
+                    return c.TerrainObj;
+            }
+            if (rule.LastKnownPos.sqrMagnitude > 0.01f)
+                return FindTerrainObjectNearPosition(rule.LastKnownPos, 1.5f);
+            return null;
         }
 
         public static List<DiscoveredContainer> ScanNearbyContainers(bool force = false)
@@ -119,6 +232,13 @@ namespace ZedZone.SmartCompanions
 
             var rule = CompanionConfigStore.GetOrCreateRule(id, baseName);
             rule.LastKnownPos = pos;
+            if (Il2CppSafe.IsAliveUnity(tobj))
+            {
+                if (rule.Categories == StorageCategory.None && !rule.IsDropoffSource)
+                    MultiplayerSyncSystem.TryReadRuleFromTerrainObject(tobj, ref rule);
+                else
+                    MultiplayerSyncSystem.WriteRuleToTerrainObject(tobj, rule);
+            }
 
             int itemCount = inv.itemList != null ? inv.itemList.Count : 0;
             CachedContainers.Add(new DiscoveredContainer
@@ -157,6 +277,7 @@ namespace ZedZone.SmartCompanions
                 if (mask != StorageCategory.None)
                 {
                     c.Rule.Categories = mask;
+                    MultiplayerSyncSystem.SyncBoxRuleChange(c.Rule, c.TerrainObj);
                     updated++;
                 }
             }
@@ -171,6 +292,10 @@ namespace ZedZone.SmartCompanions
 
         public static void CommandSortBase(GOAPAgent specificAgent = null, InventoryData extraSourceContainer = null, bool instant = false)
         {
+            if (MultiplayerSyncSystem.IsMultiplayerClient)
+            {
+                MultiplayerSyncSystem.SendPacketToHost("SORT|1");
+            }
             var containers = ScanNearbyContainers(force: true);
             bool ru = CompanionConfigStore.UseRussian;
 

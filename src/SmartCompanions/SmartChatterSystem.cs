@@ -22,35 +22,68 @@ namespace ZedZone.SmartCompanions
         private static string _pendingBanterPartnerGuid = "";
         private static float _pendingBanterReplyAt = -1f;
 
-        public static List<GOAPAgent> GetActiveTeammateAgents()
+        public static List<GOAPAgent> GetActiveTeammateAgents(bool onlyLocalOwner = false)
         {
             var result = new List<GOAPAgent>();
+            var seen = new HashSet<IntPtr>();
             try
             {
                 var mgr = GOAPNPCManager.instance;
-                if (!Il2CppSafe.IsAlive(mgr) || mgr.activeNPCs == null) return result;
-
                 var gc = GameController.instance;
                 var playerData = (Il2CppSafe.IsAliveUnity(gc) && Il2CppSafe.IsAlive(gc.gameData)) ? gc.gameData.playerData : null;
 
-                foreach (var kv in mgr.activeNPCs)
+                if (Il2CppSafe.IsAlive(mgr) && mgr.activeNPCs != null)
                 {
-                    var agent = kv.Value;
-                    if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData) || !Il2CppSafe.IsAliveUnity(agent.humanCharacter))
-                        continue;
-                    if (agent.humanCharacter.deadFlag) continue;
-
-                    bool isTeammate = false;
-                    try
+                    foreach (var kv in mgr.activeNPCs)
                     {
-                        if (agent.IsPlayerTeammate()) isTeammate = true;
-                        else if (Il2CppSafe.IsAlive(playerData) && GOAPNPCManager.IsPlayerTeammateData(agent.npcData, playerData)) isTeammate = true;
-                        else if (mgr.teammateNPCs != null && mgr.teammateNPCs.Contains(agent.npcData)) isTeammate = true;
-                    }
-                    catch { }
+                        var agent = kv.Value;
+                        if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData) || !Il2CppSafe.IsAliveUnity(agent.humanCharacter))
+                            continue;
+                        if (agent.humanCharacter.deadFlag) continue;
 
-                    if (isTeammate)
-                        result.Add(agent);
+                        bool isTeammate = false;
+                        try
+                        {
+                            if (agent.IsPlayerTeammate()) isTeammate = true;
+                            else if (Il2CppSafe.IsAlive(playerData) && GOAPNPCManager.IsPlayerTeammateData(agent.npcData, playerData)) isTeammate = true;
+                            else if (mgr.teammateNPCs != null && mgr.teammateNPCs.Contains(agent.npcData)) isTeammate = true;
+                            else if (!string.IsNullOrEmpty(agent.npcData.leaderCharacterGUID) && !agent.npcData.isBandit) isTeammate = true;
+                        }
+                        catch { }
+
+                        if (isTeammate)
+                        {
+                            if (onlyLocalOwner && !MultiplayerSyncSystem.IsCompanionOwnedByLocalPlayer(agent.npcData))
+                                continue;
+                            if (seen.Add(agent.Pointer))
+                                result.Add(agent);
+                        }
+                    }
+                }
+
+                // On a Multiplayer Client, companions are replicated via NetMonsterSync.m_puppets
+                if (MultiplayerSyncSystem.IsMultiplayerClient && Il2CppSafe.IsAliveUnity(ZedZone.Net.NetMonsterSync.instance) &&
+                    ZedZone.Net.NetMonsterSync.instance.m_puppets != null)
+                {
+                    sbyte localZ = Il2CppSafe.IsAliveUnity(MapController.instance) ? MapController.instance.currentZLevel : (sbyte)0;
+                    foreach (var kv in ZedZone.Net.NetMonsterSync.instance.m_puppets)
+                    {
+                        var puppet = kv.Value;
+                        if (!Il2CppSafe.IsAlive(puppet) || !Il2CppSafe.IsAliveUnity(puppet.controller) || puppet.controller.deadFlag)
+                            continue;
+                        var human = puppet.controller.TryCast<HumanCharacterController>();
+                        if (!Il2CppSafe.IsAliveUnity(human) || !Il2CppSafe.IsAlive(human.characterData)) continue;
+                        if (human.characterData.camp != 1) continue; // Camp 1 = player/teammate camp
+
+                        MultiplayerSyncSystem.EnsureClientPuppetVisibleAndBound(human, localZ);
+                        var agent = human.GetCachedGOAPAgent();
+                        if (Il2CppSafe.IsAliveUnity(agent) && Il2CppSafe.IsAlive(agent.npcData) && seen.Add(agent.Pointer))
+                        {
+                            if (onlyLocalOwner && !MultiplayerSyncSystem.IsCompanionOwnedByLocalPlayer(agent.npcData))
+                                continue;
+                            result.Add(agent);
+                        }
+                    }
                 }
             }
             catch { }
