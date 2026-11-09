@@ -25,6 +25,9 @@ namespace ZedZone.SmartCompanions
             if (lang == ModLanguage.Auto)
                 lang = CompanionConfigStore.EffectiveLanguage;
 
+            if (TryGetV130Lines(topic, lang, mode, out var v130Lines))
+                return v130Lines;
+
             string[] clean = lang switch
             {
                 ModLanguage.Russian => GetLinesRu(topic),

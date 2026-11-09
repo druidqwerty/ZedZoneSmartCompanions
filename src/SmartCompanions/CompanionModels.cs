@@ -34,6 +34,25 @@ namespace ZedZone.SmartCompanions
         Chinese = 3  // 简体中文 (ZH)
     }
 
+    public enum CompanionArchetype
+    {
+        Auto = 0,            // Автоопределение по GUID выжившего
+        Veteran = 1,         // 🎖 Бывалый ветеран (Grizzled Veteran / 铁血老兵)
+        StreetPunk = 2,      // 🔥 Дерзкий гопник (Street Punk / 街头混混)
+        ParanoidPrepper = 3, // 👁 Параноик-выживальщик (Paranoid Prepper / 末日偏执狂)
+        CombatMedic = 4,     // 💉 Полевой врач (Combat Medic / 战地医官)
+        JollyScavenger = 5   // 🎒 Весельчак-мародёр (Jolly Scavenger / 乐天拾荒客)
+    }
+
+    public enum CompanionRank
+    {
+        Rookie = 0,     // Новобранец (0..99 XP)
+        Fighter = 1,    // Боец (100..299 XP)
+        Veteran = 2,    // Ветеран (300..699 XP)
+        Elite = 3,      // Элита (700..1499 XP)
+        ZoneLegend = 4  // Легенда Зоны (1500+ XP)
+    }
+
     [Flags]
     public enum StorageCategory
     {
@@ -122,7 +141,17 @@ namespace ZedZone.SmartCompanions
         AmbientBaseIdle,
         BanterQuestion,
         BanterReply,
-        WorldNpcEncounter
+        WorldNpcEncounter,
+        CampfireStory,
+        ChoreGardening,
+        ChoreWeaponMaint,
+        ChoreVehicleCheck,
+        CombatPlayerDownedRescue,
+        CombatFocusTarget,
+        CombatStealthLightsOff,
+        LevelUpRank,
+        PlayerDrivingRide,
+        SquadBattleCry
     }
 
     /// <summary>
@@ -173,19 +202,26 @@ namespace ZedZone.SmartCompanions
         public string NpcGuid = "";
         public string LastKnownName = "";
         public TacticalDoctrine Doctrine = TacticalDoctrine.Balanced;
+        public CompanionArchetype Archetype = CompanionArchetype.Auto;
+        public int ExperiencePoints = 0;
+
         public bool AllowAutoSortBase = true;
         public bool AllowAutoLootNearby = false;
         public bool AllowFieldMedic = true;
         public bool AllowAmmoShare = true;
         public bool AllowAutoDropoffAtBase = true;
+        public bool AllowBaseChores = true;
 
         public string CurrentTaskText = "";
         public int KillsThisSession = 0;
         public int SortedItemsThisSession = 0;
         public int LootedItemsThisSession = 0;
+        public int ChoresDoneThisSession = 0;
 
         // Buff: "Сытый и злой" (Fed & Fierce) from sharing rations
         public float FedAndFierceUntil = -999f;
+        // Buff: "Боевой кураж / Штурм" (Battle Cry & Focus Assault) [F9]
+        public float BattleCryBuffUntil = -999f;
 
         public float LastChatterTime = -999f;
         public float LastCombatCalloutTime = -999f;
@@ -200,6 +236,9 @@ namespace ZedZone.SmartCompanions
         public float LastFlankWarnTime = -999f;
         public float LastOutOfCombatPrepTime = -999f;
         public float LastOverweightWarnTime = -999f;
+        public float LastChoreTime = -999f;
+        public float LastPlayerRescueTime = -999f;
+        public float LastFlashlightCheckTime = -999f;
 
         // Active physical sorting state
         public bool IsSortingActive = false;
@@ -211,6 +250,56 @@ namespace ZedZone.SmartCompanions
 
         public bool HasFedBuff => Time.unscaledTime < FedAndFierceUntil;
         public float FedBuffRemainingSeconds => Mathf.Max(0f, FedAndFierceUntil - Time.unscaledTime);
+        public bool HasBattleCryBuff => Time.unscaledTime < BattleCryBuffUntil;
+
+        public CompanionArchetype EffectiveArchetype
+        {
+            get
+            {
+                if (Archetype != CompanionArchetype.Auto)
+                    return Archetype;
+                return CompanionConfigStore.ResolveArchetypeFromGuid(NpcGuid);
+            }
+        }
+
+        public CompanionRank Rank => CompanionConfigStore.GetRankForXp(ExperiencePoints);
+
+        public bool AddExperience(int deltaXp, GOAPAgent agent = null)
+        {
+            if (deltaXp <= 0) return false;
+            var prevRank = Rank;
+            ExperiencePoints = Mathf.Clamp(ExperiencePoints + deltaXp, 0, 999999);
+            var newRank = Rank;
+            if (newRank > prevRank)
+            {
+                try
+                {
+                    if (Il2CppSafe.IsAliveUnity(agent))
+                    {
+                        SmartChatterSystem.Speak(agent, ChatterTopic.LevelUpRank, minCooldown: 0.2f, bubbleDuration: 6.5f, force: true);
+                        var status = agent.npcData?.characterData?.characterStatusData;
+                        if (Il2CppSafe.IsAlive(status))
+                        {
+                            float bonusMaxHp = CompanionConfigStore.GetRankMaxHpBonus(newRank);
+                            status.maxhp = Mathf.Max(status.maxhp, 100f + bonusMaxHp);
+                            status.hp = status.maxhp;
+                            status.energy = status.maxEnergy;
+                            if (Il2CppSafe.IsAliveUnity(agent.humanCharacter))
+                                agent.humanCharacter.hp = status.hp;
+                        }
+                    }
+                    string rTitle = CompanionConfigStore.GetRankDisplayName(newRank, CompanionConfigStore.EffectiveLanguage);
+                    BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                        $"🎖 {LastKnownName} повысил ранг до «{rTitle}» ({ExperiencePoints} XP)! Здоровье и боевые навыки усилены!",
+                        $"🎖 {LastKnownName} promoted to '{rTitle}' ({ExperiencePoints} XP)! Combat stats & stamina boosted!",
+                        $"🎖 {LastKnownName} 晋升为「{rTitle}」（{ExperiencePoints} XP）！生命值与战斗素养大幅提升！"));
+                    CompanionConfigStore.Save();
+                }
+                catch { }
+                return true;
+            }
+            return false;
+        }
     }
 
     public static class CompanionConfigStore
@@ -325,8 +414,83 @@ namespace ZedZone.SmartCompanions
         public static bool AutoShareFoodOnEat = false;
         public static bool EnableBaseAutoDropoff = true;
         public static bool EnableWorldNpcChatter = true;
+        public static bool EnableBaseChores = true;
+        public static bool EnableSmartFlashlight = true;
+        public static bool EnablePlayerRescue = true;
         public static bool ShowHudBadge = true;
         public static float BaseScanRadius = 48f;
+
+        public static CompanionArchetype ResolveArchetypeFromGuid(string guid)
+        {
+            if (string.IsNullOrEmpty(guid)) return CompanionArchetype.Veteran;
+            uint hash = 2166136261u;
+            for (int i = 0; i < guid.Length; i++)
+            {
+                hash ^= guid[i];
+                hash *= 16777619u;
+            }
+            int idx = (int)(hash % 5u) + 1;
+            return (CompanionArchetype)idx;
+        }
+
+        public static CompanionRank GetRankForXp(int xp)
+        {
+            if (xp >= 1500) return CompanionRank.ZoneLegend;
+            if (xp >= 700) return CompanionRank.Elite;
+            if (xp >= 300) return CompanionRank.Veteran;
+            if (xp >= 100) return CompanionRank.Fighter;
+            return CompanionRank.Rookie;
+        }
+
+        public static int GetNextRankXpThreshold(CompanionRank rank)
+        {
+            return rank switch
+            {
+                CompanionRank.Rookie     => 100,
+                CompanionRank.Fighter    => 300,
+                CompanionRank.Veteran    => 700,
+                CompanionRank.Elite      => 1500,
+                _                        => 1500
+            };
+        }
+
+        public static float GetRankMaxHpBonus(CompanionRank rank)
+        {
+            return rank switch
+            {
+                CompanionRank.Fighter    => 12f,
+                CompanionRank.Veteran    => 28f,
+                CompanionRank.Elite      => 48f,
+                CompanionRank.ZoneLegend => 75f,
+                _                        => 0f
+            };
+        }
+
+        public static string GetArchetypeDisplayName(CompanionArchetype arch, ModLanguage lang)
+        {
+            return arch switch
+            {
+                CompanionArchetype.Veteran         => L(lang, "🎖 Бывалый ветеран", "🎖 Grizzled Veteran", "🎖 铁血老兵"),
+                CompanionArchetype.StreetPunk      => L(lang, "🔥 Дерзкий гопник", "🔥 Street Punk", "🔥 街头混混"),
+                CompanionArchetype.ParanoidPrepper => L(lang, "👁 Параноик-выживальщик", "👁 Paranoid Prepper", "👁 末日偏执狂"),
+                CompanionArchetype.CombatMedic     => L(lang, "💉 Полевой врач", "💉 Combat Medic", "💉 战地医官"),
+                CompanionArchetype.JollyScavenger  => L(lang, "🎒 Весельчак-мародёр", "🎒 Jolly Scavenger", "🎒 乐天拾荒客"),
+                _                                  => L(lang, "🌐 Авто-характер", "🌐 Auto Personality", "🌐 自动性格")
+            };
+        }
+
+        public static string GetRankDisplayName(CompanionRank rank, ModLanguage lang)
+        {
+            return rank switch
+            {
+                CompanionRank.Rookie     => L(lang, "Новобранец", "Rookie", "新兵"),
+                CompanionRank.Fighter    => L(lang, "Боец", "Fighter", "战士"),
+                CompanionRank.Veteran    => L(lang, "Ветеран", "Veteran", "老兵"),
+                CompanionRank.Elite      => L(lang, "Элита", "Elite", "精锐"),
+                CompanionRank.ZoneLegend => L(lang, "Легенда Зоны", "Zone Legend", "禁区传奇"),
+                _                        => L(lang, "Боец", "Fighter", "战士")
+            };
+        }
 
         private static string SaveFilePath =>
             Path.Combine(Paths.ConfigPath, "SmartCompanions_Rules.txt");
@@ -377,7 +541,7 @@ namespace ZedZone.SmartCompanions
             try
             {
                 var sb = new StringBuilder();
-                sb.AppendLine("# ZED ZONE Smart Companions Saved Rules v1.2");
+                sb.AppendLine("# ZED ZONE Smart Companions Saved Rules v1.3");
                 sb.AppendLine($"SET|LanguageMode|{(int)LanguageMode}");
                 sb.AppendLine($"SET|UseRussian|{UseRussian}");
                 sb.AppendLine($"SET|EnableChatter|{EnableChatter}");
@@ -391,6 +555,9 @@ namespace ZedZone.SmartCompanions
                 sb.AppendLine($"SET|AutoShareFoodOnEat|{AutoShareFoodOnEat}");
                 sb.AppendLine($"SET|EnableBaseAutoDropoff|{EnableBaseAutoDropoff}");
                 sb.AppendLine($"SET|EnableWorldNpcChatter|{EnableWorldNpcChatter}");
+                sb.AppendLine($"SET|EnableBaseChores|{EnableBaseChores}");
+                sb.AppendLine($"SET|EnableSmartFlashlight|{EnableSmartFlashlight}");
+                sb.AppendLine($"SET|EnablePlayerRescue|{EnablePlayerRescue}");
                 sb.AppendLine($"SET|ShowHudBadge|{ShowHudBadge}");
                 sb.AppendLine($"SET|BaseScanRadius|{BaseScanRadius.ToString("F1", CultureInfo.InvariantCulture)}");
 
@@ -407,18 +574,22 @@ namespace ZedZone.SmartCompanions
                 {
                     var c = kv.Value;
                     var safeName = (c.LastKnownName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
-                    sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}");
+                    sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}|{(int)c.Archetype}|{c.ExperiencePoints}|{c.AllowBaseChores}");
                 }
 
                 File.WriteAllText(SaveFilePath, sb.ToString(), Encoding.UTF8);
 
                 string json = "{\n" +
+                    $"  \"Version\": \"1.3.0\",\n" +
                     $"  \"LanguageMode\": \"{LanguageMode}\",\n" +
                     $"  \"LanguageModeId\": {(int)LanguageMode},\n" +
                     $"  \"EffectiveLanguage\": \"{EffectiveLanguage}\",\n" +
                     $"  \"Profanity\": \"{Profanity}\",\n" +
                     $"  \"EnableChatter\": {EnableChatter.ToString().ToLowerInvariant()},\n" +
                     $"  \"EnableSmartCombat\": {EnableSmartCombat.ToString().ToLowerInvariant()},\n" +
+                    $"  \"EnableBaseChores\": {EnableBaseChores.ToString().ToLowerInvariant()},\n" +
+                    $"  \"EnableSmartFlashlight\": {EnableSmartFlashlight.ToString().ToLowerInvariant()},\n" +
+                    $"  \"EnablePlayerRescue\": {EnablePlayerRescue.ToString().ToLowerInvariant()},\n" +
                     $"  \"AutoShareFoodOnEat\": {AutoShareFoodOnEat.ToString().ToLowerInvariant()}\n" +
                     "}\n";
                 File.WriteAllText(JsonConfigFilePath, json, Encoding.UTF8);
@@ -459,6 +630,9 @@ namespace ZedZone.SmartCompanions
                         else if (key == "AutoShareFoodOnEat" && bool.TryParse(val, out var bShare)) AutoShareFoodOnEat = bShare;
                         else if (key == "EnableBaseAutoDropoff" && bool.TryParse(val, out var bDrop)) EnableBaseAutoDropoff = bDrop;
                         else if (key == "EnableWorldNpcChatter" && bool.TryParse(val, out var bWorld)) EnableWorldNpcChatter = bWorld;
+                        else if (key == "EnableBaseChores" && bool.TryParse(val, out var bChores)) EnableBaseChores = bChores;
+                        else if (key == "EnableSmartFlashlight" && bool.TryParse(val, out var bFlash)) EnableSmartFlashlight = bFlash;
+                        else if (key == "EnablePlayerRescue" && bool.TryParse(val, out var bRescue)) EnablePlayerRescue = bRescue;
                         else if (key == "ShowHudBadge" && bool.TryParse(val, out var b7)) ShowHudBadge = b7;
                         else if (key == "BaseScanRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f2)) BaseScanRadius = Mathf.Clamp(f2, 15f, 120f);
                     }
@@ -491,6 +665,12 @@ namespace ZedZone.SmartCompanions
                         var name = parts.Length >= 8 ? parts[7] : "";
                         bool autoDrop = true;
                         if (parts.Length >= 9 && bool.TryParse(parts[8], out var ad)) autoDrop = ad;
+                        var arch = CompanionArchetype.Auto;
+                        if (parts.Length >= 10 && int.TryParse(parts[9], out var archInt)) arch = (CompanionArchetype)Mathf.Clamp(archInt, 0, 5);
+                        int xp = 0;
+                        if (parts.Length >= 11 && int.TryParse(parts[10], out var xpParsed)) xp = Mathf.Max(0, xpParsed);
+                        bool chores = true;
+                        if (parts.Length >= 12 && bool.TryParse(parts[11], out var chParsed)) chores = chParsed;
 
                         CompanionStates[guid] = new CompanionRuntimeState
                         {
@@ -501,6 +681,9 @@ namespace ZedZone.SmartCompanions
                             AllowFieldMedic = med,
                             AllowAmmoShare = ammo,
                             AllowAutoDropoffAtBase = autoDrop,
+                            Archetype = arch,
+                            ExperiencePoints = xp,
+                            AllowBaseChores = chores,
                             LastKnownName = name
                         };
                     }

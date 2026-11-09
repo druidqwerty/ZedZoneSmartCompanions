@@ -67,6 +67,7 @@ namespace ZedZone.SmartCompanions
                             totalCollected++;
                             var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID);
                             st.LootedItemsThisSession++;
+                            st.AddExperience(2, agent);
                         }
                     }
                 }
@@ -112,6 +113,7 @@ namespace ZedZone.SmartCompanions
                                 totalCollected++;
                                 var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID);
                                 st.LootedItemsThisSession++;
+                                st.AddExperience(2, agent);
                             }
                         }
                     }
@@ -157,14 +159,15 @@ namespace ZedZone.SmartCompanions
                 int totalCells = Mathf.Max(1, shared.inventorySizeX * shared.inventorySizeY);
                 int freeCells = shared.CountFreeCells();
                 float fillRatio = 1f - ((float)freeCells / totalCells);
+                var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID, agent.npcData.characterData?.characterName);
+                float maxRatio = st.EffectiveArchetype == CompanionArchetype.JollyScavenger ? 0.84f : 0.70f;
 
-                // When companion's pack is >= 70% full, only accept PriorityLootMask (Ammo, Meds, Food/Drinks)
-                if (fillRatio >= 0.70f)
+                // When companion's pack is >= maxRatio full, only accept PriorityLootMask (Ammo, Meds, Food/Drinks)
+                if (fillRatio >= maxRatio)
                 {
                     var cat = ItemCategorizer.ClassifyItem(item);
                     if ((cat & PriorityLootMask) == 0)
                     {
-                        var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID, agent.npcData.characterData?.characterName);
                         if (now - st.LastOverweightWarnTime > 28f)
                         {
                             st.LastOverweightWarnTime = now;
@@ -197,7 +200,8 @@ namespace ZedZone.SmartCompanions
                 if (now - st.LastAutoLootTickTime < 5.5f) continue;
 
                 st.LastAutoLootTickTime = now;
-                CommandSweepNearbyLoot(ag, 9.5f, silentIfEmpty: true);
+                float sweepRadius = st.EffectiveArchetype == CompanionArchetype.JollyScavenger ? 13.0f : 9.5f;
+                CommandSweepNearbyLoot(ag, sweepRadius, silentIfEmpty: true);
             }
         }
 

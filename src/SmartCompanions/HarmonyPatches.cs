@@ -15,6 +15,8 @@ namespace ZedZone.SmartCompanions
         public const string OpenHub       = "NPCCommand:OneTime.OpenSmartHub";
         public const string EmergencyAid  = "NPCCommand:OneTime.EmergencyAid";
         public const string ShareRation   = "NPCCommand:OneTime.ShareRationWithSquad";
+        public const string UnloadVehicle = "NPCCommand:OneTime.UnloadVehicleToBase";
+        public const string BattleCry     = "NPCCommand:OneTime.SquadBattleCry";
 
         public static readonly string[] AllCustomCommands = new[]
         {
@@ -26,7 +28,9 @@ namespace ZedZone.SmartCompanions
             DocStealth,
             OpenHub,
             EmergencyAid,
-            ShareRation
+            ShareRation,
+            UnloadVehicle,
+            BattleCry
         };
 
         public static bool TryGetDisplayName(string cmd, out string label)
@@ -73,6 +77,14 @@ namespace ZedZone.SmartCompanions
                 case "OneTime.ShareRationWithSquad":
                 case ShareRation:
                     label = CompanionConfigStore.L(lang, "🍖 Подогреть братву пайком (Бафф)", "🍖 Share Ration (Fed & Fierce Buff)", "🍖 分享口粮（饱腹狂暴增益）");
+                    return true;
+                case "OneTime.UnloadVehicleToBase":
+                case UnloadVehicle:
+                    label = CompanionConfigStore.L(lang, "🚗 Разгрузить багажник машины на склад", "🚗 Unload Vehicle Trunk to Base", "🚗 卸载汽车后备箱至基地仓库");
+                    return true;
+                case "OneTime.SquadBattleCry":
+                case BattleCry:
+                    label = CompanionConfigStore.L(lang, "📣 Боевой клич и Штурм [F9]", "📣 Squad Battle Cry & Assault [F9]", "📣 小队战吼与集火突击 [F9]");
                     return true;
                 default:
                     label = null;
@@ -186,6 +198,18 @@ namespace ZedZone.SmartCompanions
             if (commandStr.EndsWith("ShareRationWithSquad", StringComparison.OrdinalIgnoreCase))
             {
                 SmartChatterSystem.CommandShareRationWithSquad(agent, fromAutoShare: false);
+                return true;
+            }
+
+            if (commandStr.EndsWith("UnloadVehicleToBase", StringComparison.OrdinalIgnoreCase))
+            {
+                BaseChoreSystem.CommandUnloadVehiclesToBase(agent, silentIfEmpty: false);
+                return true;
+            }
+
+            if (commandStr.EndsWith("SquadBattleCry", StringComparison.OrdinalIgnoreCase))
+            {
+                SmartCombatAI.CommandSquadBattleCry(agent);
                 return true;
             }
 

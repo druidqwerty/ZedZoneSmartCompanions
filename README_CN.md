@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.2.0"><strong>下载 v1.2.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.0"><strong>下载 v1.3.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
@@ -16,7 +16,7 @@
 
 **ZED ZONE: Smart Companions（智能队友与基地物流中心）** 是一款基于 **BepInEx 6 (IL2CPP)** 的《ZED ZONE》代码模组，彻底升级你招募的幸存者队友：提供针对丧尸与人类匪徒的智能战术战斗 AI、带 **12 大物资分类** 的基地储物箱自动分拣系统、**50 个情景话题共 987 条三语实时气泡台词（其中包含 263 条中文台词：159 条末日粗口 18+ 与 104 条纯净台词）**、6 种战术学说、战地急救与弹药支援，以及 **语言自动识别与游戏内一键切换（🌐 自动 / 🇷🇺 Русский / 🇬🇧 English / 🇨🇳 简体中文）**。
 
-## v1.2.0 更新亮点
+## v1.3.0 更新亮点
 
 - **完整简体中文支持 + 自动语言识别与手动切换 (`ModLanguage.Auto / Russian / English / Chinese`)：**
   - 默认处于 **🌐 自动 (`Auto`)** 模式：自动读取《ZED ZONE》游戏语言 (`GameController.instance.gameSettings.languageCode`) 或系统语言 (`Application.systemLanguage`)，当游戏设置为中文时自动切换为简体中文界面与中文气泡台词。
@@ -35,7 +35,7 @@
 ## 安装与快捷键
 
 1. 订阅 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.2.0.zip` 解压至 `<ZED ZONE>\Mods\SmartCompanions\`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.3.0.zip` 解压至 `<ZED ZONE>\Mods\SmartCompanions\`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

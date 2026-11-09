@@ -92,7 +92,13 @@ namespace ZedZone.SmartCompanions
                 if (now - _lastGlobalChatterTime < 1.6f) return false;
             }
 
-            string line = PickLine(topic);
+            string line = null;
+            if ((topic == ChatterTopic.AmbientBaseIdle || topic == ChatterTopic.CampfireStory) && Rng.NextDouble() < 0.35)
+            {
+                line = ChatterDatabase.TryGetArchetypeBonusLine(st.EffectiveArchetype, topic, CompanionConfigStore.EffectiveLanguage, CompanionConfigStore.Profanity);
+            }
+            if (string.IsNullOrEmpty(line))
+                line = PickLine(topic);
             if (string.IsNullOrEmpty(line)) return false;
 
             return SpeakCustom(agent, line, bubbleDuration, force);

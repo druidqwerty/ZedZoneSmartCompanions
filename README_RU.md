@@ -7,16 +7,16 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.2.0"><strong>Скачать релиз v1.2.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.0"><strong>Скачать релиз v1.3.0 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
 
-**ZED ZONE: Smart Companions** — комплексный код-мод на базе **BepInEx 6 (IL2CPP)** для **ZED ZONE** (`Unity 2023.1.18f1 x64`), который наделяет нанятых выживших умным тактическим ИИ против зомби и вражеских NPC, системой автоматической сортировки базы с интерфейсом из 12 категорий для ящиков, **50 контекстными темами живых реплик (987 уникальных фраз на 3 языках: 495 RU / 229 EN / 263 ZH)**, автоопределением и ручным выбором языка в игре (`🌐 Авто / 🇷🇺 Русский / 🇬🇧 English / 🇨🇳 简体中文`), 6 боевыми доктринами и полевой поддержкой игрока.
+**ZED ZONE: Smart Companions** — комплексный код-мод на базе **BepInEx 6 (IL2CPP)** для **ZED ZONE** (`Unity 2023.1.18f1 x64`), который наделяет нанятых выживших умным тактическим ИИ против зомби и вражеских NPC, системой автоматической сортировки базы с интерфейсом из 12 категорий для ящиков, **60 контекстными темами живых реплик (1 179 уникальных фраз на 3 языках: 565 RU / 290 EN / 324 ZH)**, автоопределением и ручным выбором языка в игре (`🌐 Авто / 🇷🇺 Русский / 🇬🇧 English / 🇨🇳 简体中文`), 6 боевыми доктринами и полевой поддержкой игрока.
 
-## Новое в v1.2.0
+## Новое в v1.3.0
 
 - **Полный перевод на китайский язык (`简体中文`) + Автоопределение и выбор языка на лету (`ModLanguage`):**
   - В режиме `🌐 Авто` мод автоматически определяет язык из настроек игры `GameController.instance.gameSettings.languageCode` (с фолбэком на `Application.systemLanguage`). В любой момент язык можно переключить вручную без перезапуска кнопками `🌐 Авто / 🇷🇺 RU / 🇬🇧 EN / 🇨🇳 中文` в шапке окна **F8** или во вкладке настроек.
@@ -59,7 +59,7 @@
 ## Установка и управление
 
 1. Подпишитесь на **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** и один раз запустите его `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.1.0.zip` в `<ZED ZONE>\Mods\SmartCompanions\`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.3.0.zip` в `<ZED ZONE>\Mods\SmartCompanions\`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

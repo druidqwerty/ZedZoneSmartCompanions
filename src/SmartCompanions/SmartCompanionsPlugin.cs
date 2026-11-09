@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "1.2.0";
+        public const string PluginVersion = "1.3.0";
 
         internal static ManualLogSource Logs;
 
@@ -147,7 +147,25 @@ namespace ZedZone.SmartCompanions
                     }
                 }
 
-                LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}], {uniqueZh.Count} unique ZH lines [Rude={rudeZhCount}, Clean={cleanZhCount}]), 12 storage categories (RU/EN/ZH), {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands (RU/EN/ZH), ModLanguage Auto/RU/EN/ZH verified.");
+                // Verify CompanionArchetype and CompanionRank localization & XP thresholds
+                foreach (CompanionArchetype arch in Enum.GetValues(typeof(CompanionArchetype)))
+                {
+                    foreach (var lang in new[] { ModLanguage.Russian, ModLanguage.English, ModLanguage.Chinese })
+                    {
+                        if (string.IsNullOrWhiteSpace(CompanionConfigStore.GetArchetypeDisplayName(arch, lang)))
+                            throw new Exception($"Archetype name missing for {arch} ({lang})");
+                    }
+                }
+                if (CompanionConfigStore.GetRankForXp(0) != CompanionRank.Rookie ||
+                    CompanionConfigStore.GetRankForXp(150) != CompanionRank.Fighter ||
+                    CompanionConfigStore.GetRankForXp(400) != CompanionRank.Veteran ||
+                    CompanionConfigStore.GetRankForXp(900) != CompanionRank.Elite ||
+                    CompanionConfigStore.GetRankForXp(2000) != CompanionRank.ZoneLegend)
+                {
+                    throw new Exception("CompanionRank XP threshold check failed!");
+                }
+
+                LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}], {uniqueZh.Count} unique ZH lines [Rude={rudeZhCount}, Clean={cleanZhCount}]), 12 storage categories (RU/EN/ZH), {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, ModLanguage Auto/RU/EN/ZH verified.");
             }
             catch (Exception e)
             {
@@ -191,6 +209,12 @@ namespace ZedZone.SmartCompanions
                     SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
                 }
 
+                // Hotkey F9: Quick Order -> Squad Battle Cry & Focus Assault ("Боевой клич / Штурм")
+                if (Input.GetKeyDown(KeyCode.F9))
+                {
+                    SmartCombatAI.CommandSquadBattleCry(null);
+                }
+
                 float now = Time.unscaledTime;
 
                 if (now - _lastCombatTickTime >= 0.15f)
@@ -204,6 +228,7 @@ namespace ZedZone.SmartCompanions
                     _lastSortTickTime = now;
                     BaseSortingSystem.TickActiveSortingJobs();
                     AutoLootSystem.TickPassiveAutoLoot();
+                    BaseChoreSystem.TickBaseChoresAndCampLife();
                 }
 
                 SmartChatterSystem.TickAmbientChatter();

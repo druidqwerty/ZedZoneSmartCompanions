@@ -220,6 +220,9 @@ namespace ZedZone.SmartCompanions
                 {
                     if (moved > 0)
                     {
+                        var stSpk = CompanionConfigStore.GetOrCreateCompanion(speaker.npcData?.npcGUID ?? "npc");
+                        stSpk.SortedItemsThisSession += moved;
+                        stSpk.AddExperience(Mathf.Clamp(moved * 2, 2, 40), speaker);
                         SpeakCategoryDeposit(speaker, dominantCategory);
                         SmartChatterSystem.Speak(speaker, ChatterTopic.SortFinished, minCooldown: 0.5f, bubbleDuration: 6f, force: true);
                     }
@@ -327,6 +330,7 @@ namespace ZedZone.SmartCompanions
 
                     int moved = ExecuteSortPass(new List<GOAPAgent> { ag }, containers, destBoxes, null, out var domCat);
                     st.SortedItemsThisSession += moved;
+                    if (moved > 0) st.AddExperience(Mathf.Clamp(moved * 2, 2, 40), ag);
 
                     if (moved > 0)
                     {

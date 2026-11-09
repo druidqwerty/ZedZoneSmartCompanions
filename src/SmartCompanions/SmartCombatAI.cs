@@ -110,13 +110,88 @@ namespace ZedZone.SmartCompanions
                     score *= 1.35f;
                 }
 
-                // 5. "Сытый и злой" (Fed & Fierce) buff increases target aggression slightly
+                // 5. "Сытый и злой" (Fed & Fierce) & Battle Cry [F9] buffs + Archetype & Rank bonuses
                 if (st.HasFedBuff)
                 {
                     score *= 1.15f;
                 }
+                if (st.HasBattleCryBuff)
+                {
+                    score *= 1.25f;
+                }
+                if (st.EffectiveArchetype == CompanionArchetype.Veteran &&
+                    (Il2CppSafe.IsAliveUnity(targetHuman) || target.FullHP >= 400f))
+                {
+                    score *= 1.18f;
+                }
+                else if (st.EffectiveArchetype == CompanionArchetype.StreetPunk && distToSelf < 5.5f)
+                {
+                    score *= 1.20f;
+                }
+                if (st.Rank >= CompanionRank.Fighter)
+                {
+                    score *= (1.0f + (int)st.Rank * 0.05f);
+                }
             }
             catch { }
+        }
+
+        public static int CommandSquadBattleCry(GOAPAgent specificAgent = null)
+        {
+            var targets = new List<GOAPAgent>();
+            if (Il2CppSafe.IsAliveUnity(specificAgent))
+                targets.Add(specificAgent);
+            else
+                targets.AddRange(SmartChatterSystem.GetActiveTeammateAgents());
+
+            if (targets.Count == 0) return 0;
+
+            float now = Time.unscaledTime;
+            int count = 0;
+            GOAPAgent speaker = null;
+
+            foreach (var ag in targets)
+            {
+                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter))
+                    continue;
+
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                st.BattleCryBuffUntil = now + 60f;
+                st.AddExperience(10, ag);
+
+                try
+                {
+                    var hc = ag.humanCharacter;
+                    if (Il2CppSafe.IsAliveUnity(hc.rangedWeapon) && hc.rangedWeapon.isMalfunction)
+                        hc.ClearWeaponMalfunction(hc.rangedWeapon);
+
+                    ag.CheckAndReloadMagazine();
+
+                    var status = ag.npcData.characterData?.characterStatusData;
+                    if (Il2CppSafe.IsAlive(status))
+                    {
+                        status.energy = status.maxEnergy > 0 ? status.maxEnergy : 100f;
+                        status.fatigue = Mathf.Min(status.maxFatigue > 0 ? status.maxFatigue : 100f, status.fatigue + 20f);
+                    }
+                }
+                catch { }
+
+                if (speaker == null) speaker = ag;
+                count++;
+            }
+
+            if (speaker != null)
+            {
+                bool hasEnemy = Il2CppSafe.IsAliveUnity(speaker.mostThreateningCharacter);
+                SmartChatterSystem.Speak(speaker, hasEnemy ? ChatterTopic.CombatFocusTarget : ChatterTopic.SquadBattleCry, minCooldown: 0.2f, bubbleDuration: 6f, force: true);
+            }
+
+            BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                $"📣 Боевой клич отряда ({count} чел.)! Оружие проверено, выносливость 100%, штурмовой фокус на 60 сек!",
+                $"📣 Squad Battle Cry ({count})! Weapons unjammed, 100% stamina & assault focus for 60s!",
+                $"📣 小队战吼突击（{count} 人）！武器已排障装填、耐力拉满，获得 60 秒集火突击增益！"));
+
+            return count;
         }
 
         public static void TickAllCompanionsCombat()
@@ -154,20 +229,41 @@ namespace ZedZone.SmartCompanions
             var hc = agent.humanCharacter;
             Vector2 selfPos = hc.transform.position;
 
-            // Apply "Сытый и злой" (Fed & Fierce) stamina & accuracy boost while active
-            if (st.HasFedBuff)
+            // Apply "Сытый и злой" (Fed & Fierce), Battle Cry, and Veteran Rank passive boosts
+            if (st.HasFedBuff || st.HasBattleCryBuff || st.Rank >= CompanionRank.Fighter)
             {
                 try
                 {
                     var status = agent.npcData.characterData?.characterStatusData;
-                    if (Il2CppSafe.IsAlive(status) && status.energy < status.maxEnergy)
-                        status.energy = Mathf.Min(status.maxEnergy, status.energy + 1.8f);
+                    if (Il2CppSafe.IsAlive(status))
+                    {
+                        float energyBoost = (st.HasFedBuff ? 1.5f : 0f) + (st.HasBattleCryBuff ? 2.0f : 0f) + ((int)st.Rank * 0.35f);
+                        if (energyBoost > 0f && status.energy < status.maxEnergy)
+                            status.energy = Mathf.Min(status.maxEnergy, status.energy + energyBoost);
+
+                        float rankHpBonus = CompanionConfigStore.GetRankMaxHpBonus(st.Rank);
+                        if (rankHpBonus > 0f && status.maxhp < 100f + rankHpBonus)
+                            status.maxhp = 100f + rankHpBonus;
+                    }
                 }
                 catch { }
             }
 
+            // Smart Flashlight control (Night / Rain / Underground vs Stealth Doctrine)
+            if (CompanionConfigStore.EnableSmartFlashlight && now - st.LastFlashlightCheckTime > 4.0f)
+            {
+                st.LastFlashlightCheckTime = now;
+                TickSmartFlashlight(agent, st, hc);
+            }
+
             if (Il2CppSafe.IsAliveUnity(player) && !player.deadFlag)
             {
+                // Emergency Adrenaline Rescue if player is downed or critically wounded (< 22% HP)
+                if (CompanionConfigStore.EnablePlayerRescue)
+                {
+                    TryEmergencyPlayerRescue(agent, st, player, now);
+                }
+
                 TickFieldSupport(agent, st, player, now);
 
                 // Anti-Friendly-Fire Corridor
@@ -311,6 +407,7 @@ namespace ZedZone.SmartCompanions
                 playerForward.Normalize();
 
                 int friendlyCamp = player.characterData?.camp ?? 0;
+                float maxRadarDist = st.EffectiveArchetype == CompanionArchetype.ParanoidPrepper ? 8.5f : 5.8f;
                 for (int i = 0; i < gc.characterList.Count; i++)
                 {
                     var c = gc.characterList[i];
@@ -319,7 +416,7 @@ namespace ZedZone.SmartCompanions
 
                     Vector2 toEnemy = (Vector2)c.transform.position - playerPos;
                     float dist = toEnemy.magnitude;
-                    if (dist < 1.2f || dist > 5.8f) continue;
+                    if (dist < 1.2f || dist > maxRadarDist) continue;
 
                     float dot = Vector2.Dot(playerForward, toEnemy.normalized);
                     if (dot < -0.30f) // Behind the player's back!
@@ -445,18 +542,103 @@ namespace ZedZone.SmartCompanions
             catch { }
         }
 
+        private static void TickSmartFlashlight(GOAPAgent agent, CompanionRuntimeState st, HumanCharacterController hc)
+        {
+            try
+            {
+                var gc = GameController.instance;
+                if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAlive(gc.gameData)) return;
+
+                if (st.Doctrine == TacticalDoctrine.StealthMelee || st.Doctrine == TacticalDoctrine.Passive)
+                {
+                    if (hc.isFlashLightOn)
+                    {
+                        hc.TurnOffLight();
+                        SmartChatterSystem.Speak(agent, ChatterTopic.CombatStealthLightsOff, minCooldown: 18f);
+                    }
+                    return;
+                }
+
+                float hours = (gc.gameData.inGameTime / 60f) % 24f;
+                bool isDark = (hours < 6.0f || hours >= 19.5f) || gc.gameData.isBloodRaining ||
+                              (Il2CppSafe.IsAlive(agent.npcData) && agent.npcData.zLevel < 0);
+
+                if (isDark && !hc.isFlashLightOn)
+                {
+                    var lights = agent.GetAvailableFlashLights();
+                    if (lights != null && lights.Count > 0)
+                        hc.TurnOnLight();
+                }
+                else if (!isDark && hc.isFlashLightOn && hours >= 7.5f && hours <= 18.0f &&
+                         (agent.npcData == null || agent.npcData.zLevel >= 0))
+                {
+                    hc.TurnOffLight();
+                }
+            }
+            catch { }
+        }
+
+        private static void TryEmergencyPlayerRescue(GOAPAgent agent, CompanionRuntimeState st, HumanCharacterController player, float now)
+        {
+            if (now - st.LastPlayerRescueTime < 35f) return;
+            try
+            {
+                var status = player.characterData?.characterStatusData;
+                if (!Il2CppSafe.IsAlive(status) || status.maxhp <= 5f) return;
+
+                bool isDowned = player.weaponHolsteredByDowned || (status.hp / status.maxhp) < 0.22f;
+                if (!isDowned) return;
+
+                float dist = Vector2.Distance(agent.humanCharacter.transform.position, player.transform.position);
+                if (dist > 11.5f) return;
+
+                if (dist > 2.6f)
+                {
+                    agent.MoveTo_Direct(player.transform.position, false, true, false);
+                }
+
+                st.LastPlayerRescueTime = now;
+                st.LastFieldMedicTime = now;
+
+                if (player.weaponHolsteredByDowned)
+                {
+                    try { player.NetExitDowned(0.50f); } catch { }
+                }
+
+                float rescueHeal = Mathf.Max(35f, status.maxhp * 0.40f);
+                status.hp = Mathf.Min(status.maxhp, status.hp + rescueHeal);
+                status.energy = Mathf.Min(status.maxEnergy > 0 ? status.maxEnergy : 100f, status.energy + 45f);
+                player.hp = status.hp;
+                try { player.HealAllBodyPartInjuries(); } catch { }
+
+                st.AddExperience(30, agent);
+                SmartChatterSystem.Speak(agent, ChatterTopic.CombatPlayerDownedRescue, minCooldown: 0.5f, bubbleDuration: 6.5f, force: true);
+                BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                    $"🚨 {st.LastKnownName} провёл экстренную реанимацию и вытащил вас с того света (+{rescueHeal:F0} HP)!",
+                    $"🚨 {st.LastKnownName} performed an emergency adrenaline rescue (+{rescueHeal:F0} HP)!",
+                    $"🚨 {st.LastKnownName} 实施了战地紧急强心抢救（+{rescueHeal:F0} 生命值）！"));
+            }
+            catch { }
+        }
+
         private static void TickFieldSupport(GOAPAgent agent, CompanionRuntimeState st, HumanCharacterController player, float now)
         {
             float dist = Vector2.Distance(agent.humanCharacter.transform.position, player.transform.position);
             if (dist > 6.5f) return;
 
-            if (CompanionConfigStore.EnableFieldMedic && st.AllowFieldMedic && now - st.LastFieldMedicTime > 30f)
+            bool isMedicArch = st.EffectiveArchetype == CompanionArchetype.CombatMedic;
+            float medicCooldown = isMedicArch ? 20f : 30f;
+            if (st.Rank >= CompanionRank.Elite) medicCooldown *= 0.75f;
+
+            if (CompanionConfigStore.EnableFieldMedic && st.AllowFieldMedic && now - st.LastFieldMedicTime > medicCooldown)
             {
                 var status = player.characterData?.characterStatusData;
-                if (Il2CppSafe.IsAlive(status) && status.maxhp > 10f && (status.hp / status.maxhp) < 0.48f)
+                float hpThreshold = isMedicArch ? 0.60f : 0.48f;
+                if (Il2CppSafe.IsAlive(status) && status.maxhp > 10f && (status.hp / status.maxhp) < hpThreshold)
                 {
                     st.LastFieldMedicTime = now;
-                    float healAmount = Mathf.Min(status.maxhp - status.hp, Mathf.Max(25f, status.maxhp * 0.28f));
+                    float healPct = isMedicArch ? 0.38f : 0.28f;
+                    float healAmount = Mathf.Min(status.maxhp - status.hp, Mathf.Max(25f, status.maxhp * healPct));
                     status.hp = Mathf.Min(status.maxhp, status.hp + healAmount);
                     player.hp = status.hp;
                     try { player.HealAllBodyPartInjuries(); } catch { }
@@ -473,6 +655,7 @@ namespace ZedZone.SmartCompanions
                     }
                     catch { }
 
+                    st.AddExperience(25, agent);
                     SmartChatterSystem.Speak(agent, ChatterTopic.FieldMedicAid, minCooldown: 1.5f, bubbleDuration: 6f, force: true);
                 }
             }
@@ -500,6 +683,7 @@ namespace ZedZone.SmartCompanions
                                     if (GameController.instance.AddItemToPlayer(ammoPack, true))
                                     {
                                         st.LastAmmoShareTime = now;
+                                        st.AddExperience(25, agent);
                                         SmartChatterSystem.Speak(agent, ChatterTopic.FieldAmmoShare, minCooldown: 1.5f, bubbleDuration: 6f, force: true);
                                     }
                                 }
@@ -523,10 +707,22 @@ namespace ZedZone.SmartCompanions
                     {
                         st.KillsThisSession++;
                     }
+                    int killXp = 12;
+                    try
+                    {
+                        if (victim.FullHP >= 400f || victim.TryCast<GiantZombieController>() != null ||
+                            victim.TryCast<CorpsewheelController>() != null || victim.TryCast<CarrionBossController>() != null)
+                            killXp = 75;
+                        else if (victim.TryCast<HumanCharacterController>() != null)
+                            killXp = 28;
+                    }
+                    catch { }
+
                     foreach (var ag in SmartChatterSystem.GetActiveTeammateAgents())
                     {
                         if (Il2CppSafe.IsAlive(ag.npcData) && ag.npcData.npcGUID == ownerGuid)
                         {
+                            if (st != null) st.AddExperience(killXp, ag);
                             SmartChatterSystem.Speak(ag, ChatterTopic.CombatKillEnemy, minCooldown: 4.8f);
                             break;
                         }
