@@ -78,15 +78,4 @@
 dotnet build src/SmartCompanions/SmartCompanions.csproj -c Release
 ```
 
-## My mods
-
-- [SmoothRide MP](https://steamcommunity.com/sharedfiles/filedetails/?id=3827367565)
-- [ZombieSync MP](https://steamcommunity.com/sharedfiles/filedetails/?id=3827946115)
-- [Tripping Zombies MP Fix](https://steamcommunity.com/sharedfiles/filedetails/?id=3829034899)
-- [Wandering Hordes Performance Fix](https://steamcommunity.com/sharedfiles/filedetails/?id=3829140377)
-- [Download Unstuck](https://steamcommunity.com/sharedfiles/filedetails/?id=3829163351)
-- [A-Life: Reactive Survivors](https://steamcommunity.com/sharedfiles/filedetails/?id=3829332775)
-- [A-Life: Caravans](https://steamcommunity.com/sharedfiles/filedetails/?id=3829571361)
-- [ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)
-
 © 2026 druidqwerty. Released under the MIT License. Free and open source; AI-assisted code, direction and testing by druid.

@@ -55,15 +55,4 @@
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 
-## Мои моды
-
-- [SmoothRide MP](https://steamcommunity.com/sharedfiles/filedetails/?id=3827367565)
-- [ZombieSync MP](https://steamcommunity.com/sharedfiles/filedetails/?id=3827946115)
-- [Tripping Zombies MP Fix](https://steamcommunity.com/sharedfiles/filedetails/?id=3829034899)
-- [Wandering Hordes Performance Fix](https://steamcommunity.com/sharedfiles/filedetails/?id=3829140377)
-- [Download Unstuck](https://steamcommunity.com/sharedfiles/filedetails/?id=3829163351)
-- [A-Life: Reactive Survivors](https://steamcommunity.com/sharedfiles/filedetails/?id=3829332775)
-- [A-Life: Caravans](https://steamcommunity.com/sharedfiles/filedetails/?id=3829571361)
-- [ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)
-
 © 2026 druidqwerty. Лицензия MIT. Бесплатный открытый мод; код с помощью ИИ, идея и тестирование — druid.

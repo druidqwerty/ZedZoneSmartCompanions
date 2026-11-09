@@ -25,9 +25,6 @@ description=[*][b]Worth knowing:[/b] code mods run locally and are not synced au
 description=[/list]
 description=Version 1.0.0 · [url=https://github.com/druidqwerty/ZedZoneSmartCompanions]Source code, architecture & release notes on GitHub[/url]
 description=
-description=[h2]My mods[/h2]
-description=[url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827367565]SmoothRide MP[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3827946115]ZombieSync MP[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829034899]Tripping Zombies MP Fix[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829140377]Wandering Hordes Performance Fix[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829163351]Download Unstuck[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829332775]A-Life: Reactive Survivors[/url] · [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3829571361]A-Life: Caravans[/url] · [b]ZED ZONE: Smart Companions[/b] (this mod).
-description=
 description=Workshop ID: 3836613312
 description=Mod ID: SmartCompanions
 description=
