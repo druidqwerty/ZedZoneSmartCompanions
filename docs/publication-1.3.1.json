@@ -1,0 +1,45 @@
+{
+  "checked_at": "2026-11-09T19:03:06.394589+00:00",
+  "pages": {
+    "english": {
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312&l=english",
+      "http": 429
+    },
+    "russian": {
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312&l=russian",
+      "http": 429
+    },
+    "schinese": {
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312&l=schinese",
+      "http": 429
+    }
+  },
+  "topics": {
+    "url": "https://steamcommunity.com/forum/40676593/PublishedFile/render/3836613312/?start=0&count=30",
+    "http": 200,
+    "total_count": 2,
+    "topics": [
+      {
+        "gid": "570428419877202938",
+        "class": [
+          "forum_topic",
+          "unread",
+          "sticky"
+        ],
+        "text": "0 9 hours ago PINNED: Ideas & Suggestions / Идеи и предложения Иван Тугаринский",
+        "pinned": true
+      },
+      {
+        "gid": "570428419877202927",
+        "class": [
+          "forum_topic",
+          "unread",
+          "sticky"
+        ],
+        "text": "0 9 hours ago PINNED: Error Logs & Bug Reports / Логи ошибок и баги Иван Тугаринский",
+        "pinned": true
+      }
+    ]
+  },
+  "limitations": "Post-upload EN/RU/ZH HTML descriptions and Required Items sidebar unverified: all three localized item-page requests returned HTTP 429. No retries or mutations performed. Pre-release anonymous item-page HTML had confirmed required loader 3834614258."
+}

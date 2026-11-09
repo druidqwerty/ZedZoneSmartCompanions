@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: COMPLETED & VERIFIED IN GAME (`1.0.0`)
+## Status: RELEASED 1.3.1 — graphical UI and native input regression verified
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -8,7 +8,7 @@
 - **Source Path:** `C:\Users\druid\.openclaw\workspace-modder\projects\zedzone-smart-companions\src\SmartCompanions\` (и синхронизировано в `G:\Steam\steamapps\common\ZED ZONE\ZedModKit\src\SmartCompanions\`)
 - **Save Backup:** `C:\Users\druid\.openclaw\workspace-modder\projects\zedzone-smart-companions\backups\ZEDZONE-saves-backup`
 
-## Verification Evidence (`BepInEx\LogOutput.log` & `ZedModsLoader-report.txt`)
+## Historical 1.0.0 Startup Evidence (`BepInEx\LogOutput.log` & `ZedModsLoader-report.txt`)
 - `Patched 13 game method(s) via Harmony.`
 - `Registered SmartCompanionsController MonoBehaviour in IL2CPP domain.`
 - `[SelfVerify] PASS: 44 chatter topics (171 RU lines, 92 EN lines), 12 storage categories, 8 custom NPC commands verified.`
@@ -57,3 +57,10 @@
 - [x] Final DLL SHA256 1d1f58ed2d4375c216555a2c882d832f6a759cc0587d35116c56ac9b7c1ac932. ZIP126795 bytes SHA2564d861a2f9f30ba9f1758dd66ea1ba1c3becc452dbb96713d4d6a8fbb5a51886f. Both staging layouts and game/kit synchronized.
 - Gotcha: patch concrete Human weapon overrides only. Additional Basic Fire_Gun/Melee merged/no-op stubs caused early native exit; removed. Fixture movement setter needs animation rig, so native CharacterInput own field is used. GUI color tests compare engine-normalized readback, not raw hardcoded color components.
 - Next: GitHub commit/push/release, Steam upload EN/RU/ZH visibility0 and dependencies/topics verification, Boosty queue.
+
+- [x] RELEASED 1.3.1: GitHub runtime/source commit 4d3e2f60804c3777c0e82892c325c4cd7d442efa, release https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.3.1.
+- [x] Final ZIP expanded to include screenshot/log documentation: 1,262,503 bytes, SHA256 bc52644b75c1c4f3348cc0f435f94e0fc1c21082c607de4e081f3e2835e16ed2 (supersedes earlier packaging-only ZIP checksum above). Anonymous download byte/hash + manifest + DLL checks passed.
+- [x] Steam upload content, preview, EN/RU/ZH pages acknowledged; dependency3834614258 already present EResult29. Anonymous API result1, visibility0, file_size576732, title/description version1.3.1.
+- [x] Correctforum40676593 AJAX verified exactly2 pinned topics (570428419877202927,570428419877202938). Public EN/RU/ZH HTML returned429; post-upload localized HTML/sidebar rendering not claimed verified. Evidence docs/publication-1.3.1.json.
+- [x] Boosty1.3.1 queued, replaced only pending1.3.0 entry; other projects untouched. Queue acceptance is not publication.
+- Completed. No game process or temporary probe remains active. Full boundary/limitations in docs/verification-1.3.1.md.
