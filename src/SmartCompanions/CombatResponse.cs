@@ -144,6 +144,7 @@ namespace ZedZone.SmartCompanions
                 {
                     if (state.IsSortingActive)
                     {
+                        BaseSortingSystem.FlushCarryBufferSafely(state);
                         state.IsSortingActive = false;
                         state.SortingPhase = 0;
                     }

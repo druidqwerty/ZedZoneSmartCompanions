@@ -630,5 +630,59 @@ namespace ZedZone.SmartCompanions
             catch { }
             return true;
         }
+
+        // 19. Register opened furniture chest's InventoryData <-> TerrainObject mapping and select it in F8
+        [HarmonyPatch(typeof(TerrainObject_Furniture_Inventory), nameof(TerrainObject_Furniture_Inventory.LootInventory))]
+        [HarmonyPostfix]
+        public static void FurnitureInventory_LootInventory_Postfix(TerrainObject_Furniture_Inventory __instance)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(__instance) || !Il2CppSafe.IsAlive(__instance.objectData)) return;
+                var inv = __instance.objectData.inventoryData;
+                if (Il2CppSafe.IsAlive(inv))
+                {
+                    BaseSortingSystem.RegisterInventoryTerrainObject(inv, __instance);
+                    string id = BaseSortingSystem.GetContainerStableId(inv, __instance);
+                    SmartCompanionsUI.SelectContainerInHub(id);
+                }
+            }
+            catch { }
+        }
+
+        // 20. Redirect GOAPAction_FollowLeader movement to TargetContainerPos while companion is physically carrying items between chests
+        [HarmonyPatch(typeof(GOAPAction_FollowLeader), nameof(GOAPAction_FollowLeader.Execute))]
+        [HarmonyPrefix]
+        public static bool FollowLeader_Execute_Prefix(GOAPAgent agent, ref bool __result)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData) ||
+                    !Il2CppSafe.IsAliveUnity(agent.humanCharacter) || agent.humanCharacter.deadFlag)
+                    return true;
+
+                if (Il2CppSafe.IsAliveUnity(agent.mostThreateningCharacter) && !agent.mostThreateningCharacter.deadFlag)
+                    return true;
+
+                if (CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID ?? "", out var st) &&
+                    st != null && st.IsSortingActive && (st.SortingPhase == 1 || st.SortingPhase == 2))
+                {
+                    float dist = Vector2.Distance(agent.humanCharacter.transform.position, st.TargetContainerPos);
+                    if (dist > 1.60f)
+                    {
+                        agent.MoveTo_Direct(st.TargetContainerPos, true, true, false);
+                        agent.LookAtPositionSmoothCompat(st.TargetContainerPos, 10f);
+                    }
+                    else
+                    {
+                        agent.LookAtPositionSmoothCompat(st.TargetContainerPos, 10f);
+                    }
+                    __result = true;
+                    return false;
+                }
+            }
+            catch { }
+            return true;
+        }
     }
 }

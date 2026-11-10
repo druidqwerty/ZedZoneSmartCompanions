@@ -186,6 +186,17 @@ namespace ZedZone.SmartCompanions
         }
     }
 
+    public class CarryItemEntry
+    {
+        public ItemData Item;
+        public InventoryData FallbackSourceInv;
+        public string TargetContainerId = "";
+        public InventoryData TargetInv;
+        public Vector2 TargetPos;
+        public string TargetDisplayName = "";
+        public StorageCategory Category = StorageCategory.None;
+    }
+
     public class ContainerRuleProfile
     {
         public string ContainerId = "";
@@ -243,13 +254,19 @@ namespace ZedZone.SmartCompanions
         public float LastPlayerRescueTime = -999f;
         public float LastFlashlightCheckTime = -999f;
 
-        // Active physical sorting state
+        // Active physical sorting state & invisible carry buffer
         public bool IsSortingActive = false;
-        public int SortingPhase = 0; // 0=Idle, 1=MovingToSource, 2=MovingToTarget
+        public int SortingPhase = 0; // 0=Idle, 1=WalkingToSource, 2=WalkingToDestination
+        public string SourceContainerGuid = "";
+        public string SourceContainerName = "";
+        public InventoryData SourceContainerInv = null;
+        public StorageCategory SourceAllowedStayMask = StorageCategory.None;
         public string TargetContainerGuid = "";
+        public string TargetContainerName = "";
         public Vector2 TargetContainerPos;
         public float SortingStateStartTime = 0f;
         public int PendingTransferCount = 0;
+        public readonly List<CarryItemEntry> CarryBuffer = new List<CarryItemEntry>();
 
         public bool HasFedBuff => Time.unscaledTime < FedAndFierceUntil;
         public float FedBuffRemainingSeconds => Mathf.Max(0f, FedAndFierceUntil - Time.unscaledTime);
@@ -586,6 +603,10 @@ namespace ZedZone.SmartCompanions
                 foreach (var kv in ContainerRules)
                 {
                     var r = kv.Value;
+                    if (string.IsNullOrEmpty(r.ContainerId) ||
+                        string.Equals(r.ContainerId, "unknown_box", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(r.ContainerId, "unknown", StringComparison.OrdinalIgnoreCase))
+                        continue;
                     if (r.Categories == StorageCategory.None && !r.IsDropoffSource && string.IsNullOrEmpty(r.CustomName))
                         continue;
                     var safeName = (r.CustomName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
@@ -664,6 +685,10 @@ namespace ZedZone.SmartCompanions
                     else if (parts[0] == "BOX" && parts.Length >= 6)
                     {
                         var id = parts[1];
+                        if (string.IsNullOrEmpty(id) ||
+                            string.Equals(id, "unknown_box", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(id, "unknown", StringComparison.OrdinalIgnoreCase))
+                            continue;
                         int.TryParse(parts[2], out var catInt);
                         bool.TryParse(parts[3], out var drop);
                         int.TryParse(parts[4], out var prio);

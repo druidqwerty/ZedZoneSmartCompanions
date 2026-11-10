@@ -390,12 +390,25 @@ namespace ZedZone.SmartCompanions
                     _labelStyle);
             }
 
+            if (containers.Count > 0)
+            {
+                bool foundSel = false;
+                for (int i = 0; i < containers.Count; i++)
+                {
+                    if (containers[i] != null && containers[i].ContainerId == _selectedBoxIdInHub)
+                    {
+                        foundSel = true;
+                        break;
+                    }
+                }
+                if (!foundSel && containers[0] != null)
+                    _selectedBoxIdInHub = containers[0].ContainerId;
+            }
+
             for (int i = 0; i < containers.Count; i++)
             {
                 var c = containers[i];
                 if (c == null || c.Rule == null) continue;
-                if (string.IsNullOrEmpty(_selectedBoxIdInHub) && i == 0)
-                    _selectedBoxIdInHub = c.ContainerId;
                 if (c.ContainerId == _selectedBoxIdInHub)
                     selectedContainer = c;
 
@@ -403,7 +416,8 @@ namespace ZedZone.SmartCompanions
                 string summary = ItemCategorizer.FormatCategoriesSummary(c.Rule.Categories, c.Rule.IsDropoffSource, lang);
                 string unit = CompanionConfigStore.L(lang, "шт.", "items", "件");
                 string mUnit = CompanionConfigStore.L(lang, "м", "m", "米");
-                string btnText = $"{c.DisplayName} ({c.DistanceToPlayer:F1}{mUnit} | {c.ItemCount} {unit})\n{summary}";
+                string coordTag = $"[{Mathf.RoundToInt(c.WorldPos.x)},{Mathf.RoundToInt(c.WorldPos.y)}]";
+                string btnText = $"{c.DisplayName} {coordTag} ({c.DistanceToPlayer:F1}{mUnit} | {c.ItemCount} {unit})\n{summary}";
 
                 if (GUI.Button(new Rect(4f, i * 48f, viewRect.width - 8f, 44f), btnText, isSel ? _catOnStyle : _btnStyle))
                 {

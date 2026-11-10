@@ -1,13 +1,13 @@
 version=1
 id=3836613312
-title=ZED ZONE: Smart Companions 1.4.0
+title=ZED ZONE: Smart Companions 1.4.1
 visibility=public
-description=[h1]Smart Companions 1.4.0[/h1]
-description=Smarter recruited companions: tactical combat, co-op multiplayer sync, base sorting and live chatter in English, Russian and Simplified Chinese.
+description=[h1]Smart Companions 1.4.1[/h1]
+description=Smarter recruited companions: tactical combat, co-op multiplayer sync, physical base chest sorting and live chatter in English, Russian and Simplified Chinese.
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Enjoy the mod? Support development on Boosty.
-description=[h2]New in 1.4.0 (Co-op Multiplayer & Combat)[/h2]
-description=[list][*]Co-op container category sync: when a friend sets a category on a base chest, it syncs so both players see the same category.[*]Co-op companion ownership & mutual healing: each player commands their own companions, while a friend's companions can heal and rescue you in combat (and vice versa).[*]Fixed fire-lighting menu popping up on the local screen when a friend opens a container.[*]Fixed NPCs and companions being invisible to co-op clients.[*]Fixed companions not shooting at hostile human NPCs (looters/bandits).[/list]
+description=[h2]New in 1.4.1 & 1.4.0[/h2]
+description=[list][*]Detects all nearby base chests immediately without having to open them first, auto-selecting the closest chest in F8 with distinct per-box IDs (fixing shared Drop-off/category settings).[*]Physical item carrying: companions walk to the source chest, pick up items into a dedicated invisible carry buffer (separate from their main inventory), and walk to each destination chest to deposit them.[*]Co-op container category sync, per-player companion ownership & mutual field healing.[*]Fixed co-op fire-lighting menu popup, invisible client NPCs, and companions shooting hostile human NPCs.[/list]
 description=[h2]Your squad and base[/h2]
 description=6 combat doctrines, companion personalities and veteran ranks, field aid, camp chores, vehicle unloading, 12-category chest sorting and RU/EN/ZH chatter with 18+, Mixed or Clean modes. All settings change in-game.
 description=[h2]Install and controls[/h2]

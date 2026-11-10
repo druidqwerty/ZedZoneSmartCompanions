@@ -1,11 +1,11 @@
-title=ZED ZONE: Smart Companions 1.4.0 — 智能队友
+title=ZED ZONE: Smart Companions 1.4.1 — 智能队友
 visibility=public
-description=[h1]智能队友 1.4.0[/h1]
-description=招募队友的战术战斗、联机多人同步、基地物资分类与实时互动台词，支持简体中文、俄语和英语。
+description=[h1]智能队友 1.4.1[/h1]
+description=招募队友的战术战斗、联机多人同步、真实走位物资搬运与实时互动台词，支持简体中文、俄语和英语。
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=喜欢这个模组吗？欢迎在 Boosty 支持开发。
-description=[h2]1.4.0 更新（联机同步与人类敌人战斗）[/h2]
-description=[list][*]联机储物箱分类同步：好友为基地箱子设置分类后，双方实时同步显示相同分类。[*]队友归属与互相急救：每位玩家拥有自己的队友，同时好友的队友可以在战斗中为你急救解围（反之亦然）。[*]修复好友打开箱子时本地屏幕弹出点火菜单的问题。[*]修复联机客户端看不见 NPC 和队友的问题。[*]修复队友不向敌对人类 NPC（强盗/掠夺者）开枪的问题。[/list]
+description=[h2]1.4.1 与 1.4.0 更新[/h2]
+description=[list][*]自动识别周围全部基地箱子（无需先打开），按 F8 自动选中最近的箱子，并彻底独立每个箱子的中转/分类设置。[*]真实走位搬运：队友会走到源箱子旁将物品收入独立隐藏搬运空间（不占用主背包），再走到各个目标分类箱旁依次放入。[*]联机储物箱分类同步、队友归属与跨玩家急救。[*]修复好友开箱弹出点火菜单、客户端看不见 NPC 以及队友不向人类敌对 NPC 开枪的问题。[/list]
 description=6 种战术、队友性格与老兵等级、战地急救、营地内务、汽车卸货、12 类储物箱整理和三语台词。可选末日粗口18+、混合或纯净模式，设置即时生效。
 description=[h2]安装与操作[/h2]需要 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]：订阅后运行一次 install.cmd，通过 Steam 启动游戏。联机双方均安装本模组即可完整同步。
 description=F8：队友/基地/设置；F7：整理；F6：分享口粮；F9：战吼。无需重置存档。

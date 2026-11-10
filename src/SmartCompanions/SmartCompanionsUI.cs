@@ -10,6 +10,29 @@ namespace ZedZone.SmartCompanions
         public static bool CollapseChestBar = false;
         private static int _activeTab = 0; // 0=Squad, 1=BaseBoxes, 2=Chatter&Settings
         private static string _selectedBoxIdInHub = "";
+
+        public static void SelectContainerInHub(string boxId)
+        {
+            if (!string.IsNullOrEmpty(boxId))
+                _selectedBoxIdInHub = boxId;
+        }
+
+        public static void OnMainWindowOpened()
+        {
+            var containers = BaseSortingSystem.ScanNearbyContainers(force: true);
+            var openPanel = LootInventoryPanel.instance;
+            var openInv = LootInventoryPanel.CurrentOpenInventoryData;
+            if (Il2CppSafe.IsAliveUnity(openPanel) && openPanel.gameObject.activeInHierarchy &&
+                Il2CppSafe.IsAlive(openInv) && !openInv.isPlayerInventory)
+            {
+                _selectedBoxIdInHub = BaseSortingSystem.GetContainerStableId(openInv);
+            }
+            else if (containers.Count > 0 && containers[0] != null)
+            {
+                // Automatically select the closest container next to the player
+                _selectedBoxIdInHub = containers[0].ContainerId;
+            }
+        }
         private static Vector2 _scrollSquad;
         private static Vector2 _scrollBoxes;
         private static Vector2 _scrollChatter;

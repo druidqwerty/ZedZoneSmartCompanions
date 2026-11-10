@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "1.4.0";
+        public const string PluginVersion = "1.4.1";
 
         internal static ManualLogSource Logs;
 
@@ -202,7 +202,7 @@ namespace ZedZone.SmartCompanions
                 {
                     SmartCompanionsUI.ShowMainWindow = !SmartCompanionsUI.ShowMainWindow;
                     if (SmartCompanionsUI.ShowMainWindow)
-                        BaseSortingSystem.ScanNearbyContainers(force: true);
+                        SmartCompanionsUI.OnMainWindowOpened();
                 }
 
                 // Hotkey F7: Quick Order -> Sort Base Containers
@@ -226,6 +226,7 @@ namespace ZedZone.SmartCompanions
                 float now = Time.unscaledTime;
                 CompanionConfigStore.FlushPendingProgress();
                 MultiplayerSyncSystem.Tick();
+                BaseSortingSystem.TickActiveSortingMovementEveryFrame();
 
                 if (now - _lastCombatTickTime >= 0.15f)
                 {
@@ -249,8 +250,17 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        private void OnApplicationQuit() => CompanionConfigStore.FlushPendingProgress(force: true);
-        private void OnDestroy() => CompanionConfigStore.FlushPendingProgress(force: true);
+        private void OnApplicationQuit()
+        {
+            BaseSortingSystem.FlushAllCarryBuffers();
+            CompanionConfigStore.FlushPendingProgress(force: true);
+        }
+
+        private void OnDestroy()
+        {
+            BaseSortingSystem.FlushAllCarryBuffers();
+            CompanionConfigStore.FlushPendingProgress(force: true);
+        }
 
         private void OnGUI()
         {

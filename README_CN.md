@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.0"><strong>下载 v1.4.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.1"><strong>下载 v1.4.1 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v1.4.1 更新 — 自动发现周围全部箱子、独立箱子配置与真实走位搬运
+
+- **无需先打开箱子即可识别周围全部储物箱 (`CollectWorldTerrainObjects`)：**
+  - 扫描当前加载区块 (`MapController.instance.currentChunkList`)、建筑物楼层 (`BasicBuilding.ActiveObjects`) 与地面部署容器 (`BasicItem.ActiveObjects`)，按 **F8** 自动选中你身边最近的箱子并显示坐标 `[x,y]`。
+- **修复所有箱子共用收货中转箱/分类的问题：**
+  - 每个箱子拥有完全独立的唯一 ID (`box_{rx100}_{ry100}_{z}_{attrId}_{standVz}_{guid}`)，设置中转箱或分类互不干扰。
+- **队友真实走位搬运与隐藏搬运缓存 (`CarryBuffer`)：**
+  - 队友整理仓库 (`F7`) 时不再隔空瞬移物品，而是亲自走到源箱子旁将物品取出放入独立的 **隐藏搬运空间 (`CarryBuffer`)**（不占用队友主背包与武器栏），再走到各个分类箱旁依次存入；若遇敌或退出游戏会自动安全归还物品，绝不丢失。[验证报告](docs/verification-1.4.1.md)。
 
 ## v1.4.0 更新 — 联机多人同步与人类敌对 NPC 射击修复
 

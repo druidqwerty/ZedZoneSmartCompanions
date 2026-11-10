@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 1.4.0 VERIFIED / Locally Installed / Releasing to GitHub, Steam & Boosty
+## Status: 1.4.1 VERIFIED / Locally Installed / Released on GitHub & Queued on Boosty
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -31,6 +31,9 @@
 - [x] `MultiplayerSyncSystem.cs`
 - [x] `MultiplayerSyncSystem_Npcs.cs`
 - [x] `MultiplayerSyncSystem_Protocol.cs`
+- [x] `BaseSortingSystem_PhysicalCarry.cs`
+- [x] `BaseSortingSystem_Worker.cs`
+- [x] `BaseSortingSystem_CarryOps.cs`
 
 ## Cover 2026 — completed (2026-11-09)
 
@@ -111,4 +114,16 @@
   - Live in-engine verification (`docs/combat-acceptance-1.4.0.log`): Phase 0 (8m Zombie shot in 1.65s), Phase 1 (12m Zombie shot in 0.29s), Phase 2 (StopFire 0 shots), MP Sync & Warning checks PASS, Phase 3 (8m Hostile Human NPC `Survivor(Clone)` acquired in 0.01s, rifle shot in 1.01s), 0 errors/exceptions.
   - Release ZIP: `dist/ZedZoneSmartCompanions-1.4.0.zip` (`1,639,881` bytes, SHA-256 `8be98fb41fe31628ec72cc21f973dafb9520531ad54ebb0fe3c88fc1e1be8b9f`).
   - `BOOSTY_1.4.0.md` queued via `queue.py add`.
+
+## 1.4.1 World Container Discovery, Per-Box Isolation & Physical Item Carrying — completed (2026-11-10)
+- **Root-Cause Analysis & Fixes:**
+  1. **World Container Discovery Without Opening Chests (`CollectWorldTerrainObjects`):** Previously `ScanNearbyContainers()` only scanned `GameController.instance.terrainObjectsParent`, which had `0` chunk/building chests, and read stale `LootInventoryPanel.CurrentOpenInventoryData` (`0.0m`) even when `LootInventoryPanel` was closed. Fixed by scanning `MapController.instance.currentChunkList` (`chunkData.terrainObjectListTemp` + `chunkData.terrainObjectParent`), `BasicBuilding.ActiveObjects` (`building.terrainObjectParent` + `floor.insideTerrainObjectList` + `floor.terrainObjectParent`), and `BasicItem.ActiveObjects` (deployed ground containers), calling `EnsureLootGenerated()` / `EnsureLootGeneratedNet()` on unopened furniture/fridge chests, and auto-selecting the nearest chest when **F8** opens.
+  2. **Unique Per-Box Identification (Fixing Shared Drop-Off / Category Bug):** Replaced `"unknown_box"` fallback with a 1-to-1 `InventoryData <-> TerrainObject` registry (`KnownInvToTerrainObj`, `KnownInvToStableId`, `KnownStableIdToInv`) and unique IDs (`box_{rx100}_{ry100}_{z}_{attrId}_{standVz}_{guid}`) plus `[x,y]` coordinate labels in **F8**.
+  3. **Physical Companion Item Carrying via Invisible Carry Buffer (`CarryBuffer`):** Companions no longer teleport items between chests. In Phase 1 (`WalkToSource`), the companion walks to the source chest (`GOAPAction_FollowLeader.Execute` redirected + per-frame `TickActiveSortingMovementEveryFrame`) and pulls up to 10 item stacks into `st.CarryBuffer` (separate from their main backpack/weapons). In Phase 2 (`WalkToDestination`), the companion walks to each matching destination chest, deposits the carried items, and compacts the grid (`AutoSortMode.Dense`). `FlushCarryBufferSafely` returns all in-transit items if combat interrupts or the game exits.
+- **Verification & Packaging:**
+  - Build: 0 warnings, 0 errors (`--warnaserror`).
+  - Final DLL SHA-256: `cfb9a1ec0c1ec4fb5291b8def4a425b43d3e56aa35fa443da672ca9cac1f680c` (43 Harmony patches, `[SelfVerify] PASS v1.4.1`).
+  - Live in-engine verification (`docs/combat-acceptance-1.4.1.log`): `ScanNearbyContainers` discovered **133 unique containers** in player base without opening them (`0` duplicates, `0` `"unknown_box"`), `CarryBuffer` roundtrip PASS, Phases 0–3 (8m/12m Zombie, StopFire, 8m Hostile Human NPC) PASS, 0 errors/exceptions.
+  - Release ZIP: `dist/ZedZoneSmartCompanions-1.4.1.zip` (`1,653,245` bytes, SHA-256 `30d81c84fef30ca45fe715cac07995ed85a7335e9545b76965cf9db013f3b61a`).
+
 

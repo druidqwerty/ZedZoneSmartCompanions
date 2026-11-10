@@ -199,7 +199,55 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 throw new Exception("BOX sync packet did not apply container rule!");
             CompanionConfigStore.ContainerRules.Remove("test_mp_box");
 
-            LiveSmokePlugin.Logger.LogInfo("[CombatLive] PASS v1.4.0 MP Sync & WarningHumanEnemy checks (NormalizeHumanCharacterData attr=202 camp=23, MonsterAttr threat=25/28, BOX packet sync).");
+            // Verify v1.4.1 World Container Discovery & Unique Box ID Isolation
+            var gc = GameController.instance;
+            Vector2 savedPlayerPos = gc.playerCharacter.transform.position;
+            gc.playerCharacter.TeleportTo(_originalPlayerPosition, false);
+            var scanned = BaseSortingSystem.ScanNearbyContainers(force: true);
+            gc.playerCharacter.TeleportTo(savedPlayerPos, false);
+            if (scanned.Count < 2)
+                throw new Exception($"ScanNearbyContainers found only {scanned.Count} containers near base without opening them (expected >= 2)!");
+            var seenIds = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var c in scanned)
+            {
+                if (string.IsNullOrEmpty(c.ContainerId) || c.ContainerId == "unknown_box" || c.ContainerId == "unknown")
+                    throw new Exception("Invalid container ID: " + c.ContainerId);
+                if (!seenIds.Add(c.ContainerId))
+                    throw new Exception("Duplicate container ID between distinct boxes: " + c.ContainerId);
+            }
+            bool origDrop0 = scanned[0].Rule.IsDropoffSource;
+            bool origDrop1 = scanned[1].Rule.IsDropoffSource;
+            scanned[0].Rule.IsDropoffSource = !origDrop1;
+            if (scanned[1].Rule.IsDropoffSource != origDrop1)
+                throw new Exception("Toggling IsDropoffSource on box 0 mutated box 1!");
+            scanned[0].Rule.IsDropoffSource = origDrop0;
+
+            // Verify v1.4.1 Physical Carry Buffer (Phase 1 pickup into CarryBuffer -> Phase 2 deposit at destination)
+            var srcInv = new InventoryData { inventorySize = new Vector2Int(6, 6), worldposition = new Vector2(100f, 100f), inventoryId = "pos_1000_1000_0" };
+            var dstInv = new InventoryData { inventorySize = new Vector2Int(6, 6), worldposition = new Vector2(110f, 100f), inventoryId = "pos_1100_1000_0" };
+            var medAttr = ItemManager.instance.GetItemAttrById(220);
+            var testMed = ItemManager.instance.GetRandomDataByAttr(medAttr, false, false);
+            if (!InventoryTransfers.TryAddWholeCopy(srcInv, testMed, out var addedMed))
+                throw new Exception("Failed to add test medicine item to srcInv");
+            if (!InventoryTransfers.CanAcceptWholeItem(dstInv, addedMed))
+                throw new Exception("CanAcceptWholeItem returned false on empty dstInv");
+            if (!InventoryTransfers.TryTakeIntoCarryBuffer(srcInv, addedMed, out var carriedMed) || srcInv.itemList.Count != 0)
+                throw new Exception("TryTakeIntoCarryBuffer did not remove item from srcInv into CarryBuffer");
+            _state.CarryBuffer.Add(new CarryItemEntry
+            {
+                Item = carriedMed,
+                FallbackSourceInv = srcInv,
+                TargetContainerId = "pos_1100_1000_0",
+                TargetInv = dstInv,
+                TargetPos = new Vector2(110f, 100f),
+                TargetDisplayName = "TestMedBox",
+                Category = StorageCategory.Medicine
+            });
+            BaseSortingSystem.FlushCarryBufferSafely(_state);
+            if (_state.CarryBuffer.Count != 0 || srcInv.itemList.Count != 1)
+                throw new Exception("FlushCarryBufferSafely did not restore carried item back to srcInv!");
+
+            LiveSmokePlugin.Logger.LogInfo($"[CombatLive] PASS v1.4.1 MP Sync, WarningHumanEnemy, Container Scan (found={scanned.Count} unique boxes without opening), & Invisible CarryBuffer checks.");
         }
 
         private static void StartPhase(float now)

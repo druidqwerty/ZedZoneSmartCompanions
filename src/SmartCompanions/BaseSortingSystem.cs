@@ -16,56 +16,152 @@ namespace ZedZone.SmartCompanions
         public ContainerRuleProfile Rule;
     }
 
-    public static class BaseSortingSystem
+    public static partial class BaseSortingSystem
     {
         public static readonly List<DiscoveredContainer> CachedContainers = new List<DiscoveredContainer>();
+        private static readonly Dictionary<IntPtr, TerrainObject> KnownInvToTerrainObj = new Dictionary<IntPtr, TerrainObject>();
+        private static readonly Dictionary<IntPtr, Vector3> KnownInvToWorldPos = new Dictionary<IntPtr, Vector3>();
+        private static readonly Dictionary<IntPtr, string> KnownInvToStableId = new Dictionary<IntPtr, string>();
+        private static readonly Dictionary<string, IntPtr> KnownStableIdToInv = new Dictionary<string, IntPtr>(StringComparer.OrdinalIgnoreCase);
         private static float _lastContainerScanTime = -999f;
         public static string LastSortStatusBanner = "";
         public static float LastSortStatusBannerUntil = -1f;
+
+        private static string EnsureUniqueIdForInventory(string candidateId, InventoryData inv)
+        {
+            if (string.IsNullOrEmpty(candidateId))
+                candidateId = Il2CppSafe.IsAlive(inv) ? $"inv_{inv.Pointer.ToInt64():X}" : "inv_unassigned";
+            if (!Il2CppSafe.IsAlive(inv))
+                return candidateId;
+
+            if (KnownStableIdToInv.TryGetValue(candidateId, out var existingPtr) && existingPtr != inv.Pointer)
+            {
+                candidateId = $"{candidateId}_{inv.Pointer.ToInt64():X}";
+            }
+            KnownStableIdToInv[candidateId] = inv.Pointer;
+            KnownInvToStableId[inv.Pointer] = candidateId;
+            inv.inventoryId = candidateId;
+            return candidateId;
+        }
+
+        public static void RegisterInventoryTerrainObject(InventoryData inv, TerrainObject tobj)
+        {
+            if (!Il2CppSafe.IsAlive(inv) || !Il2CppSafe.IsAliveUnity(tobj)) return;
+            try
+            {
+                KnownInvToTerrainObj[inv.Pointer] = tobj;
+                Vector3 pos = tobj.transform.position;
+                KnownInvToWorldPos[inv.Pointer] = pos;
+                inv.worldposition = pos;
+                GetContainerStableId(inv, tobj);
+            }
+            catch { }
+        }
 
         public static string GetContainerStableId(InventoryData inv, TerrainObject tobj = null)
         {
             try
             {
-                if (!Il2CppSafe.IsAliveUnity(tobj))
+                CompanionConfigStore.ContainerRules.Remove("unknown_box");
+                CompanionConfigStore.ContainerRules.Remove("unknown");
+
+                if (Il2CppSafe.IsAlive(inv) && KnownInvToStableId.TryGetValue(inv.Pointer, out var memoId) && !string.IsNullOrEmpty(memoId))
                 {
-                    if (ZedZone.Net.NetContainerSync.ClientHasActiveContainer &&
+                    if (!Il2CppSafe.IsAliveUnity(tobj) && KnownInvToTerrainObj.TryGetValue(inv.Pointer, out var memoTobj) && Il2CppSafe.IsAliveUnity(memoTobj))
+                        tobj = memoTobj;
+                    return memoId;
+                }
+
+                if (!Il2CppSafe.IsAliveUnity(tobj) && Il2CppSafe.IsAlive(inv))
+                {
+                    if (KnownInvToTerrainObj.TryGetValue(inv.Pointer, out var cachedTobj) && Il2CppSafe.IsAliveUnity(cachedTobj))
+                    {
+                        tobj = cachedTobj;
+                    }
+                    else if (ZedZone.Net.NetContainerSync.ClientHasActiveContainer &&
                         Il2CppSafe.IsAlive(ZedZone.Net.NetContainerSync.ClientActiveReplica) &&
-                        Il2CppSafe.IsAlive(inv) &&
                         ZedZone.Net.NetContainerSync.ClientActiveReplica.Pointer == inv.Pointer &&
                         Il2CppSafe.IsAliveUnity(ZedZone.Net.NetContainerSync.ClientActiveLocalObject))
                     {
                         tobj = ZedZone.Net.NetContainerSync.ClientActiveLocalObject;
                     }
-                    else if (Il2CppSafe.IsAlive(inv))
+                    else if (Il2CppSafe.IsAliveUnity(ZedZone.Net.NetContainerSync.instance) &&
+                        Il2CppSafe.IsAliveUnity(ZedZone.Net.NetContainerSync.instance.m_activeLocalObject))
                     {
-                        tobj = FindTerrainObjectByInventory(inv);
+                        var activeObj = ZedZone.Net.NetContainerSync.instance.m_activeLocalObject;
+                        var activeInv = ResolveOrInitTerrainObjectInventory(activeObj, allowEnsureLoot: false);
+                        if (Il2CppSafe.IsAlive(activeInv) && activeInv.Pointer == inv.Pointer)
+                            tobj = activeObj;
                     }
+
+                    if (!Il2CppSafe.IsAliveUnity(tobj))
+                        tobj = FindTerrainObjectByInventory(inv);
                 }
 
                 if (Il2CppSafe.IsAliveUnity(tobj))
                 {
                     int z = Il2CppSafe.IsAlive(tobj.objectData) ? tobj.objectData.zLayer : 0;
-                    string posKey = MultiplayerSyncSystem.BuildPositionBoxKey(tobj.transform.position, z);
-
-                    // Migrate any legacy rule saved under inventoryId or terrainObejctGUID to the canonical posKey
-                    string legacyInvId = Il2CppSafe.IsAlive(inv) ? inv.inventoryId : null;
+                    int attrId = Il2CppSafe.IsAlive(tobj.objectData) ? tobj.objectData.objectAttrId : 0;
+                    int vz = Il2CppSafe.IsAlive(tobj.objectData) ? tobj.objectData.standVz : 0;
+                    Vector2 pos = tobj.transform.position;
+                    int rx100 = Mathf.RoundToInt(pos.x * 100f);
+                    int ry100 = Mathf.RoundToInt(pos.y * 100f);
                     string legacyGuid = Il2CppSafe.IsAlive(tobj.objectData) ? tobj.objectData.terrainObejctGUID : null;
-                    MigrateLegacyBoxRule(legacyInvId, posKey);
-                    MigrateLegacyBoxRule(legacyGuid, posKey);
-                    return posKey;
+                    string basePosKey = MultiplayerSyncSystem.BuildPositionBoxKey(pos, z);
+                    string candidate = !string.IsNullOrEmpty(legacyGuid)
+                        ? $"box_{rx100}_{ry100}_{z}_{attrId}_{vz}_{legacyGuid}"
+                        : $"box_{rx100}_{ry100}_{z}_{attrId}_{vz}";
+
+                    string uniqueKey = EnsureUniqueIdForInventory(candidate, inv);
+
+                    if (Il2CppSafe.IsAlive(inv))
+                    {
+                        KnownInvToTerrainObj[inv.Pointer] = tobj;
+                        KnownInvToWorldPos[inv.Pointer] = new Vector3(pos.x, pos.y, z);
+                        inv.worldposition = pos;
+                    }
+
+                    MigrateLegacyBoxRule(legacyGuid, uniqueKey);
+                    MigrateLegacyBoxRule(basePosKey, uniqueKey);
+                    return uniqueKey;
+                }
+
+                if (Il2CppSafe.IsAlive(inv))
+                {
+                    if (KnownInvToWorldPos.TryGetValue(inv.Pointer, out var kPos) && ((Vector2)kPos).sqrMagnitude > 0.001f)
+                    {
+                        int rx100 = Mathf.RoundToInt(kPos.x * 100f);
+                        int ry100 = Mathf.RoundToInt(kPos.y * 100f);
+                        string posKey = $"itembox_{rx100}_{ry100}_{Mathf.RoundToInt(kPos.z)}";
+                        return EnsureUniqueIdForInventory(posKey, inv);
+                    }
+                    if (!string.IsNullOrEmpty(inv.inventoryId) &&
+                        !string.Equals(inv.inventoryId, "unknown_box", StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(inv.inventoryId, "unknown", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return EnsureUniqueIdForInventory(inv.inventoryId, inv);
+                    }
+                    if (inv.worldposition.sqrMagnitude > 0.001f)
+                    {
+                        int rx100 = Mathf.RoundToInt(inv.worldposition.x * 100f);
+                        int ry100 = Mathf.RoundToInt(inv.worldposition.y * 100f);
+                        string posKey = $"pos_{rx100}_{ry100}_0";
+                        return EnsureUniqueIdForInventory(posKey, inv);
+                    }
+                    string ptrKey = $"inv_{inv.Pointer.ToInt64():X}";
+                    return EnsureUniqueIdForInventory(ptrKey, inv);
                 }
             }
             catch { }
 
-            if (Il2CppSafe.IsAlive(inv) && !string.IsNullOrEmpty(inv.inventoryId))
-                return inv.inventoryId;
-            return "unknown_box";
+            return "inv_unassigned";
         }
 
         private static void MigrateLegacyBoxRule(string oldKey, string newKey)
         {
             if (string.IsNullOrEmpty(oldKey) || string.IsNullOrEmpty(newKey) ||
+                string.Equals(oldKey, "unknown_box", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(oldKey, "unknown", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(oldKey, newKey, StringComparison.OrdinalIgnoreCase))
                 return;
             if (CompanionConfigStore.ContainerRules.TryGetValue(oldKey, out var oldRule) &&
@@ -83,23 +179,163 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        public static TerrainObject FindTerrainObjectByInventory(InventoryData inv)
+        public static InventoryData ResolveOrInitTerrainObjectInventory(TerrainObject tobj, bool allowEnsureLoot)
         {
-            if (!Il2CppSafe.IsAlive(inv)) return null;
+            if (!Il2CppSafe.IsAliveUnity(tobj) || !Il2CppSafe.IsAlive(tobj.objectData)) return null;
+            if (tobj.TryCast<TerrainObject_Corpse>() != null || tobj.TryCast<TerrainObject_CorpsePile>() != null)
+                return null;
+
             try
             {
-                var parent = GameController.instance?.terrainObjectsParent;
-                if (!Il2CppSafe.IsAliveUnity(parent)) return null;
+                var furn = tobj.TryCast<TerrainObject_Furniture_Inventory>();
+                if (Il2CppSafe.IsAliveUnity(furn))
+                {
+                    var inv = tobj.objectData.inventoryData;
+                    if (allowEnsureLoot && (!Il2CppSafe.IsAlive(inv) || inv.inventorySizeX <= 0 || inv.inventorySizeY <= 0))
+                    {
+                        try { furn.EnsureLootGenerated(); } catch { }
+                        inv = tobj.objectData.inventoryData;
+                    }
+                    return Il2CppSafe.IsAlive(inv) && inv.inventorySizeX > 0 && inv.inventorySizeY > 0 ? inv : null;
+                }
+
+                var fridge = tobj.TryCast<TerrainObject_Production_Fridge>();
+                if (Il2CppSafe.IsAliveUnity(fridge))
+                {
+                    var inv = tobj.objectData.inventoryData;
+                    if (allowEnsureLoot && (!Il2CppSafe.IsAlive(inv) || inv.inventorySizeX <= 0 || inv.inventorySizeY <= 0))
+                    {
+                        try { fridge.EnsureLootGeneratedNet(); } catch { }
+                        inv = tobj.objectData.inventoryData;
+                    }
+                    return Il2CppSafe.IsAlive(inv) && inv.inventorySizeX > 0 && inv.inventorySizeY > 0 ? inv : null;
+                }
+
+                var prodInv = tobj.TryCast<TerrainObject_Production_Inventory>();
+                if (Il2CppSafe.IsAliveUnity(prodInv) && Il2CppSafe.IsAlive(tobj.objectData.productionData))
+                {
+                    var inv = tobj.objectData.productionData.inventoryData1;
+                    if (Il2CppSafe.IsAlive(inv) && inv.inventorySizeX > 0 && inv.inventorySizeY > 0)
+                        return inv;
+                }
+
+                var directInv = tobj.objectData.inventoryData;
+                if (Il2CppSafe.IsAlive(directInv) && directInv.inventorySizeX > 0 && directInv.inventorySizeY > 0)
+                    return directInv;
+            }
+            catch { }
+            return null;
+        }
+
+        public static List<TerrainObject> CollectWorldTerrainObjects(Vector2 center, float maxRadius)
+        {
+            var result = new List<TerrainObject>();
+            var seen = new HashSet<IntPtr>();
+            float maxSqr = maxRadius * maxRadius;
+
+            void TryAdd(TerrainObject tobj)
+            {
+                if (!Il2CppSafe.IsAliveUnity(tobj) || !tobj.gameObject.activeInHierarchy || !Il2CppSafe.IsAlive(tobj.objectData))
+                    return;
+                if (((Vector2)tobj.transform.position - center).sqrMagnitude > maxSqr)
+                    return;
+                if (seen.Add(tobj.Pointer))
+                    result.Add(tobj);
+            }
+
+            void ScanTransformChildren(Transform parent)
+            {
+                if (!Il2CppSafe.IsAliveUnity(parent)) return;
                 int count = parent.childCount;
                 for (int i = 0; i < count; i++)
                 {
                     var tr = parent.GetChild(i);
                     if (!Il2CppSafe.IsAliveUnity(tr) || !tr.gameObject.activeInHierarchy) continue;
+                    if (((Vector2)tr.position - center).sqrMagnitude > maxSqr) continue;
                     var tobj = tr.GetComponent<TerrainObject>();
-                    if (!Il2CppSafe.IsAliveUnity(tobj) || !Il2CppSafe.IsAlive(tobj.objectData)) continue;
-                    var objInv = tobj.objectData.inventoryData;
+                    if (Il2CppSafe.IsAliveUnity(tobj))
+                        TryAdd(tobj);
+                }
+            }
+
+            try
+            {
+                // 1. Active chunks in MapController.instance.currentChunkList
+                var map = MapController.instance;
+                if (Il2CppSafe.IsAliveUnity(map) && map.currentChunkList != null)
+                {
+                    for (int i = 0; i < map.currentChunkList.Count; i++)
+                    {
+                        var chunk = map.currentChunkList[i];
+                        var cd = chunk != null ? chunk.chunkData : null;
+                        if (!Il2CppSafe.IsAlive(cd)) continue;
+
+                        if (cd.terrainObjectListTemp != null)
+                        {
+                            for (int j = 0; j < cd.terrainObjectListTemp.Count; j++)
+                                TryAdd(cd.terrainObjectListTemp[j]);
+                        }
+                        ScanTransformChildren(cd.terrainObjectParent);
+                    }
+                }
+
+                // 2. Active buildings & building floors in BasicBuilding.ActiveObjects
+                var buildings = BasicBuilding.ActiveObjects;
+                if (buildings != null)
+                {
+                    for (int i = 0; i < buildings.Count; i++)
+                    {
+                        var b = buildings[i];
+                        if (!Il2CppSafe.IsAliveUnity(b) || !b.gameObject.activeInHierarchy) continue;
+                        ScanTransformChildren(b.terrainObjectParent);
+                        ScanTransformChildren(b.terrainObjectParent_EnterBuildingDisable);
+
+                        if (b.buildingFloors != null)
+                        {
+                            for (int f = 0; f < b.buildingFloors.Count; f++)
+                            {
+                                var floor = b.buildingFloors[f];
+                                if (!Il2CppSafe.IsAliveUnity(floor) || !floor.gameObject.activeInHierarchy) continue;
+                                if (floor.insideTerrainObjectList != null)
+                                {
+                                    for (int k = 0; k < floor.insideTerrainObjectList.Count; k++)
+                                        TryAdd(floor.insideTerrainObjectList[k]);
+                                }
+                                ScanTransformChildren(floor.terrainObjectParent);
+                            }
+                        }
+                    }
+                }
+
+                // 3. GameController.instance.terrainObjectsParent fallback
+                ScanTransformChildren(GameController.instance?.terrainObjectsParent);
+            }
+            catch { }
+
+            return result;
+        }
+
+        public static TerrainObject FindTerrainObjectByInventory(InventoryData inv)
+        {
+            if (!Il2CppSafe.IsAlive(inv)) return null;
+            if (KnownInvToTerrainObj.TryGetValue(inv.Pointer, out var known) && Il2CppSafe.IsAliveUnity(known))
+                return known;
+
+            try
+            {
+                Vector2 center = Il2CppSafe.IsAliveUnity(GameController.instance?.playerCharacter)
+                    ? (Vector2)GameController.instance.playerCharacter.transform.position
+                    : inv.worldposition;
+                var candidates = CollectWorldTerrainObjects(center, Mathf.Max(80f, CompanionConfigStore.BaseScanRadius));
+                for (int i = 0; i < candidates.Count; i++)
+                {
+                    var tobj = candidates[i];
+                    var objInv = ResolveOrInitTerrainObjectInventory(tobj, allowEnsureLoot: false);
                     if (Il2CppSafe.IsAlive(objInv) && objInv.Pointer == inv.Pointer)
+                    {
+                        RegisterInventoryTerrainObject(inv, tobj);
                         return tobj;
+                    }
                 }
             }
             catch { }
@@ -110,20 +346,16 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
-                var parent = GameController.instance?.terrainObjectsParent;
-                if (!Il2CppSafe.IsAliveUnity(parent)) return null;
                 float bestSqr = maxDist * maxDist;
                 TerrainObject best = null;
-                int count = parent.childCount;
-                for (int i = 0; i < count; i++)
+                var candidates = CollectWorldTerrainObjects(pos, maxDist + 2f);
+                for (int i = 0; i < candidates.Count; i++)
                 {
-                    var tr = parent.GetChild(i);
-                    if (!Il2CppSafe.IsAliveUnity(tr) || !tr.gameObject.activeInHierarchy) continue;
-                    float sqr = ((Vector2)tr.position - pos).sqrMagnitude;
+                    var tobj = candidates[i];
+                    float sqr = ((Vector2)tobj.transform.position - pos).sqrMagnitude;
                     if (sqr > bestSqr) continue;
-                    var tobj = tr.GetComponent<TerrainObject>();
-                    if (!Il2CppSafe.IsAliveUnity(tobj) || !Il2CppSafe.IsAlive(tobj.objectData)) continue;
-                    if (tobj.objectData.inventoryData == null) continue;
+                    var inv = ResolveOrInitTerrainObjectInventory(tobj, allowEnsureLoot: true);
+                    if (!Il2CppSafe.IsAlive(inv)) continue;
                     bestSqr = sqr;
                     best = tobj;
                 }
@@ -145,572 +377,6 @@ namespace ZedZone.SmartCompanions
             if (rule.LastKnownPos.sqrMagnitude > 0.01f)
                 return FindTerrainObjectNearPosition(rule.LastKnownPos, 1.5f);
             return null;
-        }
-
-        public static List<DiscoveredContainer> ScanNearbyContainers(bool force = false)
-        {
-            float now = Time.unscaledTime;
-            if (!force && now - _lastContainerScanTime < 2.0f && CachedContainers.Count > 0)
-                return CachedContainers;
-
-            _lastContainerScanTime = now;
-            CachedContainers.Clear();
-
-            try
-            {
-                var gc = GameController.instance;
-                if (gc == null || gc.playerCharacter == null) return CachedContainers;
-
-                Vector2 playerPos = gc.playerCharacter.transform.position;
-                float maxRadius = CompanionConfigStore.BaseScanRadius;
-                float maxSqr = maxRadius * maxRadius;
-                var seenInvs = new HashSet<IntPtr>();
-
-                // 1. Scan active TerrainObjects under terrainObjectsParent
-                var parent = gc.terrainObjectsParent;
-                if (parent != null)
-                {
-                    int childCount = parent.childCount;
-                    for (int i = 0; i < childCount; i++)
-                    {
-                        var tr = parent.GetChild(i);
-                        if (tr == null || !tr.gameObject.activeInHierarchy) continue;
-
-                        Vector2 pos = tr.position;
-                        float sqr = (pos - playerPos).sqrMagnitude;
-                        if (sqr > maxSqr) continue;
-
-                        var tobj = tr.GetComponent<TerrainObject>();
-                        if (tobj == null || tobj.objectData == null) continue;
-
-                        // Skip corpses and loot piles unless player-built or furniture/production container
-                        if (tobj.TryCast<TerrainObject_Corpse>() != null) continue;
-
-                        var inv = tobj.objectData.inventoryData;
-                        if (inv == null || inv.isLocked) continue;
-                        if (inv.inventorySizeX <= 0 || inv.inventorySizeY <= 0) continue;
-                        if (!seenInvs.Add(inv.Pointer)) continue;
-
-                        AddDiscoveredContainer(inv, tobj, pos, Mathf.Sqrt(sqr));
-                    }
-                }
-
-                // 2. Also include currently open LootInventoryPanel container if not already in list
-                var openPanel = LootInventoryPanel.instance;
-                var openInv = LootInventoryPanel.CurrentOpenInventoryData;
-                if (openInv != null && !openInv.isPlayerInventory && seenInvs.Add(openInv.Pointer))
-                {
-                    string openName = (openPanel != null && !string.IsNullOrEmpty(openPanel.lootObjectName))
-                        ? openPanel.lootObjectName
-                        : (!string.IsNullOrEmpty(openInv.inventoryTitleName) ? openInv.inventoryTitleName : CompanionConfigStore.L("Открытый ящик", "Open Container", "当前打开的箱子"));
-                    AddDiscoveredContainer(openInv, null, playerPos, 0f, openName);
-                }
-
-                CachedContainers.Sort((a, b) => a.DistanceToPlayer.CompareTo(b.DistanceToPlayer));
-            }
-            catch (Exception e)
-            {
-                SmartCompanionsPlugin.LogWarning("ScanNearbyContainers failed: " + e.Message);
-            }
-
-            return CachedContainers;
-        }
-
-        private static void AddDiscoveredContainer(InventoryData inv, TerrainObject tobj, Vector2 pos, float dist, string overrideName = null)
-        {
-            string id = GetContainerStableId(inv, tobj);
-            string baseName = overrideName;
-            if (string.IsNullOrEmpty(baseName))
-            {
-                if (!string.IsNullOrEmpty(inv.inventoryTitleName))
-                    baseName = inv.inventoryTitleName;
-                else if (tobj != null && tobj.attr != null && !string.IsNullOrEmpty(tobj.attr.name))
-                    baseName = tobj.attr.name;
-                else
-                    baseName = CompanionConfigStore.L("Контейнер", "Container", "储物箱");
-            }
-
-            var rule = CompanionConfigStore.GetOrCreateRule(id, baseName);
-            rule.LastKnownPos = pos;
-            if (Il2CppSafe.IsAliveUnity(tobj))
-            {
-                if (rule.Categories == StorageCategory.None && !rule.IsDropoffSource)
-                    MultiplayerSyncSystem.TryReadRuleFromTerrainObject(tobj, ref rule);
-                else
-                    MultiplayerSyncSystem.WriteRuleToTerrainObject(tobj, rule);
-            }
-
-            int itemCount = inv.itemList != null ? inv.itemList.Count : 0;
-            CachedContainers.Add(new DiscoveredContainer
-            {
-                ContainerId = id,
-                DisplayName = !string.IsNullOrEmpty(rule.CustomName) ? rule.CustomName : baseName,
-                Inventory = inv,
-                TerrainObj = tobj,
-                WorldPos = pos,
-                DistanceToPlayer = dist,
-                ItemCount = itemCount,
-                Rule = rule
-            });
-        }
-
-        public static int AutoDetectCategoriesFromContents()
-        {
-            var containers = ScanNearbyContainers(force: true);
-            int updated = 0;
-
-            foreach (var c in containers)
-            {
-                if (c.Inventory == null || c.Inventory.itemList == null || c.Inventory.itemList.Count == 0)
-                    continue;
-                if (c.Rule.IsDropoffSource)
-                    continue;
-
-                StorageCategory mask = StorageCategory.None;
-                for (int i = 0; i < c.Inventory.itemList.Count; i++)
-                {
-                    var item = c.Inventory.itemList[i];
-                    if (item == null) continue;
-                    mask |= ItemCategorizer.ClassifyItem(item);
-                }
-
-                if (mask != StorageCategory.None)
-                {
-                    c.Rule.Categories = mask;
-                    MultiplayerSyncSystem.SyncBoxRuleChange(c.Rule, c.TerrainObj);
-                    updated++;
-                }
-            }
-
-            CompanionConfigStore.Save();
-            SetBanner(CompanionConfigStore.L(
-                $"Авто-разметка завершена: категории назначены для {updated} ящиков по их содержимому!",
-                $"Auto-detected categories for {updated} containers based on contents!",
-                $"自动识别完成：已根据箱内物品为 {updated} 个储物箱分配分类！"));
-            return updated;
-        }
-
-        public static void CommandSortBase(GOAPAgent specificAgent = null, InventoryData extraSourceContainer = null, bool instant = false)
-        {
-            if (MultiplayerSyncSystem.IsMultiplayerClient)
-            {
-                MultiplayerSyncSystem.SendPacketToHost("SORT|1");
-            }
-            var containers = ScanNearbyContainers(force: true);
-            bool ru = CompanionConfigStore.UseRussian;
-
-            // Count how many categorized destination chests exist
-            var destBoxes = new List<DiscoveredContainer>();
-            foreach (var c in containers)
-            {
-                if (c.Rule != null && c.Rule.Categories != StorageCategory.None && !c.Rule.IsDropoffSource)
-                    destBoxes.Add(c);
-            }
-
-            if (destBoxes.Count == 0)
-            {
-                // Auto-detect if player hasn't set any categories yet!
-                AutoDetectCategoriesFromContents();
-                foreach (var c in containers)
-                {
-                    if (c.Rule != null && c.Rule.Categories != StorageCategory.None && !c.Rule.IsDropoffSource)
-                        destBoxes.Add(c);
-                }
-            }
-
-            if (destBoxes.Count == 0)
-            {
-                SetBanner(CompanionConfigStore.L(
-                    "Нет размеченных ящиков! Откройте ящик и отметьте категории (Оружие, Еда, Медицина и т.д.).",
-                    "No categorized containers found! Open a chest and select its categories first.",
-                    "未找到已分类的储物箱！请先打开任意箱子并勾选分类（武器、食物、医疗等）。"));
-                return;
-            }
-
-            var workers = new List<GOAPAgent>();
-            if (specificAgent != null)
-            {
-                workers.Add(specificAgent);
-            }
-            else
-            {
-                workers.AddRange(SmartChatterSystem.GetActiveTeammateAgents());
-            }
-
-            if (instant || workers.Count == 0)
-            {
-                int moved = ExecuteSortPass(workers, containers, destBoxes, extraSourceContainer, out var dominantCategory);
-                var speaker = workers.Count > 0 ? workers[0] : null;
-                if (speaker != null)
-                {
-                    if (moved > 0)
-                    {
-                        var stSpk = CompanionConfigStore.GetOrCreateCompanion(speaker.npcData?.npcGUID ?? "npc");
-                        stSpk.SortedItemsThisSession += moved;
-                        stSpk.AddExperience(Mathf.Clamp(moved * 2, 2, 40), speaker);
-                        SpeakCategoryDeposit(speaker, dominantCategory);
-                        SmartChatterSystem.Speak(speaker, ChatterTopic.SortFinished, minCooldown: 0.5f, bubbleDuration: 6f, force: true);
-                    }
-                    else
-                    {
-                        SmartChatterSystem.Speak(speaker, ChatterTopic.SortFinished, minCooldown: 1f, bubbleDuration: 5f, force: true);
-                    }
-                }
-                SetBanner(CompanionConfigStore.L(
-                    $"Сортировка базы выполнена: перемещено и уложено предметов — {moved} шт.",
-                    $"Base sorting complete: {moved} item stacks sorted into category chests.",
-                    $"基地整理完成：已将 {moved} 组物品按类别归入储物箱。"));
-                return;
-            }
-
-            // Start physical + smart sorting job for active companions!
-            foreach (var ag in workers)
-            {
-                if (ag == null || ag.npcData == null) continue;
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
-                st.IsSortingActive = true;
-                st.SortingPhase = 1;
-                st.SortingStateStartTime = Time.unscaledTime;
-                st.CurrentTaskText = CompanionConfigStore.L("Сортировка ящиков базы...", "Sorting base containers...", "正在整理基地储物箱...");
-
-                // Pick closest destination container to walk toward for visual immersion
-                var targetBox = destBoxes[UnityEngine.Random.Range(0, destBoxes.Count)];
-                st.TargetContainerGuid = targetBox.ContainerId;
-                st.TargetContainerPos = targetBox.WorldPos;
-
-                SmartChatterSystem.Speak(ag, ChatterTopic.SortStart, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
-            }
-
-            // Also perform first immediate pass if extraSourceContainer was explicitly requested
-            if (extraSourceContainer != null)
-            {
-                int immediateMoved = ExecuteSortPass(workers, containers, destBoxes, extraSourceContainer, out _);
-                if (immediateMoved > 0 && workers.Count > 0)
-                {
-                    var st0 = CompanionConfigStore.GetOrCreateCompanion(workers[0].npcData.npcGUID);
-                    st0.SortedItemsThisSession += immediateMoved;
-                }
-            }
-        }
-
-        public static void TickActiveSortingJobs()
-        {
-            var teammates = SmartChatterSystem.GetActiveTeammateAgents();
-            if (teammates.Count == 0) return;
-
-            float now = Time.unscaledTime;
-            bool ru = CompanionConfigStore.UseRussian;
-
-            foreach (var ag in teammates)
-            {
-                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
-                    !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag)
-                    continue;
-
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
-
-                // Automatic Base Drop-off when returning to a base drop-off box out of combat!
-                if (!st.IsSortingActive && CompanionConfigStore.EnableBaseAutoDropoff && st.AllowAutoDropoffAtBase &&
-                    !Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && now - st.LastAutoDropoffTime > 25f)
-                {
-                    TryAutoDropoffAtBase(ag, st, now);
-                }
-
-                if (!st.IsSortingActive) continue;
-
-                // Abort sorting if companion enters combat
-                if (ag.mostThreateningCharacter != null && !ag.mostThreateningCharacter.deadFlag)
-                {
-                    st.IsSortingActive = false;
-                    st.SortingPhase = 0;
-                    continue;
-                }
-
-                float elapsed = now - st.SortingStateStartTime;
-                Vector2 selfPos = ag.humanCharacter.transform.position;
-                float distToBox = Vector2.Distance(selfPos, st.TargetContainerPos);
-
-                if (st.SortingPhase == 1)
-                {
-                    // Walk toward target chest (or finish after 3.2s if path is blocked by furniture)
-                    if (distToBox > 1.8f && elapsed < 3.2f)
-                    {
-                        try
-                        {
-                            ag.MoveTo_Direct(st.TargetContainerPos, true, true, false);
-                            ag.LookAtPositionSmoothCompat(st.TargetContainerPos, 10f);
-                        }
-                        catch { }
-                        continue;
-                    }
-
-                    // Reached container — execute sorting pass!
-                    var containers = ScanNearbyContainers(force: true);
-                    var destBoxes = new List<DiscoveredContainer>();
-                    foreach (var c in containers)
-                    {
-                        if (c.Rule != null && c.Rule.Categories != StorageCategory.None && !c.Rule.IsDropoffSource)
-                            destBoxes.Add(c);
-                    }
-
-                    int moved = ExecuteSortPass(new List<GOAPAgent> { ag }, containers, destBoxes, null, out var domCat);
-                    st.SortedItemsThisSession += moved;
-                    if (moved > 0) st.AddExperience(Mathf.Clamp(moved * 2, 2, 40), ag);
-
-                    if (moved > 0)
-                    {
-                        SpeakCategoryDeposit(ag, domCat);
-                        // Move to one more chest to finish up
-                        st.SortingPhase = 2;
-                        st.SortingStateStartTime = now;
-                        if (destBoxes.Count > 0)
-                        {
-                            var nextBox = destBoxes[UnityEngine.Random.Range(0, destBoxes.Count)];
-                            st.TargetContainerPos = nextBox.WorldPos;
-                        }
-                    }
-                    else
-                    {
-                        st.IsSortingActive = false;
-                        st.SortingPhase = 0;
-                        st.CurrentTaskText = CompanionConfigStore.L("Склад отсортирован", "Base storage sorted", "仓库已整理完毕");
-                        SmartChatterSystem.Speak(ag, ChatterTopic.SortFinished, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
-                        SetBanner(CompanionConfigStore.L(
-                            $"{st.LastKnownName}: сортировка базы завершена (всего уложено за сессию: {st.SortedItemsThisSession} шт.)",
-                            $"{st.LastKnownName}: base sorting finished (session total: {st.SortedItemsThisSession})",
-                            $"{st.LastKnownName}：基地仓库整理完毕（本局累计整理：{st.SortedItemsThisSession} 件）"));
-                    }
-                }
-                else if (st.SortingPhase == 2)
-                {
-                    if (distToBox > 1.8f && elapsed < 2.2f)
-                    {
-                        try
-                        {
-                            ag.MoveTo_Direct(st.TargetContainerPos, true, true, false);
-                            ag.LookAtPositionSmoothCompat(st.TargetContainerPos, 10f);
-                        }
-                        catch { }
-                        continue;
-                    }
-
-                    st.IsSortingActive = false;
-                    st.SortingPhase = 0;
-                    st.CurrentTaskText = CompanionConfigStore.L("Склад отсортирован", "Base storage sorted", "仓库已整理完毕");
-                    SmartChatterSystem.Speak(ag, ChatterTopic.SortFinished, minCooldown: 0.5f, bubbleDuration: 6.0f, force: true);
-                    SetBanner(CompanionConfigStore.L(
-                        $"{st.LastKnownName}: сортировка базы завершена (всего уложено за сессию: {st.SortedItemsThisSession} шт.)",
-                        $"{st.LastKnownName}: base sorting finished (session total: {st.SortedItemsThisSession})",
-                        $"{st.LastKnownName}：基地仓库整理完毕（本局累计整理：{st.SortedItemsThisSession} 件）"));
-                }
-            }
-        }
-
-        private static int ExecuteSortPass(
-            List<GOAPAgent> workers,
-            List<DiscoveredContainer> allContainers,
-            List<DiscoveredContainer> destContainers,
-            InventoryData extraSource,
-            out StorageCategory dominantCategory)
-        {
-            dominantCategory = StorageCategory.None;
-            int totalMoved = 0;
-            var touchedDestInventories = new HashSet<InventoryData>();
-            var categoryCounts = new Dictionary<StorageCategory, int>();
-
-            try
-            {
-                // Sort destination containers by Priority (highest first), then closest
-                destContainers.Sort((a, b) =>
-                {
-                    int cmp = b.Rule.Priority.CompareTo(a.Rule.Priority);
-                    return cmp != 0 ? cmp : a.DistanceToPlayer.CompareTo(b.DistanceToPlayer);
-                });
-
-                // 1. Collect source inventories:
-                //    a) Explicit extraSource (e.g. currently open container when player clicked "Sort this chest")
-                //    b) Any container marked as IsDropoffSource (Ящик-приёмник хабара)
-                //    c) Companion sharedInventoryData + excess backpack items not needed for combat
-                //    d) Misplaced items sitting inside categorized chests that don't match that chest's category!
-                var sourceInventories = new List<(InventoryData inv, StorageCategory allowedStayMask, GOAPAgent ownerAgent)>();
-
-                if (extraSource != null)
-                {
-                    sourceInventories.Add((extraSource, StorageCategory.None, null));
-                }
-
-                foreach (var c in allContainers)
-                {
-                    if (c.Inventory == null) continue;
-                    if (extraSource != null && c.Inventory.Pointer == extraSource.Pointer) continue;
-
-                    if (c.Rule != null && c.Rule.IsDropoffSource)
-                    {
-                        sourceInventories.Add((c.Inventory, StorageCategory.None, null));
-                    }
-                    else if (c.Rule != null && c.Rule.Categories != StorageCategory.None && c.Rule.Categories != StorageCategory.All)
-                    {
-                        // Move only items that DO NOT belong to this chest's allowed categories!
-                        sourceInventories.Add((c.Inventory, c.Rule.Categories, null));
-                    }
-                }
-
-                foreach (var ag in workers)
-                {
-                    if (ag?.npcData == null) continue;
-                    var shared = ag.npcData.sharedInventoryData;
-                    if (shared != null && shared.itemList != null && shared.itemList.Count > 0)
-                        sourceInventories.Add((shared, StorageCategory.None, ag));
-                }
-
-                foreach (var srcEntry in sourceInventories)
-                {
-                    var srcInv = srcEntry.inv;
-                    if (srcInv == null || srcInv.itemList == null || srcInv.itemList.Count == 0) continue;
-
-                    // Snapshot items in source
-                    var snapshot = new List<ItemData>();
-                    for (int i = 0; i < srcInv.itemList.Count; i++)
-                    {
-                        var it = srcInv.itemList[i];
-                        if (it != null) snapshot.Add(it);
-                    }
-
-                    foreach (var item in snapshot)
-                    {
-                        if (item == null) continue;
-                        var cat = ItemCategorizer.ClassifyItem(item);
-
-                        // If item already belongs in this categorized container, leave it where it is!
-                        if (srcEntry.allowedStayMask != StorageCategory.None && (srcEntry.allowedStayMask & cat) != 0)
-                            continue;
-
-                        // Find best destination chest that accepts `cat`
-                        DiscoveredContainer chosenDest = null;
-                        foreach (var dest in destContainers)
-                        {
-                            if (dest.Inventory == null || dest.Inventory.Pointer == srcInv.Pointer) continue;
-                            if ((dest.Rule.Categories & cat) == 0) continue;
-
-                            chosenDest = dest;
-                            if (TransferSingleItem(srcInv, dest.Inventory, item))
-                            {
-                                totalMoved++;
-                                touchedDestInventories.Add(dest.Inventory);
-                                categoryCounts.TryGetValue(cat, out int cur);
-                                categoryCounts[cat] = cur + 1;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                // Auto-compact/sort all destination inventories that received items
-                foreach (var dest in destContainers)
-                {
-                    if (dest.Inventory != null && dest.Rule.AutoCompact && touchedDestInventories.Contains(dest.Inventory))
-                    {
-                        try
-                        {
-                            dest.Inventory.AutoSorting(false, false, AutoSortMode.Dense, false);
-                        }
-                        catch { }
-                    }
-                }
-
-                // Refresh open UI if player is viewing a container
-                try
-                {
-                    if (LootInventoryPanel.instance != null && LootInventoryPanel.CurrentOpenInventoryData != null)
-                        LootInventoryPanel.instance.Refresh();
-                }
-                catch { }
-
-                int bestCount = 0;
-                foreach (var kv in categoryCounts)
-                {
-                    if (kv.Value > bestCount)
-                    {
-                        bestCount = kv.Value;
-                        dominantCategory = kv.Key;
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                SmartCompanionsPlugin.LogWarning("ExecuteSortPass error: " + e.Message);
-            }
-
-            return totalMoved;
-        }
-
-        private static bool TransferSingleItem(InventoryData source, InventoryData dest, ItemData item)
-        {
-            return InventoryTransfers.TryMoveWhole(source, dest, item);
-        }
-
-        private static void SpeakCategoryDeposit(GOAPAgent agent, StorageCategory cat)
-        {
-            if (agent == null) return;
-            ChatterTopic topic = ChatterTopic.SortDepositMaterials;
-            if ((cat & (StorageCategory.MeleeWeapons | StorageCategory.RangedWeapons | StorageCategory.AmmoAndMags)) != 0)
-                topic = ChatterTopic.SortDepositWeapons;
-            else if ((cat & (StorageCategory.FreshFood | StorageCategory.CannedAndDrinks)) != 0)
-                topic = ChatterTopic.SortDepositFood;
-            else if ((cat & StorageCategory.Medicine) != 0)
-                topic = ChatterTopic.SortDepositMeds;
-
-            SmartChatterSystem.Speak(agent, topic, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
-        }
-
-        private static void TryAutoDropoffAtBase(GOAPAgent ag, CompanionRuntimeState st, float now)
-        {
-            try
-            {
-                var shared = ag.npcData?.sharedInventoryData;
-                if (!Il2CppSafe.IsAlive(shared) || shared.itemList == null || shared.itemList.Count == 0)
-                    return;
-
-                var containers = ScanNearbyContainers(force: false);
-                if (containers.Count == 0) return;
-
-                bool nearDropoffOrCatBox = false;
-                Vector2 selfPos = ag.humanCharacter.transform.position;
-                var destBoxes = new List<DiscoveredContainer>();
-
-                foreach (var c in containers)
-                {
-                    if (c.Rule == null || !Il2CppSafe.IsAlive(c.Inventory)) continue;
-                    if (c.Rule.Categories != StorageCategory.None && !c.Rule.IsDropoffSource)
-                        destBoxes.Add(c);
-                    if ((c.Rule.IsDropoffSource || c.Rule.Categories != StorageCategory.None) &&
-                        Vector2.Distance(selfPos, c.WorldPos) <= 7.5f)
-                    {
-                        nearDropoffOrCatBox = true;
-                    }
-                }
-
-                if (!nearDropoffOrCatBox || destBoxes.Count == 0) return;
-
-                st.LastAutoDropoffTime = now;
-                int moved = ExecuteSortPass(new List<GOAPAgent> { ag }, containers, destBoxes, null, out _);
-                if (moved > 0)
-                {
-                    st.SortedItemsThisSession += moved;
-                    SmartChatterSystem.Speak(ag, ChatterTopic.BaseAutoDropoff, minCooldown: 2f, bubbleDuration: 6f, force: true);
-                    SetBanner(CompanionConfigStore.L(
-                        $"📥 {st.LastKnownName} автоматически выгрузил и разложил по ящикам базы {moved} шт. трофеев!",
-                        $"📥 {st.LastKnownName} auto-unloaded and sorted {moved} raid items into base chests!",
-                        $"📥 {st.LastKnownName} 已自动将 {moved} 件战利品卸入基地储物箱并按类别归位！"));
-                }
-            }
-            catch { }
-        }
-
-        public static void SetBanner(string msg, float seconds = 6f)
-        {
-            LastSortStatusBanner = msg;
-            LastSortStatusBannerUntil = Time.unscaledTime + seconds;
         }
     }
 }

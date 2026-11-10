@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.0"><strong>Release v1.4.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.1"><strong>Release v1.4.1 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v1.4.1 — World Container Discovery, Per-Box Isolation & Physical Item Carrying
+
+- **Full World Container Discovery Without Opening Chests (`CollectWorldTerrainObjects`):**
+  - Scans all active chunks (`MapController.instance.currentChunkList`), buildings and building floors (`BasicBuilding.ActiveObjects`), and deployed ground container items (`BasicItem.ActiveObjects`), automatically initializing unopened furniture/fridge inventories (`EnsureLootGenerated`) so all nearby base chests appear immediately in **F8** without having to open each box first.
+  - Pressing **F8** automatically selects the currently open chest or the closest chest right next to the player, and only reads `LootInventoryPanel.CurrentOpenInventoryData` when `LootInventoryPanel` is actively open.
+- **Unique Per-Chest Identification (Fixed Shared Drop-Off / Category Bug):**
+  - Replaced the fallback `"unknown_box"` key with a 1-to-1 `InventoryData <-> TerrainObject` registry (`box_{rx100}_{ry100}_{z}_{attrId}_{standVz}_{guid}`) and coordinate tags `[x,y]` in the **F8** list so setting **Drop-off Box** or categories on one chest never affects other chests.
+- **Physical Companion Item Carrying with Invisible Carry Buffer (`CarryBuffer`):**
+  - Companions no longer teleport items between chests: when ordered to sort (`F7` / **Order NPCs: Sort Base**), each companion physically walks to the source/drop-off chest (`GOAPAction_FollowLeader.Execute` redirected to the target chest), pulls a batch of up to 10 item stacks into a dedicated **invisible transfer buffer (`CarryBuffer`)** (separate from their main backpack/weapons), and physically walks to each matching destination chest to deposit and compact the items. If interrupted by combat or on game exit, `FlushCarryBufferSafely` returns all in-transit items so zero items can ever be lost. [Verification report](docs/verification-1.4.1.md).
 
 ## New in v1.4.0 — Co-op Multiplayer Synchronization & Hostile Human Combat Fix
 
