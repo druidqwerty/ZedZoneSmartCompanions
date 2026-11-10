@@ -1,0 +1,38 @@
+[
+  {
+    "language": "english",
+    "title": "ZED ZONE: Smart Companions 1.4.2",
+    "description": "[h1]Smart Companions 1.4.2[/h1]\nSmarter recruited companions: tactical combat, co-op multiplayer sync, physical base chest sorting and live chatter in English, Russian and Simplified Chinese.\n[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]\nEnjoy the mod? Support development on Boosty.\n[h2]New in 1.4.2 — Accurate Auto-Categories, Marked Base Chests Only & Safe Sorting[/h2]\n[list][*]Fixed auto-detect categories setting only Medicine on chests, and rebuilt for the latest ZED ZONE update.[*]Companions now sort ONLY between chests you explicitly mark as your base chests (with a smart F8 filter showing only your marked chests + the chest right at your feet).[*]Fixed item loss during grid compaction (using snapshot-safe TryAutoSortingWithoutOverflow) and improved full Drop-off chest unloading with stack merging and missing-category alerts.[*]Physical item carrying via invisible CarryBuffer, co-op MP box/companion sync, and hostile human NPC ranged combat fixes.[/list]\n[h2]Your squad and base[/h2]\n6 combat doctrines, companion personalities and veteran ranks, field aid, camp chores, vehicle unloading, 12-category chest sorting and RU/EN/ZH chatter with 18+, Mixed or Clean modes. All settings change in-game.\n[h2]Install and controls[/h2]\nRequired third-party dependency: [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (not a mod by druidqwerty). Subscribe and run its install.cmd once, then launch through Steam. Both co-op players should have the mod installed for full category and doctrine sync.\nF8: squad/base/settings. F7: sort base. F6: share rations. F9: battle cry. No save reset required.\n[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]Source, release downloads and detailed checks[/url]\n© 2026 druidqwerty. MIT License. Free and open source; AI-assisted code, direction and testing by druid.",
+    "title_matches_staging": true,
+    "description_matches_staging": true,
+    "children_read": true,
+    "dependencies": [
+      3834614258
+    ],
+    "cached": false
+  },
+  {
+    "language": "russian",
+    "title": "ZED ZONE: Smart Companions 1.4.2 — Умные напарники",
+    "description": "[h1]Умные напарники 1.4.2[/h1]\nТактический бой, синхронизация в кооперативе, реальный перенос предметов по ящикам базы и живые реплики на русском, английском и китайском.\n[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]\nНравится мод? Поддержать разработку можно на Boosty.\n[h2]Новое в 1.4.2 — Точные категории, сортировка только ваших ящиков и защита предметов[/h2]\n[list][*]Обновлено под свежий патч ZED ZONE; исправлен баг авто-разметки, выставлявший всем ящикам только «Медицину».[*]Сортировка работает ТОЛЬКО по тем ящикам, которые вы сами отметили (в F8 добавлен фильтр «Мои + у ног ≤2м», скрывающий десятки чужих полок вокруг).[*]Устранена пропажа предметов при уплотнении сетки (TryAutoSortingWithoutOverflow) и исправлена полная разгрузка ящика-приёмника со стакованием и подсказкой, каких категорий не хватает.[*]Реальный перенос предметов через невидимый буфер, синхронизация кооператива и стрельба по враждебным NPC-людям.[/list]\n[h2]Отряд и база[/h2]\n6 боевых доктрин, характеры и ветеранские ранги, полевая помощь, быт лагеря, разгрузка машин, сортировка по 12 категориям и живые реплики RU/EN/ZH. Режим речи: Мат 18+, Умеренный или Без мата. Настройки меняются в игре.\n[h2]Установка и управление[/h2]\nОбязательная сторонняя зависимость: [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (это не мод druidqwerty). Подпишитесь, один раз запустите install.cmd и запускайте игру через Steam. Для полной синхронизации в кооперативе мод должен быть установлен у обоих игроков.\nF8 — отряд/база/настройки; F7 — сортировка; F6 — паёк; F9 — боевой клич. Сброс сохранений не нужен.\n[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]Исходники, архив релиза и подробные проверки[/url]\n© 2026 druidqwerty. Лицензия MIT. Бесплатный открытый мод; код с помощью ИИ, идея и тестирование — druid.",
+    "title_matches_staging": true,
+    "description_matches_staging": true,
+    "children_read": true,
+    "dependencies": [
+      3834614258
+    ],
+    "cached": false
+  },
+  {
+    "language": "schinese",
+    "title": "ZED ZONE: Smart Companions 1.4.2 — 智能队友",
+    "description": "[h1]智能队友 1.4.2[/h1]\n招募队友的战术战斗、联机多人同步、真实走位物资搬运与实时互动台词，支持简体中文、俄语和英语。\n[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]\n喜欢这个模组吗？欢迎在 Boosty 支持开发。\n[h2]1.4.2 更新 — 修复自动分类、仅整理标记箱子与防溢出保护[/h2]\n[list][*]适配最新游戏更新，修复自动分类将所有箱子设为医疗品的问题。[*]队友现在仅在你亲自标记的基地箱子之间分拣物资，F8 默认仅显示已标记箱子与脚边箱子。[*]采用带快照保护的 TryAutoSortingWithoutOverflow 杜绝整理丢失物品，支持同类堆叠合并与收货箱剩余类别提示。[*]真实走位搬运、联机同步与敌对人类 NPC 射击修复。[/list]\n6 种战术、队友性格与老兵等级、战地急救、营地内务、汽车卸货、12 类储物箱整理和三语台词。可选末日粗口18+、混合或纯净模式，设置即时生效。\n[h2]安装与操作[/h2]需要第三方依赖 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（并非 druidqwerty 制作的模组）：订阅后运行一次 install.cmd，通过 Steam 启动游戏。联机双方均安装本模组即可完整同步。\nF8：队友/基地/设置；F7：整理；F6：分享口粮；F9：战吼。无需重置存档。\n[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]源码、下载与详细测试记录[/url]\n© 2026 druidqwerty。MIT 许可证。免费开源；代码由 AI 辅助，创意与测试由 druid 完成。",
+    "title_matches_staging": true,
+    "description_matches_staging": true,
+    "children_read": true,
+    "dependencies": [
+      3834614258
+    ],
+    "cached": false
+  }
+]

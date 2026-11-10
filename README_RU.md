@@ -106,8 +106,8 @@
 
 ## Установка и управление
 
-1. Подпишитесь на **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** и один раз запустите его `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.3.2.zip` в `<ZED ZONE>`).
+1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.4.2.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

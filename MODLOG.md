@@ -126,6 +126,11 @@
   - Live in-engine verification (`docs/combat-acceptance-1.4.1.log`): `ScanNearbyContainers` discovered **133 unique containers** in player base without opening them (`0` duplicates, `0` `"unknown_box"`), `CarryBuffer` roundtrip PASS, Phases 0–3 (8m/12m Zombie, StopFire, 8m Hostile Human NPC) PASS, 0 errors/exceptions.
   - Release ZIP: `dist/ZedZoneSmartCompanions-1.4.1.zip` (`1,653,245` bytes, SHA-256 `30d81c84fef30ca45fe715cac07995ed85a7335e9545b76965cf9db013f3b61a`).
 
+## Loader attribution correction — prepared (2026-11-10)
+- Removed the third-party Code Mod Loader from the misleading "My ZED ZONE mods" section in all three Workshop descriptions and the description generator (`tools/prepare_v131.py`).
+- Kept the loader as an explicitly third-party required dependency in EN/RU/ZH descriptions and READMEs; Smart Companions copyright, MIT license and druid authorship/testing footer are unchanged.
+- Documentation-only change; binaries, versions and existing release archives are untouched. Steam upload and repository publication remain with the release owner.
+
 ## 1.4.2 ItemCategorizer Fix, Explicit Base Box Selection, 3-Mode F8 Filter & Zero-Overflow Sorting — completed (2026-11-10)
 - **Root-Cause Analysis & Fixes (post-game update `2026-11-10 08:49`):**
   1. **Fixed `ItemCategorizer.HasFeature` Classifying All Items as `[Medicine]` (`0x13A9D30`):** Native `ItemAttr.GetItemFeatureByFeatureType(ItemFeatureType)` (`0x13A9D30`) falls back to `ItemManager.instance.GetItemFeatureByFeatureType` (non-null for all features) when `this.itemFeatureDataDic.ContainsKey` is false. Because `ClassifyItem` called `HasFeature(attr, ItemFeatureType.Bandage)` first, every item with a non-null `ItemAttr` was misclassified as `StorageCategory.Medicine`! Fixed by checking only `attr.itemFeatures.Contains(ft)` and `attr.itemFeatureDataDic.ContainsKey(ft)`.
@@ -136,6 +141,18 @@
   - Final DLL SHA-256: `bd26c9f67bac995a0477003b5cab9c9ff1f918e8c3c252cc44972a32977a341a` (43 Harmony patches, `[SelfVerify] PASS v1.4.2`).
   - Live in-engine verification (`docs/combat-acceptance-1.4.2.log`): Real `ItemAttr` Categorizer (`gun/knife/steak != Medicine`), Filtered UI, `CarryBuffer` roundtrip, and Phases 0–3 combat PASS with `0` errors/exceptions.
   - Release ZIP: `dist/ZedZoneSmartCompanions-1.4.2.zip` (`1,664,369` bytes, SHA-256 `8cb746e2500ce84abf2a3563d1f6dec620a264908272ceaf404f8a06fe47dfd9`).
+- **Publication & Verification (2026-11-10):**
+  - **GitHub Release (`v1.4.2`):** https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.2
+  - **Steam Workshop (`3836613312`):** https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312 (`visibility=0` public, `file_size=676060`, `time_updated=1794308487`). EN/RU/ZH descriptions updated and SDK-verified (`docs/publication-1.4.2.json`): removed misleading "My ZED ZONE mods: Code Mod Loader" section, explicitly credited `ZED ZONE Code Mod Loader` (`3834614258`) as a third-party dependency (`not a mod by druidqwerty`), and preserved the `© 2026 druidqwerty` MIT license & authorship footer.
+  - **Boosty:** https://boosty.to/lrgpp/posts/20a8456b-8b21-4e68-9747-48f9e9cc8d1c (`published=true`, `anonymousAccess=true`, verified via `boosty_post.py check`).
 
 
 
+
+## 1.4.2 publication completed (2026-11-10)
+- Published verified 1.4.2 content, preview and EN/RU/ZH descriptions to existing Workshop item 3836613312. Anonymous API: result1, public visibility0, banned0, file_size676060. Fresh uncached ISteamUGC queries confirmed all three complete locale descriptions and titles match staging, with required child3834614258 preserved.
+- Removed third-party Code Mod Loader from misleading My Mods advertising; retained explicit third-party install requirement, MIT and druid authorship/testing footer. Updated README install archive names to1.4.2.
+- GitHub release already public; independently downloaded anonymous ZIP matched1664369bytes SHA2568cb746e2500ce84abf2a3563d1f6dec620a264908272ceaf404f8a06fe47dfd9, manifest1.4.2 and verified DLLbd26c9f67bac995a0477003b5cab9c9ff1f918e8c3c252cc44972a32977a341a. Existing release archive left immutable.
+- Published EN/RU player-facing Boosty card directly (not queued): https://boosty.to/lrgpp/posts/20a8456b-8b21-4e68-9747-48f9e9cc8d1c . API200/publishedtrue, anonymous access and both language markers plus Workshop link PASS; browser post snapshot confirms links.
+- Removed this project's completed/superseded pending Boosty1.3.2,1.4.0,1.4.1,1.4.2 queue entries; unrelated projects and scheduler states unchanged.
+- Evidence docs/publication-1.4.2.json. Steam HTML429 and browser screenshot relay timeout prevent claiming visual screenshots; server locale text/dependencies, public file state, archive and Boosty contents verified.

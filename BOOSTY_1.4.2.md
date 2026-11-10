@@ -1,40 +1,62 @@
-Title / Заголовок: ZED ZONE: Smart Companions 1.4.2 — Marked Base Chests Only, Accurate Auto-Categories & Safe Sorting / ZED ZONE: Smart Companions 1.4.2 — Сортировка только ваших ящиков, точные категории и защита предметов
+Title / Заголовок: ZED ZONE: Smart Companions 1.4.2 — Your squad, your base / ZED ZONE: Smart Companions 1.4.2 — Ваш отряд, ваша база
 ---
 
-[![Support development](https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png)](https://boosty.to/lrgpp)
+**Smart Companions 1.4.2 is out on Steam Workshop.**
 
-Enjoy the mod? Support its development on Boosty.
+Turn your companions into a useful squad: smarter combat, field aid, camp chores and item sorting, with English, Russian and Simplified Chinese menus and chatter.
 
-## Smart Companions 1.4.2
+**A tidier base, without the missing loot**
 
-Version 1.4.2 updates the mod for the latest ZED ZONE patch, fixes item classification for auto-categories, restricts sorting strictly to chests you mark yourself, and prevents item loss during grid compaction.
+- Companions sort items only between chests you mark as part of your base. Random street shelves are left alone.
+- Weapons, food, medicine and materials are classified correctly again after the latest game update.
+- Safer chest packing and stack merging fix item loss during sorting. If a chest is full or a category has no destination, the mod tells you what remains.
+- The F8 chest list starts with your marked chests and nearby containers, so finding the right box is easier.
 
-- **Fixed Auto-Detect Categories ("Only Medicine" Bug):** fixed `ItemCategorizer.HasFeature` so weapons, ammo, materials, tools, clothes, food, and medicine are classified accurately.
-- **Sort Only Your Marked Base Chests + Smart F8 Filter:** companions now carry items **only** between chests you explicitly mark as your base chests (`[*]`). The **F8** list defaults to showing only your marked chests plus the chest right at your feet (`≤ 2 m`), hiding random street shelves and containers.
-- **Zero-Overflow Compaction & Full Drop-Off Unloading:** replaced `AutoSorting(false, ...)` with snapshot-safe `TryAutoSortingWithoutOverflow` so items can never vanish during grid compaction, added stack merging onto existing stacks, and added clear notices when items remain in a Drop-off box due to missing categories or full chests.
+**More useful companions**
 
-No save reset required. Requires [ZED ZONE Code Mod Loader](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258).
+Recent updates also add physical item carrying between chests, co-op synchronization of chest rules and combat doctrines, and fixes for fighting hostile human NPCs. Six combat doctrines let you choose how the squad fights.
 
-[Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312) · [GitHub release v1.4.2 and detailed checks](https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.2)
+**Getting started**
+
+Subscribe on Steam, install the required third-party Code Mod Loader once, and launch the game through Steam. In co-op, both players need the mod for full synchronization. No save reset is required.
+
+F8 — squad, base and settings. F7 — sort the base.
+
+[Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312) · [GitHub v1.4.2: download, source and detailed changes](https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.2)
+
+[Required third-party Code Mod Loader — not a mod by druidqwerty](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)
+
+The mod is free. [Support development](https://boosty.to/lrgpp) if you find it useful.
 
 © 2026 druidqwerty. MIT License. Free and open source; AI-assisted code, direction and testing by druid.
 
 ---
 
-[![Поддержать разработку](https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png)](https://boosty.to/lrgpp)
+**Умные напарники 1.4.2 уже в Мастерской Steam.**
 
-Нравится мод? Поддержать разработку можно на Boosty.
+Превратите напарников в полезный отряд: тактический бой, полевая помощь, быт лагеря и сортировка вещей. Меню и реплики доступны на русском, английском и упрощённом китайском.
 
-## Умные напарники 1.4.2
+**Порядок на базе без пропавших вещей**
 
-Версия 1.4.2 адаптирована под свежее обновление ZED ZONE, исправляет авто-определение категорий, ограничивает сортировку строго отмеченными вами ящиками и защищает предметы от пропажи при уплотнении сетки.
+- Напарники сортируют вещи только между ящиками, которые вы отметили как ящики своей базы. Случайные полки на улице остаются нетронутыми.
+- После свежего обновления игры оружие, еда, медикаменты и материалы снова определяются правильно.
+- Безопасное уплотнение и объединение пачек исправляют потерю вещей при сортировке. Если ящик заполнен или для категории нет места, мод подскажет, что осталось.
+- В списке F8 сначала видны ваши отмеченные ящики и ближайшие контейнеры — нужный ящик проще найти.
 
-- **Исправлена авто-разметка категорий (баг «везде только Медицина»):** теперь оружие, патроны, материалы, инструменты, одежда, еда и медикаменты определяются точно.
-- **Сортировка только по отмеченным вами ящикам + умный фильтр в F8:** напарники разносят вещи **только** между теми ящиками, которые вы сами отметили (`[*]`). В списке **F8** по умолчанию показываются только ваши отмеченные ящики и ближайший ящик прямо у ваших ног (`≤ 2 м`), без десятков чужих полок вокруг.
-- **Защита от пропажи предметов и полная разгрузка приёмника:** уплотнение сетки переведено на безопасный `TryAutoSortingWithoutOverflow` со снимком раскладки, добавлено слияние неполных пачек и точная подсказка, каких категорий или места не хватает, если в ящике-приёмнике остались вещи.
+**Больше пользы от отряда**
 
-Сброс сохранений не нужен. Требуется [ZED ZONE Code Mod Loader](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258).
+В недавних обновлениях также появились реальный перенос вещей между ящиками, синхронизация правил ящиков и боевых доктрин в кооперативе и исправления боя с враждебными NPC-людьми. Шесть боевых доктрин позволяют выбрать стиль боя отряда.
 
-[Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312) · [Релиз GitHub v1.4.2 и подробные проверки](https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.2)
+**Как начать**
+
+Подпишитесь в Steam, один раз установите обязательный сторонний Code Mod Loader и запускайте игру через Steam. Для полной синхронизации в кооперативе мод нужен обоим игрокам. Сброс сохранений не требуется.
+
+F8 — отряд, база и настройки. F7 — сортировка базы.
+
+[Мастерская Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312) · [GitHub v1.4.2: архив, исходники и подробные изменения](https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.2)
+
+[Обязательный сторонний Code Mod Loader — это не мод druidqwerty](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)
+
+Мод бесплатный. Если он вам пригодился, можно [поддержать разработку](https://boosty.to/lrgpp).
 
 © 2026 druidqwerty. Лицензия MIT. Бесплатный открытый мод; код с помощью ИИ, идея и тестирование — druid.

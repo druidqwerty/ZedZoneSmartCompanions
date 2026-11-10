@@ -7,8 +7,7 @@ description=喜欢这个模组吗？欢迎在 Boosty 支持开发。
 description=[h2]1.4.2 更新 — 修复自动分类、仅整理标记箱子与防溢出保护[/h2]
 description=[list][*]适配最新游戏更新，修复自动分类将所有箱子设为医疗品的问题。[*]队友现在仅在你亲自标记的基地箱子之间分拣物资，F8 默认仅显示已标记箱子与脚边箱子。[*]采用带快照保护的 TryAutoSortingWithoutOverflow 杜绝整理丢失物品，支持同类堆叠合并与收货箱剩余类别提示。[*]真实走位搬运、联机同步与敌对人类 NPC 射击修复。[/list]
 description=6 种战术、队友性格与老兵等级、战地急救、营地内务、汽车卸货、12 类储物箱整理和三语台词。可选末日粗口18+、混合或纯净模式，设置即时生效。
-description=[h2]安装与操作[/h2]需要 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]：订阅后运行一次 install.cmd，通过 Steam 启动游戏。联机双方均安装本模组即可完整同步。
+description=[h2]安装与操作[/h2]需要第三方依赖 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（并非 druidqwerty 制作的模组）：订阅后运行一次 install.cmd，通过 Steam 启动游戏。联机双方均安装本模组即可完整同步。
 description=F8：队友/基地/设置；F7：整理；F6：分享口粮；F9：战吼。无需重置存档。
 description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]源码、下载与详细测试记录[/url]
-description=[h2]我的 ZED ZONE 模组[/h2][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]Code Mod Loader[/url]
 description=© 2026 druidqwerty。MIT 许可证。免费开源；代码由 AI 辅助，创意与测试由 druid 完成。
