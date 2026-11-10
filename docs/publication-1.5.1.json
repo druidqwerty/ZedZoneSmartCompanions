@@ -1,0 +1,48 @@
+{
+  "version": "1.5.1",
+  "status": "experimental_published_coop_unverified",
+  "steam_workshop": {
+    "id": "3836613312",
+    "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312",
+    "result": 1,
+    "visibility": 0,
+    "banned": 0,
+    "file_size": "706780",
+    "time_updated": 1794351752,
+    "title": "ZED ZONE: Smart Companions 1.5.1 Experimental",
+    "locale_page_checks": {
+      "english": {
+        "status": 200,
+        "title_present": true,
+        "caveat_present": true,
+        "required_dep_3834614258_present": true
+      },
+      "russian": {
+        "status": 200,
+        "title_present": true,
+        "caveat_present": true,
+        "required_dep_3834614258_present": true
+      },
+      "schinese": {
+        "status": 200,
+        "title_present": true,
+        "caveat_present": true,
+        "required_dep_3834614258_present": true
+      }
+    }
+  },
+  "github_release": {
+    "tag": "v1.5.1",
+    "prerelease": true,
+    "url": "https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.5.1",
+    "asset_url": "https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/download/v1.5.1/ZedZoneSmartCompanions-1.5.1.zip",
+    "bytes": 706997,
+    "zip_sha256": "5a7edbc2e1e3d0f21d9a8690272017ddb842c8a3980d058cb35065c6299a8180",
+    "dll_sha256": "3252934c6414f4b8d3a69d6f35146ed8192aa109817038a989e30fc1a3f5b53b"
+  },
+  "boosty_queue": {
+    "card": "C:\\Users\\druid\\.openclaw\\workspace-modder\\projects\\zedzone-smart-companions\\BOOSTY_1.5.1.md",
+    "queued": true
+  },
+  "local_workshop_cache_synced": true
+}
