@@ -1,18 +1,19 @@
 version=1
 id=3836613312
-title=ZED ZONE: Smart Companions 1.5.0
+title=ZED ZONE: Smart Companions 1.5.1 Experimental
 visibility=public
-description=[h1]Smart Companions 1.5.0[/h1]
-description=Smarter recruited companions: tactical combat, co-op multiplayer sync, physical base chest sorting, draggable UI, configurable squad limit (up to 15) and live chatter in English, Russian and Simplified Chinese.
+description=[h1]Smart Companions 1.5.1 — Experimental[/h1]
+description=Build a capable survivor squad: tactical combat, base logistics, live chatter and co-op companion sync.
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Enjoy the mod? Support development on Boosty.
-description=[h2]New in 1.5.0[/h2]
-description=[list][*]Fixed dismissed companions (QuitTeam / UnFollowPlayer) continuing to follow the player.[*]Draggable UI windows (F8, chest category bar, mini-HUD) + safe default positions that never overlap the minimap or backpack sort button.[*]Configurable max squad size up to 15 companions + full compatibility with AVO Expanded (Alt+F6 ration hotkey so F6 opens AVO menu cleanly).[*]Fixed CollectResource / autonomous scavenging up to 42m while protecting player-marked base chests.[*]Physical item carrying between marked base chests via invisible CarryBuffer, accurate auto-categories, co-op MP sync, and hostile human NPC ranged combat fixes.[/list]
+description=[h2]Experimental 1.5.1 update[/h2]
+description=[list][*]Adds guarded initialization for human NPCs when multiplayer loading encounters missing or invalid ranged-weapon data.[*]Passed isolated BepInEx startup and self-verification.[/list]
+description=[h2]Important co-op note[/h2]
+description=This build has NOT been tested in a real two-player co-op world. Whether it restores human NPC visibility for the joining player is unconfirmed; this is an experimental update, not a verified fix. Please report whether a client sees human Survivors and Looters.
 description=[h2]Your squad and base[/h2]
-description=6 combat doctrines, companion personalities and veteran ranks, field aid, camp chores, vehicle unloading, 12-category chest sorting and RU/EN/ZH chatter with 18+, Mixed or Clean modes. All settings change in-game.
-description=[h2]Install and controls[/h2]
-description=Required: [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]. Subscribe and run its install.cmd once, then launch through Steam. Both co-op players should have the mod installed for full category and doctrine sync.
-description=F8: squad/base/settings. F7: sort base. F6 (or Alt+F6 with AVO): share rations. F9: battle cry. No save reset required.
-description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]Source, release downloads and detailed checks[/url]
-description=[h2]My ZED ZONE mods[/h2][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]Code Mod Loader[/url]
+description=Six combat doctrines, draggable F8 hub, squad size up to 15, physical sorting between marked base chests, resource scavenging, field aid, 12 storage categories and English/Russian/Simplified Chinese chatter. No save reset required.
+description=[h2]Install[/h2]
+description=Requires [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]. Install the loader and launch the game through Steam. For co-op, both players should have the current mod and loader installed.
+description=F8: squad/base/settings · F7: sort base · F6 (Alt+F6 with AVO): share rations · F9: battle cry.
+description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]Source and detailed verification[/url]
 description=© 2026 druidqwerty. MIT License. Free and open source; AI-assisted code, direction and testing by druid.

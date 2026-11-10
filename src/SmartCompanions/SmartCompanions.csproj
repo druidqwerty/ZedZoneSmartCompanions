@@ -7,7 +7,7 @@
 
     <AssemblyName>SmartCompanions</AssemblyName>
     <RootNamespace>ZedZone.SmartCompanions</RootNamespace>
-    <Version>1.5.0</Version>
+    <Version>1.5.1</Version>
     <TargetFramework>net6.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>

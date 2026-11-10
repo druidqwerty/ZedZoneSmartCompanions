@@ -7,12 +7,17 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.5.0"><strong>下载 v1.5.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.5.1"><strong>下载 v1.5.1 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v1.5.1 实验版 — 人类 NPC 加载保护（联机可见性尚未验证）
+
+- 为多人加载期间缺失或无效的远程武器数据增加人类 NPC 初始化保护。
+- 此版本已通过隔离启动与 SelfVerify，但**尚未进行双人联机世界测试**；客户端是否能看到人类 NPC **尚未确认**，不宣称该问题已修复。详情见[验证与限制](docs/verification-1.5.1.md)。
 
 ## v1.5.0 更新 — 修复解雇队友不离队、窗口自由拖拽、队伍上限提升（最高15人）、兼容 AVO 与自主搜刮修复
 
@@ -94,7 +99,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.4.2.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.5.1.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

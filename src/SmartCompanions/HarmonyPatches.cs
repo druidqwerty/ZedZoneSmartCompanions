@@ -540,6 +540,42 @@ namespace ZedZone.SmartCompanions
             catch { }
         }
 
+        // Human NPCs can be serialized, replicated, and initialized by Unity before the periodic MP scan runs.
+        // Normalize before the native Human.Init -> LoadEquipments path so client/host NPCs don't start with
+        // characterAttrId 0 (or another missing MonsterAttr) and fail during their very first initialization.
+        [HarmonyPatch(typeof(HumanCharacterController), "Init")]
+        [HarmonyPrefix]
+        public static void HumanCharacterController_Init_Prefix(HumanCharacterController __instance)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(__instance) || __instance.isPlayer ||
+                    ZedZone.Net.NetSessionConfig.IsNetworkPlayer(__instance) ||
+                    !Il2CppSafe.IsAlive(__instance.characterData)) return;
+
+                var data = __instance.characterData;
+                int previousAttrId = data.characterAttrId;
+                int previousCamp = data.camp;
+
+                var agent = __instance.GetCachedGOAPAgent();
+                bool isLooter = Il2CppSafe.IsAliveUnity(agent) &&
+                    (agent.TryCast<GOAPAgent_Looter>() != null ||
+                     (Il2CppSafe.IsAlive(agent.npcData) && agent.npcData.isBandit));
+
+                MultiplayerSyncSystem.NormalizeHumanCharacterData(data, isLooter);
+                if (previousAttrId != data.characterAttrId || previousCamp != data.camp)
+                {
+                    SmartCompanionsPlugin.LogInfo(
+                        $"[MP NPC] Normalized before Human.Init: {data.characterName ?? "NPC"}, " +
+                        $"attr {previousAttrId}->{data.characterAttrId}, camp {previousCamp}->{data.camp}.");
+                }
+            }
+            catch (Exception e)
+            {
+                SmartCompanionsPlugin.LogWarning("[MP NPC] Pre-Init normalization failed: " + e.Message);
+            }
+        }
+
         // 15. Multiplayer NPC replication: ensure CharacterData always has valid characterAttrId (201/202) before Serialize & after Deserialize
         [HarmonyPatch(typeof(ZedZone.Net.NetMonsterSync), "SerializeCharacterData")]
         [HarmonyPrefix]

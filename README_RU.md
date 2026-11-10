@@ -7,12 +7,17 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.5.0"><strong>Скачать релиз v1.5.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.5.1"><strong>Скачать релиз v1.5.1 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Экспериментальная v1.5.1 — защита загрузки human NPC (кооператив ещё не проверен)
+
+- Добавлена защита инициализации человеческих NPC при отсутствующих или некорректных данных дальнобойного оружия во время сетевой загрузки.
+- Изолированный запуск BepInEx и SelfVerify прошли. Реальный мир с двумя игроками **не тестировался**; видимость NPC у клиента **не подтверждена**, поэтому не считаем это доказанным исправлением. Подробности: [проверки и ограничения](docs/verification-1.5.1.md).
 
 ## Новое в v1.5.0 — Исправление увольнения напарников, перетаскиваемый UI, лимит отряда до 15, совместимость с AVO и сбор ресурсов
 
@@ -120,7 +125,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.4.2.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.5.1.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 
