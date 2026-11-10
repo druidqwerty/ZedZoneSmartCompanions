@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 1.4.1 VERIFIED / Locally Installed / Released on GitHub & Queued on Boosty
+## Status: 1.4.2 VERIFIED / Locally Installed / Released on GitHub & Queued on Boosty
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -125,5 +125,17 @@
   - Final DLL SHA-256: `cfb9a1ec0c1ec4fb5291b8def4a425b43d3e56aa35fa443da672ca9cac1f680c` (43 Harmony patches, `[SelfVerify] PASS v1.4.1`).
   - Live in-engine verification (`docs/combat-acceptance-1.4.1.log`): `ScanNearbyContainers` discovered **133 unique containers** in player base without opening them (`0` duplicates, `0` `"unknown_box"`), `CarryBuffer` roundtrip PASS, Phases 0–3 (8m/12m Zombie, StopFire, 8m Hostile Human NPC) PASS, 0 errors/exceptions.
   - Release ZIP: `dist/ZedZoneSmartCompanions-1.4.1.zip` (`1,653,245` bytes, SHA-256 `30d81c84fef30ca45fe715cac07995ed85a7335e9545b76965cf9db013f3b61a`).
+
+## 1.4.2 ItemCategorizer Fix, Explicit Base Box Selection, 3-Mode F8 Filter & Zero-Overflow Sorting — completed (2026-11-10)
+- **Root-Cause Analysis & Fixes (post-game update `2026-11-10 08:49`):**
+  1. **Fixed `ItemCategorizer.HasFeature` Classifying All Items as `[Medicine]` (`0x13A9D30`):** Native `ItemAttr.GetItemFeatureByFeatureType(ItemFeatureType)` (`0x13A9D30`) falls back to `ItemManager.instance.GetItemFeatureByFeatureType` (non-null for all features) when `this.itemFeatureDataDic.ContainsKey` is false. Because `ClassifyItem` called `HasFeature(attr, ItemFeatureType.Bandage)` first, every item with a non-null `ItemAttr` was misclassified as `StorageCategory.Medicine`! Fixed by checking only `attr.itemFeatures.Contains(ft)` and `attr.itemFeatureDataDic.ContainsKey(ft)`.
+  2. **Sort Only Player-Marked Base Chests (`IsMarkedByPlayer`) & 3-Mode F8 Filter:** Added `ContainerRuleProfile.IsMarkedByPlayer` (`[*] Отмечен как ящик моей базы`), automatically enabled when toggling any category or `Ящик-приёмник`, and migrated save format (`v1.4.2` / `SC142:` property prefix) to purge legacy `v1.4.1` `Medicine`-only auto-tags. Sorting (`F7`) now touches **only** player-marked chests. Added a 3-mode filter in **F8** Tab 2 (`Мои + у ног ≤2м` default, `Рядом ≤7м`, `Все 18м`).
+  3. **Overflow-Free Compaction, Stack Merging & Full Drop-Off Unloading:** Replaced `AutoSorting(false, ...)` (which discarded overflow items when `executeDropFlag == false`) with `InventoryTransfers.SafeCompactInventory` (`TryAutoSortingWithoutOverflow`), added `TryDepositOrStackWhole` for stackable items, tracked `remainingFreeCells` per destination chest in `PickupBatchIntoCarryBuffer`, and added `InspectRemainingDropoffItems` so `F7` reports the exact remaining item count and missing categories when a Drop-off box isn't completely unloaded.
+- **Verification & Packaging:**
+  - Rebuilt against updated interop assemblies (`0` warnings, `0` errors).
+  - Final DLL SHA-256: `bd26c9f67bac995a0477003b5cab9c9ff1f918e8c3c252cc44972a32977a341a` (43 Harmony patches, `[SelfVerify] PASS v1.4.2`).
+  - Live in-engine verification (`docs/combat-acceptance-1.4.2.log`): Real `ItemAttr` Categorizer (`gun/knife/steak != Medicine`), Filtered UI, `CarryBuffer` roundtrip, and Phases 0–3 combat PASS with `0` errors/exceptions.
+  - Release ZIP: `dist/ZedZoneSmartCompanions-1.4.2.zip` (`1,664,369` bytes, SHA-256 `8cb746e2500ce84abf2a3563d1f6dec620a264908272ceaf404f8a06fe47dfd9`).
+
 
 

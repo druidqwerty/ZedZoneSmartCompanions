@@ -22,8 +22,13 @@ namespace ZedZone.SmartCompanions
             if (!Il2CppSafe.IsAliveUnity(tobj) || !Il2CppSafe.IsAlive(tobj.objectData) || rule == null) return;
             try
             {
+                if (!rule.IsMarkedByPlayer || (rule.Categories == StorageCategory.None && !rule.IsDropoffSource))
+                {
+                    tobj.objectData.SetProperty(ContainerRulePropertyIndex, "");
+                    return;
+                }
                 string safeName = (rule.CustomName ?? "").Replace("|", "/").Replace(";", ",");
-                string payload = $"SC14:{(int)rule.Categories}:{(rule.IsDropoffSource ? 1 : 0)}:{rule.Priority}:{safeName}";
+                string payload = $"SC142:{(int)rule.Categories}:{(rule.IsDropoffSource ? 1 : 0)}:{rule.Priority}:{safeName}";
                 tobj.objectData.SetProperty(ContainerRulePropertyIndex, payload);
             }
             catch { }
@@ -35,7 +40,14 @@ namespace ZedZone.SmartCompanions
             try
             {
                 string raw = tobj.objectData.GetProperty(ContainerRulePropertyIndex);
-                if (string.IsNullOrEmpty(raw) || !raw.StartsWith("SC14:", StringComparison.Ordinal)) return false;
+                if (string.IsNullOrEmpty(raw)) return false;
+                if (raw.StartsWith("SC14:", StringComparison.Ordinal))
+                {
+                    // Clear legacy v1.4.0/v1.4.1 property so old Medicine-only auto-tags don't re-populate
+                    tobj.objectData.SetProperty(ContainerRulePropertyIndex, "");
+                    return false;
+                }
+                if (!raw.StartsWith("SC142:", StringComparison.Ordinal)) return false;
                 var parts = raw.Split(':');
                 if (parts.Length < 4) return false;
                 if (!int.TryParse(parts[1], out int catInt)) return false;
@@ -46,6 +58,7 @@ namespace ZedZone.SmartCompanions
                 if (rule == null) return false;
                 rule.Categories = (StorageCategory)catInt;
                 rule.IsDropoffSource = dropInt != 0;
+                rule.IsMarkedByPlayer = (rule.Categories != StorageCategory.None || rule.IsDropoffSource);
                 rule.Priority = Mathf.Clamp(prio, 1, 5);
                 if (!string.IsNullOrEmpty(name)) rule.CustomName = name;
                 return true;
@@ -74,6 +87,7 @@ namespace ZedZone.SmartCompanions
                         var mirror = CompanionConfigStore.GetOrCreateRule(posKey, rule.CustomName);
                         mirror.Categories = rule.Categories;
                         mirror.IsDropoffSource = rule.IsDropoffSource;
+                        mirror.IsMarkedByPlayer = rule.IsMarkedByPlayer;
                         mirror.Priority = rule.Priority;
                         mirror.LastKnownPos = rule.LastKnownPos;
                     }
@@ -273,9 +287,11 @@ namespace ZedZone.SmartCompanions
 
         private static void ApplyReceivedBoxRule(string id, StorageCategory cats, bool isDropoff, int prio, Vector2 pos, string name)
         {
+            bool isMarked = isDropoff || cats != StorageCategory.None;
             var rule = CompanionConfigStore.GetOrCreateRule(id, name);
             rule.Categories = cats;
             rule.IsDropoffSource = isDropoff;
+            rule.IsMarkedByPlayer = isMarked;
             rule.Priority = Mathf.Clamp(prio, 1, 5);
             if (pos.sqrMagnitude > 0.01f) rule.LastKnownPos = pos;
             if (!string.IsNullOrEmpty(name)) rule.CustomName = name;
@@ -292,6 +308,7 @@ namespace ZedZone.SmartCompanions
                         var localRule = CompanionConfigStore.GetOrCreateRule(localId, name);
                         localRule.Categories = cats;
                         localRule.IsDropoffSource = isDropoff;
+                        localRule.IsMarkedByPlayer = isMarked;
                         localRule.Priority = rule.Priority;
                         localRule.LastKnownPos = pos;
                         if (!string.IsNullOrEmpty(name)) localRule.CustomName = name;

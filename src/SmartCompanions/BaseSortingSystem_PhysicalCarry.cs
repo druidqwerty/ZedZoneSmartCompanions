@@ -7,6 +7,62 @@ namespace ZedZone.SmartCompanions
     public static partial class BaseSortingSystem
     {
         public const int MaxCarryBatchPerTrip = 10;
+        public static int ContainerListFilterMode = 0; // 0 = Marked + At Feet (<=2.3m, max 3 unmarked), 1 = Nearby (<=7m), 2 = All (<=18m)
+        public static bool ShowAllNearbyContainersInUI
+        {
+            get => ContainerListFilterMode > 0;
+            set => ContainerListFilterMode = value ? 2 : 0;
+        }
+
+        public static List<DiscoveredContainer> GetFilteredContainersForUI(bool forceScan = false)
+        {
+            var all = ScanNearbyContainers(force: forceScan);
+            var result = new List<DiscoveredContainer>();
+            float maxUnmarkedDist = ContainerListFilterMode == 0 ? 2.3f : (ContainerListFilterMode == 1 ? 7.0f : 18.0f);
+            int maxUnmarkedCount = ContainerListFilterMode == 0 ? 3 : 999;
+            int unmarkedAdded = 0;
+
+            for (int i = 0; i < all.Count; i++)
+            {
+                var c = all[i];
+                if (c?.Rule == null) continue;
+                bool isMarked = c.Rule.IsMarkedByPlayer || c.Rule.IsDropoffSource || c.Rule.Categories != StorageCategory.None;
+                if (isMarked)
+                {
+                    result.Add(c);
+                }
+                else if ((c.DistanceToPlayer <= maxUnmarkedDist || i == 0) && unmarkedAdded < maxUnmarkedCount)
+                {
+                    result.Add(c);
+                    unmarkedAdded++;
+                }
+            }
+            return result;
+        }
+
+        public static int ClearAllContainerRules()
+        {
+            int cleared = 0;
+            try
+            {
+                foreach (var c in CachedContainers)
+                {
+                    if (c?.Rule == null) continue;
+                    if (c.Rule.IsMarkedByPlayer || c.Rule.IsDropoffSource || c.Rule.Categories != StorageCategory.None)
+                    {
+                        c.Rule.IsMarkedByPlayer = false;
+                        c.Rule.IsDropoffSource = false;
+                        c.Rule.Categories = StorageCategory.None;
+                        MultiplayerSyncSystem.WriteRuleToTerrainObject(c.TerrainObj, c.Rule);
+                        cleared++;
+                    }
+                }
+                CompanionConfigStore.ContainerRules.Clear();
+                CompanionConfigStore.Save();
+            }
+            catch { }
+            return cleared;
+        }
 
         public static List<DiscoveredContainer> ScanNearbyContainers(bool force = false)
         {
@@ -28,11 +84,11 @@ namespace ZedZone.SmartCompanions
 
                 Vector2 playerPos = gc.playerCharacter.transform.position;
                 sbyte playerZ = gc.playerCharacter.characterData != null ? gc.playerCharacter.characterData.zLevel : (sbyte)0;
-                float maxRadius = CompanionConfigStore.BaseScanRadius;
+                float maxRadius = Mathf.Min(32f, CompanionConfigStore.BaseScanRadius);
                 float maxSqr = maxRadius * maxRadius;
                 var seenInvs = new HashSet<IntPtr>();
 
-                // 1. Scan all active world TerrainObjects across current chunks, buildings, and floors
+                // 1. Scan active world TerrainObjects across current chunks, buildings, and floors
                 var worldObjs = CollectWorldTerrainObjects(playerPos, maxRadius);
                 for (int i = 0; i < worldObjs.Count; i++)
                 {
@@ -50,7 +106,7 @@ namespace ZedZone.SmartCompanions
                     AddDiscoveredContainer(inv, tobj, pos, Vector2.Distance(playerPos, pos));
                 }
 
-                // 2. Scan deployed BasicItem containers on the ground (e.g., deployed storage boxes / backpacks)
+                // 2. Scan deployed BasicItem containers on the ground
                 var activeItems = BasicItem.ActiveObjects;
                 if (activeItems != null)
                 {
@@ -78,7 +134,7 @@ namespace ZedZone.SmartCompanions
                     }
                 }
 
-                // 3. Only include LootInventoryPanel.CurrentOpenInventoryData if the LootInventoryPanel is ACTUALLY open!
+                // 3. Only include LootInventoryPanel.CurrentOpenInventoryData if LootInventoryPanel is ACTUALLY open!
                 var openPanel = LootInventoryPanel.instance;
                 var openInv = LootInventoryPanel.CurrentOpenInventoryData;
                 if (Il2CppSafe.IsAliveUnity(openPanel) && openPanel.gameObject.activeInHierarchy &&
@@ -97,7 +153,24 @@ namespace ZedZone.SmartCompanions
                     AddDiscoveredContainer(openInv, openTobj, openPos, openDist, openName);
                 }
 
-                CachedContainers.Sort((a, b) => a.DistanceToPlayer.CompareTo(b.DistanceToPlayer));
+                // Sort: closest container (< 2.2m) first so standing next to a box puts it at index 0,
+                // then player-marked base containers, then by distance!
+                CachedContainers.Sort((a, b) =>
+                {
+                    bool aVeryClose = a.DistanceToPlayer <= 2.2f;
+                    bool bVeryClose = b.DistanceToPlayer <= 2.2f;
+                    if (aVeryClose != bVeryClose)
+                        return aVeryClose ? -1 : 1;
+                    if (aVeryClose && bVeryClose)
+                        return a.DistanceToPlayer.CompareTo(b.DistanceToPlayer);
+
+                    bool aMarked = a.Rule != null && a.Rule.IsMarkedByPlayer;
+                    bool bMarked = b.Rule != null && b.Rule.IsMarkedByPlayer;
+                    if (aMarked != bMarked)
+                        return aMarked ? -1 : 1;
+
+                    return a.DistanceToPlayer.CompareTo(b.DistanceToPlayer);
+                });
             }
             catch (Exception e)
             {
@@ -123,9 +196,12 @@ namespace ZedZone.SmartCompanions
 
             var rule = CompanionConfigStore.GetOrCreateRule(id, baseName);
             rule.LastKnownPos = pos;
+            if (rule.IsDropoffSource || rule.Categories != StorageCategory.None)
+                rule.IsMarkedByPlayer = true;
+
             if (Il2CppSafe.IsAliveUnity(tobj))
             {
-                if (rule.Categories == StorageCategory.None && !rule.IsDropoffSource)
+                if (!rule.IsMarkedByPlayer)
                     MultiplayerSyncSystem.TryReadRuleFromTerrainObject(tobj, ref rule);
                 else
                     MultiplayerSyncSystem.WriteRuleToTerrainObject(tobj, rule);
@@ -152,9 +228,12 @@ namespace ZedZone.SmartCompanions
 
             foreach (var c in containers)
             {
-                if (!Il2CppSafe.IsAlive(c.Inventory) || c.Inventory.itemList == null || c.Inventory.itemList.Count == 0)
+                if (c?.Rule == null || !Il2CppSafe.IsAlive(c.Inventory) || c.Inventory.itemList == null || c.Inventory.itemList.Count == 0)
                     continue;
                 if (c.Rule.IsDropoffSource)
+                    continue;
+                // Only auto-detect on chests the player marked OR chests right near the player (<= 8.0m)
+                if (!c.Rule.IsMarkedByPlayer && c.DistanceToPlayer > 8.0f)
                     continue;
 
                 StorageCategory mask = StorageCategory.None;
@@ -168,6 +247,7 @@ namespace ZedZone.SmartCompanions
                 if (mask != StorageCategory.None)
                 {
                     c.Rule.Categories = mask;
+                    c.Rule.IsMarkedByPlayer = true;
                     MultiplayerSyncSystem.SyncBoxRuleChange(c.Rule, c.TerrainObj);
                     updated++;
                 }
@@ -175,109 +255,10 @@ namespace ZedZone.SmartCompanions
 
             CompanionConfigStore.Save();
             SetBanner(CompanionConfigStore.L(
-                $"Авто-разметка завершена: категории назначены для {updated} ящиков по их содержимому!",
-                $"Auto-detected categories for {updated} containers based on contents!",
-                $"自动识别完成：已根据箱内物品为 {updated} 个储物箱分配分类！"));
+                $"Авто-разметка завершена: категории назначены для {updated} ближайших/отмеченных ящиков (≤8м)!",
+                $"Auto-detected categories for {updated} nearby/marked chests (≤8m) based on contents!",
+                $"自动识别完成：已根据箱内物品为 {updated} 个附近/已标记储物箱（≤8米）分配分类！"));
             return updated;
-        }
-
-        public static void CommandSortBase(GOAPAgent specificAgent = null, InventoryData extraSourceContainer = null, bool instant = false)
-        {
-            if (MultiplayerSyncSystem.IsMultiplayerClient)
-            {
-                MultiplayerSyncSystem.SendPacketToHost("SORT|1");
-            }
-            var containers = ScanNearbyContainers(force: true);
-
-            var destBoxes = GetCategorizedDestinationBoxes(containers);
-            if (destBoxes.Count == 0)
-            {
-                AutoDetectCategoriesFromContents();
-                destBoxes = GetCategorizedDestinationBoxes(containers);
-            }
-
-            if (destBoxes.Count == 0)
-            {
-                SetBanner(CompanionConfigStore.L(
-                    "Нет размеченных ящиков! Откройте ящик или нажмите F8 и отметьте категории.",
-                    "No categorized containers found! Open a chest or press F8 and select categories first.",
-                    "未找到已分类的储物箱！请先打开箱子或按 F8 勾选分类。"));
-                return;
-            }
-
-            var workers = new List<GOAPAgent>();
-            if (Il2CppSafe.IsAliveUnity(specificAgent))
-                workers.Add(specificAgent);
-            else
-                workers.AddRange(SmartChatterSystem.GetActiveTeammateAgents());
-
-            if (instant || workers.Count == 0)
-            {
-                int moved = ExecuteInstantSortPass(workers, containers, destBoxes, extraSourceContainer, out var dominantCategory);
-                var speaker = workers.Count > 0 ? workers[0] : null;
-                if (Il2CppSafe.IsAliveUnity(speaker))
-                {
-                    if (moved > 0)
-                    {
-                        var stSpk = CompanionConfigStore.GetOrCreateCompanion(speaker.npcData?.npcGUID ?? "npc");
-                        stSpk.SortedItemsThisSession += moved;
-                        stSpk.AddExperience(Mathf.Clamp(moved * 2, 2, 40), speaker);
-                        SpeakCategoryDeposit(speaker, dominantCategory);
-                    }
-                    SmartChatterSystem.Speak(speaker, ChatterTopic.SortFinished, minCooldown: 0.5f, bubbleDuration: 6f, force: true);
-                }
-                SetBanner(CompanionConfigStore.L(
-                    $"Мгновенная сортировка выполнена: перемещено предметов — {moved} шт.",
-                    $"Instant sorting complete: {moved} item stacks sorted into category chests.",
-                    $"一键整理完成：已将 {moved} 组物品按类别归入储物箱。"));
-                return;
-            }
-
-            int assignedWorkers = 0;
-            var claimedSourcePointers = new HashSet<IntPtr>();
-            foreach (var ag in workers)
-            {
-                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData)) continue;
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
-                FlushCarryBufferSafely(st);
-
-                if (TryAssignNextCarrySource(ag, st, containers, destBoxes, extraSourceContainer, claimedSourcePointers))
-                {
-                    assignedWorkers++;
-                    SmartChatterSystem.Speak(ag, ChatterTopic.SortStart, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
-                }
-            }
-
-            if (assignedWorkers > 0)
-            {
-                SetBanner(CompanionConfigStore.L(
-                    $"📦 Напарники ({assignedWorkers} чел.) пошли переносить предметы по ящикам базы!",
-                    $"📦 Companions ({assignedWorkers}) started carrying items between base chests!",
-                    $"📦 队友（{assignedWorkers} 人）已开始在基地储物箱之间搬运分拣物品！"));
-            }
-            else
-            {
-                SetBanner(CompanionConfigStore.L(
-                    "Все подходящие предметы в ящиках уже разложены по своим категориям!",
-                    "All matching items in base containers are already sorted into their categories!",
-                    "基地储物箱中的所有匹配物品均已按分类归位！"));
-            }
-        }
-
-        private static List<DiscoveredContainer> GetCategorizedDestinationBoxes(List<DiscoveredContainer> containers)
-        {
-            var destBoxes = new List<DiscoveredContainer>();
-            foreach (var c in containers)
-            {
-                if (c?.Rule != null && c.Rule.Categories != StorageCategory.None && !c.Rule.IsDropoffSource && Il2CppSafe.IsAlive(c.Inventory))
-                    destBoxes.Add(c);
-            }
-            destBoxes.Sort((a, b) =>
-            {
-                int cmp = b.Rule.Priority.CompareTo(a.Rule.Priority);
-                return cmp != 0 ? cmp : a.DistanceToPlayer.CompareTo(b.DistanceToPlayer);
-            });
-            return destBoxes;
         }
     }
 }

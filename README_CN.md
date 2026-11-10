@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.1"><strong>下载 v1.4.1 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.2"><strong>下载 v1.4.2 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v1.4.2 更新 — 修复自动分类全变医疗品、仅整理玩家标记箱子与零丢失紧凑整理
+
+- **修复自动识别分类全部变成「医疗品」的问题 (`ItemCategorizer.HasFeature`)：**
+  - 修复原生 `ItemAttr.GetItemFeatureByFeatureType` 返回全局非空特性导致所有物品被误判为医疗品的问题，现在武器、弹药、材料、工具、服装、食品与医疗品均可准确识别。
+- **仅整理玩家亲自标记的基地箱子 (`IsMarkedByPlayer`) 与 F8 三档智能筛选：**
+  - 队友现在**仅**在你标记为基地储物箱 (`[*]`) 的箱子之间搬运物资，绝不会把物品搬到外面的野生箱子中；F8 默认开启「已标记 + 脚边 (≤2米)」筛选，告别满屏无关箱子。
+- **防溢出安全整理 (`TryAutoSortingWithoutOverflow`) 与收货箱完整卸载：**
+  - 使用带快照回滚的 `TryAutoSortingWithoutOverflow` 替代 `AutoSorting(false, ...)`，彻底杜绝整理时物品消失；支持同类堆叠合并，并在收货箱有剩余物品时明确提示缺少空位或分类箱的类别。[验证报告](docs/verification-1.4.2.md)。
 
 ## v1.4.1 更新 — 自动发现周围全部箱子、独立箱子配置与真实走位搬运
 

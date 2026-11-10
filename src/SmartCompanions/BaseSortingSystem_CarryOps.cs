@@ -6,6 +6,112 @@ namespace ZedZone.SmartCompanions
 {
     public static partial class BaseSortingSystem
     {
+        private static bool TryAssignNextCarrySource(
+            GOAPAgent ag,
+            CompanionRuntimeState st,
+            List<DiscoveredContainer> allContainers,
+            List<DiscoveredContainer> destBoxes,
+            InventoryData extraSource,
+            HashSet<IntPtr> claimedSources)
+        {
+            if (destBoxes == null || destBoxes.Count == 0) return false;
+            Vector2 selfPos = Il2CppSafe.IsAliveUnity(ag?.humanCharacter)
+                ? (Vector2)ag.humanCharacter.transform.position
+                : Vector2.zero;
+
+            var candidates = new List<(InventoryData inv, Vector2 pos, string id, string name, StorageCategory stayMask, float dist)>();
+
+            // 1. Companion's own sharedInventoryData
+            var shared = ag?.npcData?.sharedInventoryData;
+            if (Il2CppSafe.IsAlive(shared) && shared.itemList != null && shared.itemList.Count > 0)
+            {
+                candidates.Add((shared, selfPos, "shared_" + ag.npcData.npcGUID,
+                    CompanionConfigStore.L("Рюкзак напарника", "Companion Backpack", "队友背包"), StorageCategory.None, 0f));
+            }
+
+            // 2. Explicit extraSource (when player clicks "Разобрать этот ящик")
+            if (Il2CppSafe.IsAlive(extraSource) && extraSource.itemList != null && extraSource.itemList.Count > 0)
+            {
+                var tobj = FindTerrainObjectByInventory(extraSource);
+                Vector2 pos = Il2CppSafe.IsAliveUnity(tobj) ? (Vector2)tobj.transform.position : selfPos;
+                string id = GetContainerStableId(extraSource, tobj);
+                candidates.Add((extraSource, pos, id, extraSource.inventoryTitleName ?? "Container", StorageCategory.None, Vector2.Distance(selfPos, pos)));
+            }
+
+            // 3. Player-marked Drop-off boxes first, then player-marked categorized boxes with misplaced items
+            for (int pass = 0; pass < 2; pass++)
+            {
+                for (int i = 0; i < allContainers.Count; i++)
+                {
+                    var c = allContainers[i];
+                    if (c == null || !Il2CppSafe.IsAlive(c.Inventory) || c.Inventory.itemList == null || c.Inventory.itemList.Count == 0)
+                        continue;
+                    if (c.Rule == null || !c.Rule.IsMarkedByPlayer) continue;
+
+                    if (pass == 0 && c.Rule.IsDropoffSource)
+                    {
+                        candidates.Add((c.Inventory, c.WorldPos, c.ContainerId, c.DisplayName, StorageCategory.None, Vector2.Distance(selfPos, c.WorldPos)));
+                    }
+                    else if (pass == 1 && !c.Rule.IsDropoffSource && c.Rule.Categories != StorageCategory.None && c.Rule.Categories != StorageCategory.All)
+                    {
+                        candidates.Add((c.Inventory, c.WorldPos, c.ContainerId, c.DisplayName, c.Rule.Categories, Vector2.Distance(selfPos, c.WorldPos)));
+                    }
+                }
+            }
+
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                var cand = candidates[i];
+                if (claimedSources != null && claimedSources.Contains(cand.inv.Pointer))
+                    continue;
+                if (!HasMovableItemInSource(cand.inv, cand.stayMask, destBoxes))
+                    continue;
+
+                if (claimedSources != null)
+                    claimedSources.Add(cand.inv.Pointer);
+
+                st.IsSortingActive = true;
+                st.SortingPhase = 1;
+                st.SourceContainerGuid = cand.id;
+                st.SourceContainerName = cand.name;
+                st.SourceContainerInv = cand.inv;
+                st.SourceAllowedStayMask = cand.stayMask;
+                st.TargetContainerGuid = cand.id;
+                st.TargetContainerName = cand.name;
+                st.TargetContainerPos = cand.pos;
+                st.SortingStateStartTime = Time.unscaledTime;
+                st.CurrentTaskText = CompanionConfigStore.L(
+                    $"Идёт к «{cand.name}» за предметами...",
+                    $"Walking to '{cand.name}' to pick up items...",
+                    $"正在前往「{cand.name}」取物...");
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool HasMovableItemInSource(InventoryData srcInv, StorageCategory stayMask, List<DiscoveredContainer> destBoxes)
+        {
+            if (!Il2CppSafe.IsAlive(srcInv) || srcInv.itemList == null) return false;
+            for (int i = 0; i < srcInv.itemList.Count; i++)
+            {
+                var item = srcInv.itemList[i];
+                if (!Il2CppSafe.IsAlive(item)) continue;
+                var cat = ItemCategorizer.ClassifyItem(item);
+                if (stayMask != StorageCategory.None && (stayMask & cat) != 0)
+                    continue;
+                for (int d = 0; d < destBoxes.Count; d++)
+                {
+                    var dest = destBoxes[d];
+                    if (dest?.Inventory == null || dest.Inventory.Pointer == srcInv.Pointer) continue;
+                    if ((dest.Rule.Categories & cat) == 0) continue;
+                    if (InventoryTransfers.CanAcceptWholeItem(dest.Inventory, item))
+                        return true;
+                }
+            }
+            return false;
+        }
+
         private static int PickupBatchIntoCarryBuffer(GOAPAgent ag, CompanionRuntimeState st, List<DiscoveredContainer> destBoxes)
         {
             var srcInv = st.SourceContainerInv;
@@ -15,6 +121,19 @@ namespace ZedZone.SmartCompanions
             int picked = 0;
             try
             {
+                // Track remaining free grid cells per destination chest across this batch
+                // so we never over-pick 10 items for a chest that only has 1-2 free cells!
+                var remainingFreeCells = new Dictionary<IntPtr, int>();
+                for (int d = 0; d < destBoxes.Count; d++)
+                {
+                    var dest = destBoxes[d];
+                    if (dest?.Inventory != null && !remainingFreeCells.ContainsKey(dest.Inventory.Pointer))
+                    {
+                        try { remainingFreeCells[dest.Inventory.Pointer] = dest.Inventory.CountFreeCells(); }
+                        catch { remainingFreeCells[dest.Inventory.Pointer] = 36; }
+                    }
+                }
+
                 var snapshot = new List<ItemData>();
                 for (int i = 0; i < srcInv.itemList.Count; i++)
                 {
@@ -32,12 +151,25 @@ namespace ZedZone.SmartCompanions
                     if (st.SourceAllowedStayMask != StorageCategory.None && (st.SourceAllowedStayMask & cat) != 0)
                         continue;
 
+                    int neededCells = InventoryTransfers.EstimateItemCells(item);
                     DiscoveredContainer chosenDest = null;
+
                     for (int d = 0; d < destBoxes.Count; d++)
                     {
                         var dest = destBoxes[d];
                         if (dest?.Inventory == null || dest.Inventory.Pointer == srcInv.Pointer) continue;
                         if ((dest.Rule.Categories & cat) == 0) continue;
+
+                        if (InventoryTransfers.CanMergeCompletelyIntoExistingStack(dest.Inventory, item))
+                        {
+                            chosenDest = dest;
+                            neededCells = 0;
+                            break;
+                        }
+
+                        remainingFreeCells.TryGetValue(dest.Inventory.Pointer, out int availCells);
+                        if (availCells < neededCells) continue;
+
                         if (InventoryTransfers.CanAcceptWholeItem(dest.Inventory, item))
                         {
                             chosenDest = dest;
@@ -49,6 +181,9 @@ namespace ZedZone.SmartCompanions
 
                     if (InventoryTransfers.TryTakeIntoCarryBuffer(srcInv, item, out var carriedCopy))
                     {
+                        if (neededCells > 0 && remainingFreeCells.TryGetValue(chosenDest.Inventory.Pointer, out int curAvail))
+                            remainingFreeCells[chosenDest.Inventory.Pointer] = Mathf.Max(0, curAvail - neededCells);
+
                         st.CarryBuffer.Add(new CarryItemEntry
                         {
                             Item = carriedCopy,
@@ -152,7 +287,7 @@ namespace ZedZone.SmartCompanions
                     bool usedCompact = true;
 
                     if (Il2CppSafe.IsAlive(entry.TargetInv) &&
-                        InventoryTransfers.TryAddWholeCopy(entry.TargetInv, entry.Item, out _))
+                        InventoryTransfers.TryDepositOrStackWhole(entry.TargetInv, entry.Item))
                     {
                         placed = true;
                         usedDestInv = entry.TargetInv;
@@ -161,12 +296,11 @@ namespace ZedZone.SmartCompanions
                     }
                     else if (destBoxes != null)
                     {
-                        // Destination filled up while companion was walking; try another matching chest
                         for (int d = 0; d < destBoxes.Count; d++)
                         {
                             var alt = destBoxes[d];
                             if (alt?.Inventory == null || (alt.Rule.Categories & entry.Category) == 0) continue;
-                            if (InventoryTransfers.TryAddWholeCopy(alt.Inventory, entry.Item, out _))
+                            if (InventoryTransfers.TryDepositOrStackWhole(alt.Inventory, entry.Item))
                             {
                                 placed = true;
                                 usedDestInv = alt.Inventory;
@@ -186,7 +320,6 @@ namespace ZedZone.SmartCompanions
                     }
                     else
                     {
-                        // Safely return item to source so it is never lost
                         InventoryTransfers.RestoreCarriedItemSafely(entry.FallbackSourceInv, entry.TargetInv, entry.Item);
                     }
 
@@ -198,7 +331,7 @@ namespace ZedZone.SmartCompanions
                     var td = touchedDestRules[i];
                     if (td.autoCompact && Il2CppSafe.IsAlive(td.inv))
                     {
-                        try { td.inv.AutoSorting(false, false, AutoSortMode.Dense, false); } catch { }
+                        InventoryTransfers.SafeCompactInventory(td.inv);
                     }
                 }
 
@@ -225,7 +358,7 @@ namespace ZedZone.SmartCompanions
             return deposited;
         }
 
-        private static void FinishCompanionSorting(GOAPAgent ag, CompanionRuntimeState st)
+        private static void FinishCompanionSorting(GOAPAgent ag, CompanionRuntimeState st, List<DiscoveredContainer> containers)
         {
             FlushCarryBufferSafely(st);
             st.IsSortingActive = false;
@@ -234,10 +367,23 @@ namespace ZedZone.SmartCompanions
             st.CurrentTaskText = CompanionConfigStore.L("Склад отсортирован", "Base storage sorted", "仓库已整理完毕");
             if (Il2CppSafe.IsAliveUnity(ag))
                 SmartChatterSystem.Speak(ag, ChatterTopic.SortFinished, minCooldown: 0.5f, bubbleDuration: 6.0f, force: true);
-            SetBanner(CompanionConfigStore.L(
-                $"{st.LastKnownName}: перенос и сортировка ящиков завершены (уложено за сессию: {st.SortedItemsThisSession} шт.)",
-                $"{st.LastKnownName}: finished carrying & sorting chests (session total: {st.SortedItemsThisSession})",
-                $"{st.LastKnownName}：储物箱搬运与整理已完成（本局累计整理：{st.SortedItemsThisSession} 件）"));
+
+            int remDrop = InspectRemainingDropoffItems(containers, out var remMask);
+            if (remDrop > 0)
+            {
+                string remCats = ItemCategorizer.FormatCategoriesSummary(remMask, false);
+                SetBanner(CompanionConfigStore.L(
+                    $"{st.LastKnownName}: перенос завершён. В приёмнике осталось {remDrop} шт. (нет места/ящика для: {remCats})",
+                    $"{st.LastKnownName}: carry finished. {remDrop} items remain in Drop-off (need space/chest for: {remCats})",
+                    $"{st.LastKnownName}：搬运完成。中转箱剩余 {remDrop} 件（缺少空位/分类箱：{remCats}）"), 8f);
+            }
+            else
+            {
+                SetBanner(CompanionConfigStore.L(
+                    $"{st.LastKnownName}: перенос и сортировка ящиков завершены (уложено за сессию: {st.SortedItemsThisSession} шт.)",
+                    $"{st.LastKnownName}: finished carrying & sorting chests (session total: {st.SortedItemsThisSession})",
+                    $"{st.LastKnownName}：储物箱搬运与整理已完成（本局累计整理：{st.SortedItemsThisSession} 件）"));
+            }
         }
 
         public static void FlushCarryBufferSafely(CompanionRuntimeState st)
@@ -306,12 +452,12 @@ namespace ZedZone.SmartCompanions
 
                 foreach (var c in allContainers)
                 {
-                    if (c?.Inventory == null) continue;
+                    if (c?.Inventory == null || c.Rule == null || !c.Rule.IsMarkedByPlayer) continue;
                     if (Il2CppSafe.IsAlive(extraSource) && c.Inventory.Pointer == extraSource.Pointer) continue;
 
-                    if (c.Rule != null && c.Rule.IsDropoffSource)
+                    if (c.Rule.IsDropoffSource)
                         sourceInventories.Add((c.Inventory, StorageCategory.None));
-                    else if (c.Rule != null && c.Rule.Categories != StorageCategory.None && c.Rule.Categories != StorageCategory.All)
+                    else if (c.Rule.Categories != StorageCategory.None && c.Rule.Categories != StorageCategory.All)
                         sourceInventories.Add((c.Inventory, c.Rule.Categories));
                 }
 
@@ -358,7 +504,7 @@ namespace ZedZone.SmartCompanions
                 {
                     if (dest?.Inventory != null && dest.Rule.AutoCompact && touchedDestInventories.Contains(dest.Inventory.Pointer))
                     {
-                        try { dest.Inventory.AutoSorting(false, false, AutoSortMode.Dense, false); } catch { }
+                        InventoryTransfers.SafeCompactInventory(dest.Inventory);
                     }
                 }
 
@@ -413,7 +559,7 @@ namespace ZedZone.SmartCompanions
 
                 foreach (var c in containers)
                 {
-                    if (c?.Rule == null || !Il2CppSafe.IsAlive(c.Inventory)) continue;
+                    if (c?.Rule == null || !c.Rule.IsMarkedByPlayer || !Il2CppSafe.IsAlive(c.Inventory)) continue;
                     if ((c.Rule.IsDropoffSource || c.Rule.Categories != StorageCategory.None) &&
                         Vector2.Distance(selfPos, c.WorldPos) <= 8.5f)
                     {

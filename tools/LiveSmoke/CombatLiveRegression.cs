@@ -116,6 +116,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 }
 
                 if (_zombie.deadFlag || _agent.humanCharacter.deadFlag) return End(false, "FAIL: participant died; target="+_zombie.deadFlag+", NPC="+_agent.humanCharacter.deadFlag);
+                IsolateArena(log: false);
                 DiagnosePhase(now);
                 var gun = _agent.humanCharacter.rangedWeapon;
                 if (!Il2CppSafe.IsAliveUnity(gun) || !Il2CppSafe.IsAlive(gun.weaponData))
@@ -247,7 +248,22 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             if (_state.CarryBuffer.Count != 0 || srcInv.itemList.Count != 1)
                 throw new Exception("FlushCarryBufferSafely did not restore carried item back to srcInv!");
 
-            LiveSmokePlugin.Logger.LogInfo($"[CombatLive] PASS v1.4.1 MP Sync, WarningHumanEnemy, Container Scan (found={scanned.Count} unique boxes without opening), & Invisible CarryBuffer checks.");
+            // Verify v1.4.2 ItemCategorizer with real ItemAttr objects (regression guard for HasFeature(Bandage))
+            var gunItem = ItemManager.instance.GetRandomDataByAttr(ItemManager.instance.GetItemAttrById(406), false, false);
+            var knifeItem = ItemManager.instance.GetRandomDataByAttr(ItemManager.instance.GetItemAttrById(352), false, false);
+            var steakItem = ItemManager.instance.GetRandomDataByAttr(ItemManager.instance.GetItemAttrById(248), false, false);
+            if (ItemCategorizer.ClassifyItem(gunItem) != StorageCategory.RangedWeapons ||
+                ItemCategorizer.ClassifyItem(knifeItem) != StorageCategory.MeleeWeapons ||
+                ItemCategorizer.ClassifyItem(steakItem) != StorageCategory.FreshFood)
+            {
+                throw new Exception($"ItemCategorizer real-ItemAttr check failed: gun={ItemCategorizer.ClassifyItem(gunItem)}, knife={ItemCategorizer.ClassifyItem(knifeItem)}, steak={ItemCategorizer.ClassifyItem(steakItem)}");
+            }
+
+            var filteredUi = BaseSortingSystem.GetFilteredContainersForUI(forceScan: false);
+            if (filteredUi.Count >= scanned.Count)
+                throw new Exception($"GetFilteredContainersForUI did not filter distant unmarked chests: filtered={filteredUi.Count}, total={scanned.Count}");
+
+            LiveSmokePlugin.Logger.LogInfo($"[CombatLive] PASS v1.4.2 MP Sync, WarningHumanEnemy, Real ItemAttr Categorizer (gun/knife/steak!=Medicine), Filtered UI (filtered={filteredUi.Count}/{scanned.Count}), & Invisible CarryBuffer checks.");
         }
 
         private static void StartPhase(float now)

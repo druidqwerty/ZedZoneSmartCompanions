@@ -376,16 +376,18 @@ namespace ZedZone.SmartCompanions
 
         private static bool HasFeature(ItemAttr attr, ItemFeatureType ft)
         {
+            if (!Il2CppSafe.IsAliveUnity(attr)) return false;
             try
             {
                 if (attr.itemFeatures != null && attr.itemFeatures.Contains(ft))
                     return true;
-                return attr.GetItemFeatureByFeatureType(ft) != null;
+                if (attr.itemFeatureDataDic != null && attr.itemFeatureDataDic.ContainsKey(ft))
+                    return true;
             }
             catch
             {
-                return false;
             }
+            return false;
         }
 
         private static string SafeLower(string s) => string.IsNullOrEmpty(s) ? "" : s.ToLowerInvariant();

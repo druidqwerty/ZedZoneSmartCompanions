@@ -337,31 +337,40 @@ namespace ZedZone.SmartCompanions
 
         private static void DrawTabBaseBoxes(Rect area, ModLanguage lang)
         {
-            var containers = BaseSortingSystem.ScanNearbyContainers(force: false);
+            var containers = BaseSortingSystem.GetFilteredContainersForUI(forceScan: false);
 
             // Top action bar
             GUI.Box(new Rect(area.x, area.y, area.width, 42f), GUIContent.none, _boxStyle);
             float bx = area.x + 8f;
             float by = area.y + 8f;
 
-            if (GUI.Button(new Rect(bx, by, 175f, 26f),
-                CompanionConfigStore.L(lang, " Обновить ящики базы", " Rescan Base Boxes", " 重新扫描周围箱子"), _btnStyle))
-                containers = BaseSortingSystem.ScanNearbyContainers(force: true);
-
-            if (GUI.Button(new Rect(bx + 182f, by, 240f, 26f),
-                CompanionConfigStore.L(lang, " Авто-разметка по содержимому", " Auto-Detect Categories", " 按箱内物品自动识别分类"), _btnStyle))
+            string filterLabel = BaseSortingSystem.ContainerListFilterMode switch
             {
-                BaseSortingSystem.AutoDetectCategoriesFromContents();
+                1 => CompanionConfigStore.L(lang, "Фильтр: Рядом (≤7м)", "Filter: Nearby (≤7m)", "筛选：附近（≤7米）"),
+                2 => CompanionConfigStore.L(lang, "Фильтр: Все вокруг (18м)", "Filter: All (18m)", "筛选：全部（18米）"),
+                _ => CompanionConfigStore.L(lang, "Фильтр: Мои + у ног (≤2м)", "Filter: Mine + Close (≤2m)", "筛选：已标记 + 脚边")
+            };
+            if (GUI.Button(new Rect(bx, by, 185f, 26f), filterLabel, BaseSortingSystem.ContainerListFilterMode == 0 ? _catOnStyle : _btnStyle))
+            {
+                BaseSortingSystem.ContainerListFilterMode = (BaseSortingSystem.ContainerListFilterMode + 1) % 3;
+                containers = BaseSortingSystem.GetFilteredContainersForUI(forceScan: true);
             }
 
-            if (GUI.Button(new Rect(bx + 428f, by, 215f, 26f),
-                CompanionConfigStore.L(lang, " Приказ NPC: Сортировать базу", " Order NPCs: Sort Base", " 命令队友：整理基地仓库"), _catOnStyle))
+            if (GUI.Button(new Rect(bx + 190f, by, 215f, 26f),
+                CompanionConfigStore.L(lang, "Авто-разметка рядом (≤8м)", "Auto-Detect Near (≤8m)", "自动识别身边箱子（≤8米）"), _btnStyle))
+            {
+                BaseSortingSystem.AutoDetectCategoriesFromContents();
+                containers = BaseSortingSystem.GetFilteredContainersForUI(forceScan: true);
+            }
+
+            if (GUI.Button(new Rect(bx + 410f, by, 230f, 26f),
+                CompanionConfigStore.L(lang, "Приказ NPC: Сортировать [F7]", "Order NPCs: Sort Base [F7]", "命令队友：整理仓库 [F7]"), _catOnStyle))
             {
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
             }
 
-            if (GUI.Button(new Rect(bx + 649f, by, 190f, 26f),
-                CompanionConfigStore.L(lang, " Мгновенно разложить всё", " Instant Sort All Now", " 立即一键整理全部"), _btnStyle))
+            if (GUI.Button(new Rect(bx + 645f, by, 195f, 26f),
+                CompanionConfigStore.L(lang, "Мгновенно разложить всё", "Instant Sort All Now", "立即一键整理全部"), _btnStyle))
             {
                 BaseSortingSystem.CommandSortBase(null, null, instant: true);
             }
@@ -413,11 +422,14 @@ namespace ZedZone.SmartCompanions
                     selectedContainer = c;
 
                 bool isSel = c.ContainerId == _selectedBoxIdInHub;
-                string summary = ItemCategorizer.FormatCategoriesSummary(c.Rule.Categories, c.Rule.IsDropoffSource, lang);
+                string markPrefix = c.Rule.IsMarkedByPlayer ? "[*] " : "";
+                string summary = c.Rule.IsMarkedByPlayer
+                    ? ItemCategorizer.FormatCategoriesSummary(c.Rule.Categories, c.Rule.IsDropoffSource, lang)
+                    : CompanionConfigStore.L(lang, "Не отмечен (игнорируется)", "Not marked (ignored)", "未标记（不参与整理）");
                 string unit = CompanionConfigStore.L(lang, "шт.", "items", "件");
                 string mUnit = CompanionConfigStore.L(lang, "м", "m", "米");
                 string coordTag = $"[{Mathf.RoundToInt(c.WorldPos.x)},{Mathf.RoundToInt(c.WorldPos.y)}]";
-                string btnText = $"{c.DisplayName} {coordTag} ({c.DistanceToPlayer:F1}{mUnit} | {c.ItemCount} {unit})\n{summary}";
+                string btnText = $"{markPrefix}{c.DisplayName} {coordTag} ({c.DistanceToPlayer:F1}{mUnit} | {c.ItemCount} {unit})\n{summary}";
 
                 if (GUI.Button(new Rect(4f, i * 48f, viewRect.width - 8f, 44f), btnText, isSel ? _catOnStyle : _btnStyle))
                 {
@@ -436,41 +448,61 @@ namespace ZedZone.SmartCompanions
             {
                 var rule = selectedContainer.Rule;
                 float rx = rightRect.x + 12f;
-                float ry = rightRect.y + 10f;
+                float ry = rightRect.y + 8f;
                 float rw = rightRect.width - 24f;
 
-                GUI.Label(new Rect(rx, ry, rw, 24f),
+                GUI.Label(new Rect(rx, ry, rw, 22f),
                     CompanionConfigStore.L(lang,
-                        $"Настройка ящика: {selectedContainer.DisplayName} (предметов внутри: {selectedContainer.ItemCount})",
-                        $"Configure Chest: {selectedContainer.DisplayName} (items: {selectedContainer.ItemCount})",
-                        $"配置储物箱：{selectedContainer.DisplayName}（当前箱内物品：{selectedContainer.ItemCount} 件）"),
+                        $"Ящик: {selectedContainer.DisplayName} (предметов: {selectedContainer.ItemCount} | {selectedContainer.DistanceToPlayer:F1}м)",
+                        $"Chest: {selectedContainer.DisplayName} (items: {selectedContainer.ItemCount} | {selectedContainer.DistanceToPlayer:F1}m)",
+                        $"储物箱：{selectedContainer.DisplayName}（物品：{selectedContainer.ItemCount} | {selectedContainer.DistanceToPlayer:F1}米）"),
                     _headerStyle);
 
-                ry += 30f;
-                string dropText = (rule.IsDropoffSource ? "[x] " : "[ ] ") +
+                ry += 26f;
+                string markText = (rule.IsMarkedByPlayer ? "[x] " : "[ ] ") +
                     CompanionConfigStore.L(lang,
-                        " Ящик-приёмник (NPC забирают хабар ОТСЮДА и разносят по базе)",
-                        " Drop-off Chest (NPCs take items FROM here to sort)",
-                        " 收货中转箱（队友会从此处取出战利品并分拣到各个分类箱）");
-                if (GUI.Button(new Rect(rx, ry, rw, 28f), dropText, rule.IsDropoffSource ? _catOnStyle : _catOffStyle))
+                        "Отмечен как ящик моей базы (Участвует в сортировке)",
+                        "Marked as Base Chest (Included in sorting)",
+                        "标记为我的基地储物箱（参与自动分拣）");
+                if (GUI.Button(new Rect(rx, ry, rw, 26f), markText, rule.IsMarkedByPlayer ? _catOnStyle : _catOffStyle))
                 {
-                    rule.IsDropoffSource = !rule.IsDropoffSource;
+                    rule.IsMarkedByPlayer = !rule.IsMarkedByPlayer;
+                    if (!rule.IsMarkedByPlayer)
+                    {
+                        rule.IsDropoffSource = false;
+                        rule.Categories = StorageCategory.None;
+                    }
                     MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
 
-                ry += 34f;
-                if (GUI.Button(new Rect(rx, ry, rw * 0.48f, 26f),
+                ry += 30f;
+                string dropText = (rule.IsDropoffSource ? "[x] " : "[ ] ") +
+                    CompanionConfigStore.L(lang,
+                        "Ящик-приёмник (NPC забирают хабар ОТСЮДА и разносят по базе)",
+                        "Drop-off Chest (NPCs take items FROM here to sort)",
+                        "收货中转箱（队友会从此处取出战利品并分拣到各个分类箱）");
+                if (GUI.Button(new Rect(rx, ry, rw, 26f), dropText, rule.IsDropoffSource ? _catOnStyle : _catOffStyle))
+                {
+                    rule.IsDropoffSource = !rule.IsDropoffSource;
+                    rule.IsMarkedByPlayer = rule.IsDropoffSource || rule.Categories != StorageCategory.None;
+                    MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
+                    CompanionConfigStore.Save();
+                }
+
+                ry += 30f;
+                if (GUI.Button(new Rect(rx, ry, rw * 0.48f, 24f),
                     CompanionConfigStore.L(lang,
                         $"Приоритет укладки: *{rule.Priority} (сменить)",
                         $"Fill Priority: *{rule.Priority} (cycle)",
                         $"存放优先级：*{rule.Priority}（点击切换）"), _btnStyle))
                 {
                     rule.Priority = (rule.Priority % 5) + 1;
+                    rule.IsMarkedByPlayer = true;
                     MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
-                if (GUI.Button(new Rect(rx + rw * 0.50f, ry, rw * 0.50f, 26f),
+                if (GUI.Button(new Rect(rx + rw * 0.50f, ry, rw * 0.50f, 24f),
                     (rule.AutoCompact ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Авто-уплотнение сетки", "Auto-Compact Grid", "整理后自动紧凑排列"),
                     rule.AutoCompact ? _catOnStyle : _catOffStyle))
                 {
@@ -479,19 +511,19 @@ namespace ZedZone.SmartCompanions
                     CompanionConfigStore.Save();
                 }
 
-                ry += 34f;
-                GUI.Label(new Rect(rx, ry, rw, 22f),
+                ry += 28f;
+                GUI.Label(new Rect(rx, ry, rw, 20f),
                     CompanionConfigStore.L(lang,
-                        "Отметьте категории предметов, которые NPC должны складывать в этот ящик:",
-                        "Select item categories that NPCs should store in this chest:",
-                        "勾选队友应当存入此储物箱的物品分类："),
+                        "Отметьте категории предметов (выбор категории автоматически отмечает ящик):",
+                        "Select item categories (selecting a category automatically marks this chest):",
+                        "勾选存入此储物箱的物品分类（勾选后自动标记为基地箱子）："),
                     _subHeaderStyle);
 
-                ry += 26f;
+                ry += 22f;
                 var cats = ItemCategorizer.AllCategories;
                 int cols = 2;
                 float cellW = (rw - 8f) / cols;
-                float cellH = 28f;
+                float cellH = 26f;
                 for (int i = 0; i < cats.Length; i++)
                 {
                     var cat = cats[i];
@@ -499,30 +531,34 @@ namespace ZedZone.SmartCompanions
                     int cIdx = i % cols;
                     bool on = (rule.Categories & cat) != 0;
                     string label = (on ? "[x] " : "[ ] ") + ItemCategorizer.GetCategoryName(cat, lang);
-                    if (GUI.Button(new Rect(rx + cIdx * (cellW + 8f), ry + rIdx * 32f, cellW, cellH), label, on ? _catOnStyle : _catOffStyle))
+                    if (GUI.Button(new Rect(rx + cIdx * (cellW + 8f), ry + rIdx * 29f, cellW, cellH), label, on ? _catOnStyle : _catOffStyle))
                     {
                         if (on) rule.Categories &= ~cat;
                         else rule.Categories |= cat;
+                        rule.IsMarkedByPlayer = rule.IsDropoffSource || rule.Categories != StorageCategory.None;
                         MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                         CompanionConfigStore.Save();
                     }
                 }
 
-                ry += 6 * 32f + 8f;
+                ry += 6 * 29f + 6f;
                 float pw = (rw - 12f) / 3f;
-                if (GUI.Button(new Rect(rx, ry, pw, 26f), CompanionConfigStore.L(lang, "Выбрать все", "Select All", "全选分类"), _btnStyle))
+                if (GUI.Button(new Rect(rx, ry, pw, 25f), CompanionConfigStore.L(lang, "Выбрать все", "Select All", "全选分类"), _btnStyle))
                 {
                     rule.Categories = StorageCategory.All;
+                    rule.IsMarkedByPlayer = true;
                     MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
-                if (GUI.Button(new Rect(rx + pw + 6f, ry, pw, 26f), CompanionConfigStore.L(lang, "Очистить все", "Clear All", "清空全选"), _btnStyle))
+                if (GUI.Button(new Rect(rx + pw + 6f, ry, pw, 25f), CompanionConfigStore.L(lang, "Убрать из базы", "Unmark / Clear", "取消标记/清空"), _btnStyle))
                 {
                     rule.Categories = StorageCategory.None;
+                    rule.IsDropoffSource = false;
+                    rule.IsMarkedByPlayer = false;
                     MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
-                if (GUI.Button(new Rect(rx + (pw + 6f) * 2f, ry, pw, 26f),
+                if (GUI.Button(new Rect(rx + (pw + 6f) * 2f, ry, pw, 25f),
                     CompanionConfigStore.L(lang, "Разобрать этот ящик", "Sort From This Box", "整理此箱物品"), _catOnStyle))
                 {
                     BaseSortingSystem.CommandSortBase(null, selectedContainer.Inventory, instant: false);

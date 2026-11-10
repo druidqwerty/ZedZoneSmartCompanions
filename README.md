@@ -7,12 +7,24 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.1"><strong>Release v1.4.1 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.2"><strong>Release v1.4.2 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v1.4.2 — Fixed Item Classification, Explicit Base Box Selection & Zero-Overflow Sorting
+
+- **Fixed `ItemCategorizer.HasFeature` Classifying Every Item as `[Medicine]` (`0x13A9D30`):**
+  - Native disassembly of `ItemAttr.GetItemFeatureByFeatureType(ItemFeatureType)` (`0x13A9D30`) showed that when an item lacks a feature in `itemFeatureDataDic`, it falls back to `ItemManager.instance.GetItemFeatureByFeatureType` (non-null for all features), which caused `HasFeature(attr, ItemFeatureType.Bandage)` to classify every item in the game as `StorageCategory.Medicine`! Fixed to check only `attr.itemFeatures.Contains(ft)` and `attr.itemFeatureDataDic.ContainsKey(ft)` so weapons, ammo, materials, tools, clothes, food, and medicine are classified accurately.
+- **Sort Only Player-Marked Base Chests (`IsMarkedByPlayer`) & Smart 3-Mode F8 Filter:**
+  - Companions now sort **only** between chests that you explicitly mark (`[*] Marked as Base Chest` — automatically enabled when you toggle any category or **Drop-off Box** on a chest, and removable in 1 click). Unmarked world containers are never touched.
+  - Added a 3-mode filter in **F8** Tab 2 (default `Filter: Mine + Close ≤2m` showing only your marked base chests plus at most 3 unmarked chests right at your feet, cycling to `Nearby ≤7m` and `All 18m`), eliminating the clutter of distant world shelves/containers.
+  - Automatically cleans up legacy `Medicine`-only auto-tags from `v1.4.1`.
+- **Overflow-Free Compaction, Stack Merging & Complete Drop-Off Unloading:**
+  - Replaced `InventoryData.AutoSorting(false, ...)` (which discarded overflow items when `executeDropFlag` was `false`) with `InventoryTransfers.SafeCompactInventory` (`TryAutoSortingWithoutOverflow`), which restores a layout snapshot if any item would overflow—guaranteeing zero item loss.
+  - Stackable items (materials, ammo, meds) now merge onto existing partial stacks (`TryDepositOrStackWhole`), and `PickupBatchIntoCarryBuffer` tracks remaining free cells per destination chest so companions route overflow items to the next marked chest of that category. If items remain in a Drop-off box after sorting, the banner reports the exact count and which categories need a marked chest or free space. [Verification report](docs/verification-1.4.2.md).
 
 ## New in v1.4.1 — World Container Discovery, Per-Box Isolation & Physical Item Carrying
 
