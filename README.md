@@ -7,12 +7,25 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.2"><strong>Release v1.4.2 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.5.0"><strong>Release v1.5.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v1.5.0 — Companion Dismissal Fix, Draggable UI, Squad Limit (up to 15), AVO Compatibility & Autonomous Scavenging
+
+- **Fixed Companion Dismissal (`QuitTeam` / `RemoveTeamNPC` / `UnFollowPlayer`):**
+  - Fixed a bug where `MultiplayerSyncSystem.SyncCompanionOwnerAndLeader` restored `leaderCharacterGUID` after a companion was dismissed, causing dismissed companions to keep following the player even after disappearing from the top-left team panel. Dismissed companions now cleanly leave the squad, flush any carried sorting items, and remain independent until re-recruited.
+- **Draggable UI Windows (`F8`, `ChestCategoryBar`, `HudBadge`) & Non-Overlapping Default Positions:**
+  - All three UI windows (`MainHubWindow [F8]`, `ChestCategoryBar` expanded/collapsed, and `HudBadge` expanded/collapsed) can now be dragged anywhere on screen by their `::` header handle, with positions saved to config and a **Reset UI Positions** button in **F8** Tab 3.
+  - Moved the default `HudBadge` out of the top-right minimap area to upper left-center (`[-]` collapse to a tiny `[F8]` pill, `[x]` hide), and moved the default `ChestCategoryBar` to bottom-center so it never overlaps the inventory header or backpack sort button.
+- **Configurable Squad Limit (`MaxTeamSize` up to 15) & `AVO Expanded` Compatibility:**
+  - Added a squad limit selector in **F8** Tab 1 & Tab 3 (`Auto (3 / AVO)`, `4`, `6`, `8`, `10`, `12`, `15` companions via `CharacterData.maxTeamNPCNumber`).
+  - Automatic + manual `AVO Expanded — Advanced Squad Control` (`3836458339`) compatibility: switches the ration hotkey from `F6` to `Alt + F6` so opening the AVO menu on `F6` never consumes player food.
+- **Fixed `Basic.CollectResource` / `CollectSpecifiedItem` & Autonomous Scavenging:**
+  - Keeps `GOAPGoal_FollowLeader` priority low (`1.5`) up to `42 m` from the player during `CollectResource` / `CollectSpecifiedItem` so companions no longer abort scavenging at `12 m`, lifts `IsTeammateScavengeRestricted`, scavenges unmarked wild containers nearby, and strictly protects all player-marked/player-built base chests (`IsContainerSearchableByNPC == false`). [Verification report](docs/verification-1.5.0.md).
 
 ## New in v1.4.2 — Fixed Item Classification, Explicit Base Box Selection & Zero-Overflow Sorting
 

@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 1.4.2 VERIFIED / Locally Installed / Released on GitHub & Queued on Boosty
+## Status: 1.5.0 VERIFIED / Locally Installed / Released on GitHub & Boosty
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -141,6 +141,19 @@
   - Final DLL SHA-256: `bd26c9f67bac995a0477003b5cab9c9ff1f918e8c3c252cc44972a32977a341a` (43 Harmony patches, `[SelfVerify] PASS v1.4.2`).
   - Live in-engine verification (`docs/combat-acceptance-1.4.2.log`): Real `ItemAttr` Categorizer (`gun/knife/steak != Medicine`), Filtered UI, `CarryBuffer` roundtrip, and Phases 0–3 combat PASS with `0` errors/exceptions.
   - Release ZIP: `dist/ZedZoneSmartCompanions-1.4.2.zip` (`1,664,369` bytes, SHA-256 `8cb746e2500ce84abf2a3563d1f6dec620a264908272ceaf404f8a06fe47dfd9`).
+
+## 1.5.0 Companion Dismissal Fix, Draggable UI, Squad Limit (15), AVO Compatibility & CollectResource Overhaul — completed (2026-11-10)
+- **Root-Cause Analysis & Fixes (per `docs/PLAN_1.5.0.md`):**
+  1. **Block 1 (QuitTeam / RemoveTeamNPC / UnFollowPlayer Dismissal Fix):** Hooked `CharacterData.RemoveTeamNPC`, `CharacterData.AddTeamNPC`, `GOAPNPCData.ExecuteNPCCommand("QuitTeam" / "JoinPlayerTeam")`, and `GOAPAgent.SetLeader(null)`. `MultiplayerSyncSystem.OnCompanionDismissed` flushes carried items (`FlushCarryBufferSafely`), clears `OwnerCharacterId` / `OwnerPlayerName`, sets `IsDismissedOrNotInTeam = true`, clears `agent.leaderCharacter = null` and `agentState["hasLeader"] = false`, and `SyncCompanionOwnerAndLeader` never restores a blank `leaderCharacterGUID` unless the NPC is still in `GOAPNPCManager.instance.teammateNPCs` or `teamNPCGuids`.
+  2. **Block 2 (Draggable UI & Safe Non-Overlapping Default Positions):** Added mouse drag-and-drop (`HandleWindowDrag`) to `MainHubWindow [F8]`, `ChestCategoryBar` (expanded & collapsed), and `HudBadge` (expanded & collapsed) with persistent coordinates in `CompanionConfigStore` and `ResetUiPositions()`. Moved default `HudBadge` out of the top-right minimap area to upper left-center (`[-]` collapse to `F8` pill, `[x]` hide), and moved default `ChestCategoryBar` to bottom-center so it never overlaps the inventory header or backpack sort button. Updated `IsPointerOverOverlay` to use live dynamic `Rect`s and active drag state.
+  3. **Block 3 (Configurable `MaxTeamSize` up to 15 & `AVO Expanded` Compatibility):** Added `MaxTeamSize` (`0 = Auto/3/AVO`, `4`, `6`, `8`, `10`, `12`, `15`) in **F8** Tab 1 & Tab 3 (`CharacterData.maxTeamNPCNumber`), plus automatic + manual `AVO Expanded` (`3836458339`) detection switching the ration hotkey from `F6` to `Alt + F6`.
+  4. **Block 4 (`Basic.CollectResource` / `CollectSpecifiedItem` & Base Chest Protection):** Patched `GOAPGoal_FollowLeader.GetPriority` to stay at `1.5f` up to `42 m` during `CollectResource` / `CollectSpecifiedItem`, patched `GOAPAgentState.IsTeammateScavengeRestricted` (`false`), protected all player-marked/player-built base chests in `GOAPAgentState.IsContainerSearchableByNPC` (`false`), and extended `AutoLootSystem.CommandSweepNearbyLoot` to scavenge unmarked wild containers nearby.
+  5. **Block 5 (Obstacle-Aware Carry Pathing & Cache Pruning):** Switches to pathfinding `agent.MoveTo(st.TargetContainerPos, 1.4f, true)` when `agent.isStuck` during carry jobs, and prunes destroyed `TerrainObject` pointers in `BaseSortingSystem.PruneStaleCacheEntries()`.
+- **Verification & Packaging:**
+  - Build: `0` warnings, `0` errors (`--warnaserror`).
+  - Final DLL SHA-256: `059393d525389a104734d0a78f2547666abbeb4352f725051859668f09facbc8` (49 Harmony patches, `[SelfVerify] PASS v1.5.0`).
+  - Live in-engine verification (`docs/combat-acceptance-1.5.0.log`): `QuitTeam` Dismissal, Draggable UI, `MaxTeamSize=12`, `CollectResource` & Base Chest Protection, Real `ItemAttr` Categorizer, Filtered UI, `CarryBuffer`, and Phases 0–3 combat PASS (`0` errors/exceptions).
+
 - **Publication & Verification (2026-11-10):**
   - **GitHub Release (`v1.4.2`):** https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.2
   - **Steam Workshop (`3836613312`):** https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312 (`visibility=0` public, `file_size=676060`, `time_updated=1794308487`). EN/RU/ZH descriptions updated and SDK-verified (`docs/publication-1.4.2.json`): removed misleading "My ZED ZONE mods: Code Mod Loader" section, explicitly credited `ZED ZONE Code Mod Loader` (`3834614258`) as a third-party dependency (`not a mod by druidqwerty`), and preserved the `© 2026 druidqwerty` MIT license & authorship footer.

@@ -178,7 +178,10 @@ namespace ZedZone.SmartCompanions
                     float dist = Vector2.Distance(selfPos, st.TargetContainerPos);
                     if (dist > 1.60f)
                     {
-                        ag.MoveTo_Direct(st.TargetContainerPos, true, true, false);
+                        if (ag.isStuck || ag.IsStuckRecovering)
+                            ag.MoveTo(st.TargetContainerPos, 1.4f, true);
+                        else
+                            ag.MoveTo_Direct(st.TargetContainerPos, true, true, false);
                         ag.LookAtPositionSmoothCompat(st.TargetContainerPos, 10f);
                     }
                     else
@@ -192,6 +195,7 @@ namespace ZedZone.SmartCompanions
 
         public static void TickActiveSortingJobs()
         {
+            PruneStaleCacheEntries();
             var teammates = SmartChatterSystem.GetActiveTeammateAgents();
             if (teammates.Count == 0) return;
 

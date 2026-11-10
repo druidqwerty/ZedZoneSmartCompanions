@@ -263,7 +263,82 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             if (filteredUi.Count >= scanned.Count)
                 throw new Exception($"GetFilteredContainersForUI did not filter distant unmarked chests: filtered={filteredUi.Count}, total={scanned.Count}");
 
-            LiveSmokePlugin.Logger.LogInfo($"[CombatLive] PASS v1.4.2 MP Sync, WarningHumanEnemy, Real ItemAttr Categorizer (gun/knife/steak!=Medicine), Filtered UI (filtered={filteredUi.Count}/{scanned.Count}), & Invisible CarryBuffer checks.");
+            // Verify v1.5.0 Test 1: Companion Dismissal (QuitTeam / RemoveTeamNPC) does NOT resurrect leaderCharacterGUID
+            GOAPAgent dismissTarget = null;
+            foreach (var mate in SmartChatterSystem.GetActiveTeammateAgents())
+            {
+                if (Il2CppSafe.IsAliveUnity(mate) && mate.Pointer != _agent.Pointer)
+                {
+                    dismissTarget = mate;
+                    break;
+                }
+            }
+            if (Il2CppSafe.IsAliveUnity(dismissTarget) && Il2CppSafe.IsAlive(dismissTarget.npcData))
+            {
+                string origLeader = dismissTarget.npcData.leaderCharacterGUID;
+                var stDismiss = CompanionConfigStore.GetOrCreateCompanion(dismissTarget.npcData.npcGUID);
+                stDismiss.OwnerCharacterId = gc.playerCharacter.characterData.characterId;
+                gc.playerCharacter.characterData.RemoveTeamNPC(dismissTarget.npcData);
+                if (GOAPNPCManager.instance?.teammateNPCs != null)
+                    GOAPNPCManager.instance.teammateNPCs.Remove(dismissTarget.npcData);
+                dismissTarget.npcData.ExecuteNPCCommand("QuitTeam");
+                MultiplayerSyncSystem.SyncCompanionOwnerAndLeader(dismissTarget);
+                MultiplayerSyncSystem.SyncCompanionOwnerAndLeader(dismissTarget);
+                if (!string.IsNullOrEmpty(dismissTarget.npcData.leaderCharacterGUID) ||
+                    Il2CppSafe.IsAliveUnity(dismissTarget.leaderCharacter) ||
+                    !stDismiss.IsDismissedOrNotInTeam)
+                {
+                    throw new Exception("Dismissed companion was re-bound to player by SyncCompanionOwnerAndLeader!");
+                }
+                // Re-recruit back for lab restoration
+                dismissTarget.npcData.leaderCharacterGUID = origLeader;
+                gc.playerCharacter.characterData.teamNPCGuids.Add(dismissTarget.npcData.npcGUID);
+                GOAPNPCManager.instance?.teammateNPCs?.Add(dismissTarget.npcData);
+                MultiplayerSyncSystem.OnCompanionRecruited(gc.playerCharacter.characterData, dismissTarget.npcData);
+                MultiplayerSyncSystem.SyncCompanionOwnerAndLeader(dismissTarget);
+                if (stDismiss.IsDismissedOrNotInTeam || string.IsNullOrEmpty(dismissTarget.npcData.leaderCharacterGUID))
+                    throw new Exception("Re-recruited companion did not restore team state!");
+            }
+
+            // Verify v1.5.0 Test 2: Draggable UI & ResetUiPositions
+            CompanionConfigStore.HudBadgePosX = 420f;
+            CompanionConfigStore.HudBadgePosY = 14f;
+            CompanionConfigStore.ResetUiPositions();
+            if (CompanionConfigStore.HudBadgePosX != -1f || !CompanionConfigStore.ShowHudBadge || CompanionConfigStore.HudBadgeCollapsed)
+                throw new Exception("ResetUiPositions failed to reset HUD badge coordinates!");
+
+            // Verify v1.5.0 Test 3: MaxTeamSize up to 15
+            int prevMaxTeam = CharacterData.maxTeamNPCNumber;
+            CompanionConfigStore.MaxTeamSize = 12;
+            CompanionConfigStore.ApplyMaxTeamSizeIfConfigured();
+            if (CharacterData.maxTeamNPCNumber != 12)
+                throw new Exception($"MaxTeamSize failed to apply: expected 12, got {CharacterData.maxTeamNPCNumber}");
+            CompanionConfigStore.MaxTeamSize = 0;
+            CharacterData.maxTeamNPCNumber = prevMaxTeam;
+
+            // Verify v1.5.0 Test 4: CollectResource 20m priority & Base Chest Protection
+            string savedBasicCmd = _agent.npcData.basicCommand;
+            _agent.npcData.basicCommand = "CollectResource";
+            _agent.agentState.basicCommand = "CollectResource";
+            if (_agent.agentState.IsTeammateScavengeRestricted())
+                throw new Exception("IsTeammateScavengeRestricted was not lifted for CollectResource!");
+            float followPrio = new GOAPGoal_FollowLeader().GetPriority(_agent.agentState);
+            if (followPrio > 2.0f)
+                throw new Exception($"FollowLeader priority ({followPrio}) was not suppressed during CollectResource!");
+            _agent.npcData.basicCommand = savedBasicCmd;
+            _agent.agentState.basicCommand = savedBasicCmd;
+
+            var baseBox = scanned[0];
+            bool prevMarked = baseBox.Rule.IsMarkedByPlayer;
+            baseBox.Rule.IsMarkedByPlayer = true;
+            if (Il2CppSafe.IsAliveUnity(baseBox.TerrainObj) &&
+                _agent.agentState.IsContainerSearchableByNPC(baseBox.TerrainObj, (GOAPAgentState.TeammateLootPolicy)0, false))
+            {
+                throw new Exception("Marked base container was not protected from NPC scavenging in IsContainerSearchableByNPC!");
+            }
+            baseBox.Rule.IsMarkedByPlayer = prevMarked;
+
+            LiveSmokePlugin.Logger.LogInfo($"[CombatLive] PASS v1.5.0 QuitTeam Dismissal, Draggable UI, MaxTeamSize=12, CollectResource & Base Chest Protection, Real ItemAttr Categorizer, Filtered UI (filtered={filteredUi.Count}/{scanned.Count}), & Invisible CarryBuffer checks.");
         }
 
         private static void StartPhase(float now)

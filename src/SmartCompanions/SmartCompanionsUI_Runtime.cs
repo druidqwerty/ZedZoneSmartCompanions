@@ -11,23 +11,69 @@ namespace ZedZone.SmartCompanions
         private static int _scrollDragId;
         private static float _scrollDragStartY;
         private static float _scrollDragStartValue;
+        private static int _activeWindowDragId;
+        private static Vector2 _windowDragOffset;
+        internal static Rect _currentHudBadgeRect;
+        internal static Rect _currentChestBarRect;
         private static string _lastUiFailure;
         private static float _lastUiFailureTime;
+
+        public static bool IsDraggingAnyWindow => _activeWindowDragId != 0;
+
+        public static void ResetWindowRectsToDefault()
+        {
+            _activeWindowDragId = 0;
+            _mainWinCentered = false;
+            _currentHudBadgeRect = Rect.zero;
+            _currentChestBarRect = Rect.zero;
+        }
+
+        internal static Vector2 ClampWindowPosition(Vector2 pos, Vector2 size)
+        {
+            float maxX = Mathf.Max(4f, Screen.width - size.x - 4f);
+            float maxY = Mathf.Max(4f, Screen.height - size.y - 4f);
+            return new Vector2(Mathf.Clamp(pos.x, 4f, maxX), Mathf.Clamp(pos.y, 4f, maxY));
+        }
+
+        internal static void HandleWindowDrag(int dragId, Rect dragHandleRect, ref Vector2 pos, Vector2 size, Action<Vector2> onPosChanged)
+        {
+            var ev = Event.current;
+            if (ev == null) return;
+
+            if (ev.type == EventType.MouseDown && ev.button == 0 && dragHandleRect.Contains(ev.mousePosition))
+            {
+                _activeWindowDragId = dragId;
+                _windowDragOffset = ev.mousePosition - pos;
+                ev.Use();
+            }
+            else if (ev.type == EventType.MouseDrag && _activeWindowDragId == dragId)
+            {
+                pos = ClampWindowPosition(ev.mousePosition - _windowDragOffset, size);
+                onPosChanged?.Invoke(pos);
+                ev.Use();
+            }
+            else if (ev.type == EventType.MouseUp && _activeWindowDragId == dragId)
+            {
+                _activeWindowDragId = 0;
+                onPosChanged?.Invoke(pos);
+                CompanionConfigStore.Save();
+                ev.Use();
+            }
+        }
 
         public static bool IsPointerOverOverlay(Vector2 position)
         {
             var gc = GameController.instance;
             if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter)) return false;
+            if (_activeWindowDragId != 0) return true;
             if (ShowMainWindow && _mainWinRect.Contains(position)) return true;
             if (!ShowMainWindow && CompanionConfigStore.ShowHudBadge &&
-                new Rect(Screen.width - 326f, 12f, 310f, 34f).Contains(position)) return true;
+                _currentHudBadgeRect.width > 0f && _currentHudBadgeRect.Contains(position)) return true;
             var panel = LootInventoryPanel.instance;
             var inventory = LootInventoryPanel.CurrentOpenInventoryData;
             if (!Il2CppSafe.IsAliveUnity(panel) || !Il2CppSafe.IsAlive(inventory) || inventory.isPlayerInventory ||
                 !panel.gameObject.activeInHierarchy) return false;
-            float width = Mathf.Min(780f, Screen.width - 40f);
-            return new Rect((Screen.width - width) * 0.5f, 46f, CollapseChestBar ? 380f : width,
-                CollapseChestBar ? 32f : 158f).Contains(position);
+            return _currentChestBarRect.width > 0f && _currentChestBarRect.Contains(position);
         }
 
         private static void DestroyStyleTextures()

@@ -44,6 +44,12 @@ namespace ZedZone.SmartCompanions
                         bool isTeammate = false;
                         try
                         {
+                            if (CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID ?? "", out var stDismiss) &&
+                                stDismiss != null && stDismiss.IsDismissedOrNotInTeam &&
+                                string.IsNullOrEmpty(agent.npcData.leaderCharacterGUID))
+                            {
+                                continue;
+                            }
                             if (agent.IsPlayerTeammate()) isTeammate = true;
                             else if (Il2CppSafe.IsAlive(playerData) && GOAPNPCManager.IsPlayerTeammateData(agent.npcData, playerData)) isTeammate = true;
                             else if (mgr.teammateNPCs != null && mgr.teammateNPCs.Contains(agent.npcData)) isTeammate = true;

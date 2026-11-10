@@ -65,8 +65,82 @@ namespace ZedZone.SmartCompanions
                         SyncCompanionOwnerAndLeader(agent);
                     }
                 }
+                CompanionConfigStore.ApplyMaxTeamSizeIfConfigured();
             }
             catch { }
+        }
+
+        public static void OnCompanionDismissed(GOAPNPCData npcData)
+        {
+            if (!Il2CppSafe.IsAlive(npcData)) return;
+            try
+            {
+                var st = CompanionConfigStore.GetOrCreateCompanion(npcData.npcGUID, npcData.characterData?.characterName);
+                BaseSortingSystem.FlushCarryBufferSafely(st);
+                st.IsSortingActive = false;
+                st.SortingPhase = 0;
+                st.PendingTransferCount = 0;
+                st.OwnerCharacterId = "";
+                st.OwnerPlayerName = "";
+                st.IsDismissedOrNotInTeam = true;
+
+                npcData.leaderCharacterGUID = null;
+                var ag = npcData.agentCache;
+                if (Il2CppSafe.IsAliveUnity(ag))
+                {
+                    ag.leaderCharacter = null;
+                    if (Il2CppSafe.IsAlive(ag.agentState))
+                    {
+                        ag.agentState.SetState("hasLeader", false);
+                        ag.agentState.SetState("leaderCharacter", (Il2CppSystem.Object)null);
+                    }
+                }
+                CompanionConfigStore.Save();
+            }
+            catch { }
+        }
+
+        public static void OnCompanionRecruited(CharacterData leaderData, GOAPNPCData npcData)
+        {
+            if (!Il2CppSafe.IsAlive(npcData)) return;
+            try
+            {
+                var st = CompanionConfigStore.GetOrCreateCompanion(npcData.npcGUID, npcData.characterData?.characterName);
+                st.IsDismissedOrNotInTeam = false;
+                string lid = Il2CppSafe.IsAlive(leaderData) ? leaderData.characterId : npcData.leaderCharacterGUID;
+                if (!string.IsNullOrEmpty(lid))
+                {
+                    st.OwnerCharacterId = lid;
+                    st.OwnerPlayerName = ResolvePlayerNameByCharacterId(lid);
+                }
+                CompanionConfigStore.Save();
+            }
+            catch { }
+        }
+
+        private static bool IsNpcInAnyActivePlayerTeam(GOAPNPCData npcData, string ownerCharId)
+        {
+            if (!Il2CppSafe.IsAlive(npcData)) return false;
+            try
+            {
+                var mgr = GOAPNPCManager.instance;
+                if (Il2CppSafe.IsAlive(mgr) && mgr.teammateNPCs != null && mgr.teammateNPCs.Contains(npcData))
+                    return true;
+
+                if (!string.IsNullOrEmpty(ownerCharId))
+                {
+                    var leaderCtrl = ResolveLeaderController(ownerCharId, out _);
+                    if (Il2CppSafe.IsAliveUnity(leaderCtrl) && Il2CppSafe.IsAlive(leaderCtrl.characterData) &&
+                        leaderCtrl.characterData.teamNPCGuids != null &&
+                        !string.IsNullOrEmpty(npcData.npcGUID) &&
+                        leaderCtrl.characterData.teamNPCGuids.Contains(npcData.npcGUID))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch { }
+            return false;
         }
 
         public static void SyncCompanionOwnerAndLeader(GOAPAgent agent)
@@ -78,15 +152,51 @@ namespace ZedZone.SmartCompanions
                 string leaderId = npcData.leaderCharacterGUID;
                 var st = CompanionConfigStore.GetOrCreateCompanion(npcData.npcGUID, npcData.characterData?.characterName);
 
-                if (!string.IsNullOrEmpty(st.OwnerCharacterId) && string.IsNullOrEmpty(leaderId))
+                if (st.IsDismissedOrNotInTeam)
                 {
-                    leaderId = st.OwnerCharacterId;
-                    npcData.leaderCharacterGUID = leaderId;
+                    if (!string.IsNullOrEmpty(leaderId) && IsNpcInAnyActivePlayerTeam(npcData, leaderId))
+                    {
+                        st.IsDismissedOrNotInTeam = false;
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrEmpty(npcData.leaderCharacterGUID))
+                            npcData.leaderCharacterGUID = null;
+                        if (Il2CppSafe.IsAliveUnity(agent.leaderCharacter))
+                            agent.leaderCharacter = null;
+                        return;
+                    }
                 }
-                else if (!string.IsNullOrEmpty(leaderId) && string.IsNullOrEmpty(st.OwnerCharacterId))
+
+                if (string.IsNullOrEmpty(leaderId))
                 {
-                    st.OwnerCharacterId = leaderId;
-                    st.OwnerPlayerName = ResolvePlayerNameByCharacterId(leaderId);
+                    if (!string.IsNullOrEmpty(st.OwnerCharacterId))
+                    {
+                        // Never resurrect a dismissed companion! Only restore leaderCharacterGUID if the NPC is STILL in teammateNPCs / teamNPCGuids
+                        if (IsMultiplayerClient || IsNpcInAnyActivePlayerTeam(npcData, st.OwnerCharacterId))
+                        {
+                            leaderId = st.OwnerCharacterId;
+                            npcData.leaderCharacterGUID = leaderId;
+                        }
+                        else
+                        {
+                            OnCompanionDismissed(npcData);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    st.IsDismissedOrNotInTeam = false;
+                    if (string.IsNullOrEmpty(st.OwnerCharacterId))
+                    {
+                        st.OwnerCharacterId = leaderId;
+                        st.OwnerPlayerName = ResolvePlayerNameByCharacterId(leaderId);
+                    }
                 }
 
                 if (string.IsNullOrEmpty(leaderId)) return;

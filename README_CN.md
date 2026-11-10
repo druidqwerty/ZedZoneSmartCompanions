@@ -7,12 +7,25 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.4.2"><strong>下载 v1.4.2 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.5.0"><strong>下载 v1.5.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v1.5.0 更新 — 修复解雇队友不离队、窗口自由拖拽、队伍上限提升（最高15人）、兼容 AVO 与自主搜刮修复
+
+- **修复队友解雇后仍跟着玩家不离队的问题 (`QuitTeam` / `RemoveTeamNPC`)：**
+  - 修复 `MultiplayerSyncSystem.SyncCompanionOwnerAndLeader` 在队友离队后自动写回 `leaderCharacterGUID` 导致左上角头像消失但队友仍尾随玩家的 Bug。
+- **界面支持鼠标自由拖拽 + 默认位置避开小地图与背包整理按键：**
+  - 主窗口 (`F8`)、箱子分类栏（展开与收起状态）以及顶部快捷栏均支持按住 `::` 标题自由拖拽并自动保存位置（第 3 页设置可一键重置窗口位置）。
+  - 顶部快捷栏默认移至左上方居中区域（支持 `[-]` 收起为迷你 `F8` 按钮或 `[x]` 隐藏），不再遮挡右上角小地图；箱子分类栏默认移至屏幕下方居中，不再遮挡背包整理按钮。
+- **可调队伍人数上限（最高 15 人）与 `AVO Expanded` 完整兼容：**
+  - 在第 1 页与第 3 页新增队伍上限切换按钮（`自动(原版3/兼容AVO)`、`4`、`6`、`8`、`10`、`12`、`15` 人）。
+  - 自动检测并兼容 `AVO Expanded — Advanced Squad Control` (`3836458339`)：将分口粮快捷键切换为 `Alt + F6`，按 `F6` 打开 AVO 菜单时不再误吃背包食物。
+- **修复「收集物资 (`CollectResource`)」指令原地跟人不搜刮的问题：**
+  - 处于收集物资指令时，跟随优先级在 `42米` 内保持低位（不再在 12米 被拉回），解除未开箱搜刮限制，同时严格保护玩家标记的基地箱子不被队友拿走。[验证报告](docs/verification-1.5.0.md)。
 
 ## v1.4.2 更新 — 修复自动分类全变医疗品、仅整理玩家标记箱子与零丢失紧凑整理
 

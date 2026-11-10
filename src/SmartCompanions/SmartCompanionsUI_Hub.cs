@@ -31,13 +31,22 @@ namespace ZedZone.SmartCompanions
             float y = r.y + 10f;
             float w = r.width - 28f;
 
-            // Title bar
-            GUI.Label(new Rect(x, y, w - 310f, 28f),
+            // Title bar (draggable handle)
+            var titleDragRect = new Rect(x, y, w - 310f, 28f);
+            GUI.Label(titleDragRect,
                 CompanionConfigStore.L(lang,
-                    " ZED ZONE — УМНЫЕ НАПАРНИКИ И ЛОГИСТИКА БАЗЫ [F8]",
-                    " ZED ZONE — SMART COMPANIONS & BASE LOGISTICS [F8]",
-                    " ZED ZONE — 智能队友与基地物流中心 [F8]"),
+                    ":: ZED ZONE — УМНЫЕ НАПАРНИКИ И ЛОГИСТИКА БАЗЫ [F8]",
+                    ":: ZED ZONE — SMART COMPANIONS & BASE LOGISTICS [F8]",
+                    ":: ZED ZONE — 智能队友与基地物流中心 [F8]"),
                 _headerStyle);
+            var winPos = new Vector2(_mainWinRect.x, _mainWinRect.y);
+            HandleWindowDrag(1, titleDragRect, ref winPos, new Vector2(_mainWinRect.width, _mainWinRect.height), p =>
+            {
+                _mainWinRect.x = p.x;
+                _mainWinRect.y = p.y;
+                CompanionConfigStore.MainWinPosX = p.x;
+                CompanionConfigStore.MainWinPosY = p.y;
+            });
 
             // 4-mode language selector in header bar: Auto | RU | EN | 中文
             float lx = r.xMax - 306f;
@@ -123,26 +132,31 @@ namespace ZedZone.SmartCompanions
             GUI.Box(new Rect(area.x, area.y, area.width, 42f), GUIContent.none, _boxStyle);
             float bx = area.x + 8f;
             float by = area.y + 8f;
-            GUI.Label(new Rect(bx, by, 145f, 26f),
+            string limitStr = CompanionConfigStore.FormatMaxTeamSizeLabel(lang);
+            if (GUI.Button(new Rect(bx, by, 162f, 26f),
                 CompanionConfigStore.L(lang,
-                    $"Отряд: {teammates.Count} чел.",
-                    $"Squad: {teammates.Count}",
-                    $"在队：{teammates.Count} 人"), _subHeaderStyle);
+                    $"Отряд: {teammates.Count} | Лимит: {limitStr}",
+                    $"Squad: {teammates.Count} | Cap: {limitStr}",
+                    $"在队:{teammates.Count} | 上限:{limitStr}"), _btnStyle))
+            {
+                CompanionConfigStore.CycleMaxTeamSize();
+            }
 
-            if (GUI.Button(new Rect(bx + 148f, by, 120f, 26f),
+            if (GUI.Button(new Rect(bx + 166f, by, 108f, 26f),
                 CompanionConfigStore.L(lang, " Сорт. [F7]", " Sort [F7]", " 整理 [F7]"), _catOnStyle))
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
 
-            if (GUI.Button(new Rect(bx + 272f, by, 118f, 26f),
+            if (GUI.Button(new Rect(bx + 278f, by, 114f, 26f),
                 CompanionConfigStore.L(lang, " Багажник", " Unload Car", " 卸后备箱"), _btnStyle))
                 BaseChoreSystem.CommandUnloadVehiclesToBase(null, silentIfEmpty: false);
 
-            if (GUI.Button(new Rect(bx + 394f, by, 114f, 26f),
+            if (GUI.Button(new Rect(bx + 396f, by, 112f, 26f),
                 CompanionConfigStore.L(lang, " Собрать лут", " Sweep Loot", " 搜刮物资"), _btnStyle))
-                AutoLootSystem.CommandSweepNearbyLoot(null, 20f);
+                AutoLootSystem.CommandSweepNearbyLoot(null, 24f);
 
+            string rationKey = CompanionConfigStore.ShouldUseAltForRationHotkey() ? "Alt+F6" : "F6";
             if (GUI.Button(new Rect(bx + 512f, by, 118f, 26f),
-                CompanionConfigStore.L(lang, " Паёк [F6]", " Ration [F6]", " 分口粮 [F6]"), _catOnStyle))
+                CompanionConfigStore.L(lang, $" Паёк [{rationKey}]", $" Ration [{rationKey}]", $" 分口粮 [{rationKey}]"), _catOnStyle))
                 SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
 
             if (GUI.Button(new Rect(bx + 634f, by, 114f, 26f),
@@ -573,7 +587,7 @@ namespace ZedZone.SmartCompanions
 
             GUI.Box(new Rect(area.x, area.y, leftW, area.height), GUIContent.none, _boxStyle);
             BeginScrollArea(new Rect(area.x + 2f, area.y + 2f, leftW - 4f, area.height - 4f),
-                ref _scrollSettings, new Rect(0f, 0f, leftW - 24f, 560f), 4);
+                ref _scrollSettings, new Rect(0f, 0f, leftW - 24f, 640f), 4);
             try
             {
             float lx = 8f;
@@ -721,6 +735,49 @@ namespace ZedZone.SmartCompanions
             {
                 CompanionConfigStore.EnableChatter = !CompanionConfigStore.EnableChatter;
                 CompanionConfigStore.Save();
+            }
+            ly += 25f;
+
+            string capLabel = CompanionConfigStore.FormatMaxTeamSizeLabel(lang);
+            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+                CompanionConfigStore.L(lang,
+                    $"Лимит напарников в отряде: {capLabel} (нажмите для смены до 15)",
+                    $"Max Squad Companions Limit: {capLabel} (click to cycle up to 15)",
+                    $"队伍人数上限：{capLabel}（点击切换，最高 15 人）"),
+                CompanionConfigStore.MaxTeamSize > 0 ? _catOnStyle : _btnStyle))
+            {
+                CompanionConfigStore.CycleMaxTeamSize();
+            }
+            ly += 25f;
+
+            bool useAltF6 = CompanionConfigStore.ShouldUseAltForRationHotkey();
+            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+                (useAltF6 ? "[x] " : "[ ] ") +
+                CompanionConfigStore.L(lang,
+                    "Хоткей пайка Alt+F6 (совместимость с AVO Expanded на F6)",
+                    "Ration Hotkey Alt+F6 (AVO Expanded F6 compatibility)",
+                    "分口粮快捷键改为 Alt+F6（兼容 AVO Expanded 的 F6 菜单）"),
+                useAltF6 ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.RequireAltForRationHotkey = !CompanionConfigStore.RequireAltForRationHotkey;
+                CompanionConfigStore.Save();
+            }
+            ly += 25f;
+
+            float uiBtnW = (lw - 6f) * 0.5f;
+            if (GUI.Button(new Rect(lx, ly, uiBtnW, 24f),
+                (CompanionConfigStore.ShowHudBadge ? "[x] " : "[ ] ") +
+                CompanionConfigStore.L(lang, "Мини-панель на экране", "Show Mini-HUD Bar", "显示顶部快捷栏"),
+                CompanionConfigStore.ShowHudBadge ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.ShowHudBadge = !CompanionConfigStore.ShowHudBadge;
+                if (CompanionConfigStore.ShowHudBadge) CompanionConfigStore.HudBadgeCollapsed = false;
+                CompanionConfigStore.Save();
+            }
+            if (GUI.Button(new Rect(lx + uiBtnW + 6f, ly, uiBtnW, 24f),
+                CompanionConfigStore.L(lang, "Сбросить позиции UI", "Reset UI Positions", "重置所有窗口位置"), _btnStyle))
+            {
+                CompanionConfigStore.ResetUiPositions();
             }
             ly += 25f;
 

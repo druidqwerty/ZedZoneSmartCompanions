@@ -386,18 +386,41 @@ namespace ZedZone.SmartCompanions
             return true;
         }
 
-        // 11. Handle custom commands when clicked in NPCCommandMenu
+        // 11. Handle custom commands when clicked in NPCCommandMenu & track QuitTeam / JoinPlayerTeam
         [HarmonyPatch(typeof(GOAPNPCData), nameof(GOAPNPCData.ExecuteNPCCommand))]
         [HarmonyPrefix]
         public static bool ExecuteNPCCommand_Prefix(GOAPNPCData __instance, string commandStr)
         {
             try
             {
+                if (!string.IsNullOrEmpty(commandStr) && commandStr.EndsWith("QuitTeam", StringComparison.OrdinalIgnoreCase))
+                {
+                    MultiplayerSyncSystem.OnCompanionDismissed(__instance);
+                }
                 if (CustomNpcCommands.ExecuteCustomCommand(__instance, commandStr))
                     return false;
             }
             catch { }
             return true;
+        }
+
+        [HarmonyPatch(typeof(GOAPNPCData), nameof(GOAPNPCData.ExecuteNPCCommand))]
+        [HarmonyPostfix]
+        public static void ExecuteNPCCommand_Postfix(GOAPNPCData __instance, string commandStr)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(commandStr) || !Il2CppSafe.IsAlive(__instance)) return;
+                if (commandStr.EndsWith("QuitTeam", StringComparison.OrdinalIgnoreCase))
+                {
+                    MultiplayerSyncSystem.OnCompanionDismissed(__instance);
+                }
+                else if (commandStr.EndsWith("JoinPlayerTeam", StringComparison.OrdinalIgnoreCase))
+                {
+                    MultiplayerSyncSystem.OnCompanionRecruited(GameController.instance?.playerCharacter?.characterData, __instance);
+                }
+            }
+            catch { }
         }
 
         // 12. Prevent GOAPGoal_WarningHumanEnemy (priority 100) from blocking companions from shooting hostile human NPCs
@@ -577,10 +600,65 @@ namespace ZedZone.SmartCompanions
             {
                 if (!__result && Il2CppSafe.IsAliveUnity(__instance) && Il2CppSafe.IsAlive(__instance.npcData))
                 {
+                    if (CompanionConfigStore.CompanionStates.TryGetValue(__instance.npcData.npcGUID ?? "", out var st) &&
+                        st != null && st.IsDismissedOrNotInTeam)
+                    {
+                        return;
+                    }
                     if (!__instance.npcData.isBandit && !string.IsNullOrEmpty(__instance.npcData.leaderCharacterGUID))
                     {
                         __result = true;
                     }
+                }
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(CharacterData), nameof(CharacterData.RemoveTeamNPC))]
+        [HarmonyPostfix]
+        public static void CharacterData_RemoveTeamNPC_Postfix(GOAPNPCData npcData)
+        {
+            try
+            {
+                MultiplayerSyncSystem.OnCompanionDismissed(npcData);
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(CharacterData), nameof(CharacterData.AddTeamNPC))]
+        [HarmonyPrefix]
+        public static void CharacterData_AddTeamNPC_Prefix()
+        {
+            try
+            {
+                CompanionConfigStore.ApplyMaxTeamSizeIfConfigured();
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(CharacterData), nameof(CharacterData.AddTeamNPC))]
+        [HarmonyPostfix]
+        public static void CharacterData_AddTeamNPC_Postfix(CharacterData __instance, GOAPNPCData npcData, bool __result)
+        {
+            try
+            {
+                if (__result)
+                    MultiplayerSyncSystem.OnCompanionRecruited(__instance, npcData);
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(GOAPAgent), nameof(GOAPAgent.SetLeader), new Type[] { typeof(HumanCharacterController) })]
+        [HarmonyPostfix]
+        public static void GOAPAgent_SetLeader_Postfix(GOAPAgent __instance, HumanCharacterController m_leaderCharacter)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(m_leaderCharacter) &&
+                    Il2CppSafe.IsAliveUnity(__instance) && Il2CppSafe.IsAlive(__instance.npcData) &&
+                    string.IsNullOrEmpty(__instance.npcData.leaderCharacterGUID))
+                {
+                    MultiplayerSyncSystem.OnCompanionDismissed(__instance.npcData);
                 }
             }
             catch { }
@@ -670,7 +748,10 @@ namespace ZedZone.SmartCompanions
                     float dist = Vector2.Distance(agent.humanCharacter.transform.position, st.TargetContainerPos);
                     if (dist > 1.60f)
                     {
-                        agent.MoveTo_Direct(st.TargetContainerPos, true, true, false);
+                        if (agent.isStuck || agent.IsStuckRecovering)
+                            agent.MoveTo(st.TargetContainerPos, 1.4f, true);
+                        else
+                            agent.MoveTo_Direct(st.TargetContainerPos, true, true, false);
                         agent.LookAtPositionSmoothCompat(st.TargetContainerPos, 10f);
                     }
                     else
@@ -683,6 +764,76 @@ namespace ZedZone.SmartCompanions
             }
             catch { }
             return true;
+        }
+
+        // 21. Allow companions ordered to CollectResource / CollectSpecifiedItem to roam up to 42m without FollowLeader pulling them back at 12m
+        [HarmonyPatch(typeof(GOAPGoal_FollowLeader), nameof(GOAPGoal_FollowLeader.GetPriority))]
+        [HarmonyPostfix]
+        public static void FollowLeader_GetPriority_Postfix(GOAPAgentState agentState, ref float __result)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAlive(agentState) || !Il2CppSafe.IsAlive(agentState.npcData)) return;
+                string cmd = agentState.basicCommand ?? agentState.npcData.basicCommand ?? "";
+                if (!cmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) &&
+                    !cmd.EndsWith("CollectSpecifiedItem", StringComparison.OrdinalIgnoreCase))
+                    return;
+
+                var ag = agentState.npcData.agentCache;
+                if (Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && !ag.mostThreateningCharacter.deadFlag)
+                    return;
+
+                var leader = Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAliveUnity(ag.leaderCharacter)
+                    ? ag.leaderCharacter
+                    : GameController.instance?.playerCharacter;
+                if (Il2CppSafe.IsAliveUnity(leader))
+                {
+                    float dist = Vector2.Distance(agentState.agentPosition, leader.transform.position);
+                    if (dist <= 42f && __result > 1.5f)
+                        __result = 1.5f;
+                }
+            }
+            catch { }
+        }
+
+        // 22. Lift TeammateScavengeRestricted when companion is ordered to CollectResource / CollectSpecifiedItem or AllowAutoLootNearby is enabled
+        [HarmonyPatch(typeof(GOAPAgentState), nameof(GOAPAgentState.IsTeammateScavengeRestricted))]
+        [HarmonyPostfix]
+        public static void IsTeammateScavengeRestricted_Postfix(GOAPAgentState __instance, ref bool __result)
+        {
+            try
+            {
+                if (!__result || !Il2CppSafe.IsAlive(__instance) || !Il2CppSafe.IsAlive(__instance.npcData)) return;
+                string cmd = __instance.basicCommand ?? __instance.npcData.basicCommand ?? "";
+                if (cmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) ||
+                    cmd.EndsWith("CollectSpecifiedItem", StringComparison.OrdinalIgnoreCase))
+                {
+                    __result = false;
+                    return;
+                }
+                if (CompanionConfigStore.CompanionStates.TryGetValue(__instance.npcData.npcGUID ?? "", out var st) &&
+                    st != null && st.AllowAutoLootNearby)
+                {
+                    __result = false;
+                }
+            }
+            catch { }
+        }
+
+        // 23. Protect player-marked base chests from being scavenged by companions during CollectResource
+        [HarmonyPatch(typeof(GOAPAgentState), nameof(GOAPAgentState.IsContainerSearchableByNPC))]
+        [HarmonyPostfix]
+        public static void IsContainerSearchableByNPC_Postfix(TerrainObject terrainObject, ref bool __result)
+        {
+            try
+            {
+                if (!__result || !Il2CppSafe.IsAliveUnity(terrainObject)) return;
+                if (AutoLootSystem.IsProtectedPlayerBaseContainer(terrainObject))
+                {
+                    __result = false;
+                }
+            }
+            catch { }
         }
     }
 }

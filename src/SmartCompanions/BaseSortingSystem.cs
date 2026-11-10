@@ -24,8 +24,40 @@ namespace ZedZone.SmartCompanions
         private static readonly Dictionary<IntPtr, string> KnownInvToStableId = new Dictionary<IntPtr, string>();
         private static readonly Dictionary<string, IntPtr> KnownStableIdToInv = new Dictionary<string, IntPtr>(StringComparer.OrdinalIgnoreCase);
         private static float _lastContainerScanTime = -999f;
+        private static float _lastCachePruneTime = -999f;
         public static string LastSortStatusBanner = "";
         public static float LastSortStatusBannerUntil = -1f;
+
+        public static void PruneStaleCacheEntries()
+        {
+            float now = Time.unscaledTime;
+            if (now - _lastCachePruneTime < 15f && KnownInvToTerrainObj.Count < 400)
+                return;
+            _lastCachePruneTime = now;
+
+            try
+            {
+                var deadPtrs = new List<IntPtr>();
+                foreach (var kv in KnownInvToTerrainObj)
+                {
+                    if (!Il2CppSafe.IsAliveUnity(kv.Value))
+                        deadPtrs.Add(kv.Key);
+                }
+                for (int i = 0; i < deadPtrs.Count; i++)
+                {
+                    var ptr = deadPtrs[i];
+                    KnownInvToTerrainObj.Remove(ptr);
+                    KnownInvToWorldPos.Remove(ptr);
+                    if (KnownInvToStableId.TryGetValue(ptr, out var sid))
+                    {
+                        KnownInvToStableId.Remove(ptr);
+                        if (KnownStableIdToInv.TryGetValue(sid, out var p2) && p2 == ptr)
+                            KnownStableIdToInv.Remove(sid);
+                    }
+                }
+            }
+            catch { }
+        }
 
         private static string EnsureUniqueIdForInventory(string candidateId, InventoryData inv)
         {

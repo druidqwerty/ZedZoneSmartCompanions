@@ -208,9 +208,20 @@ namespace ZedZone.SmartCompanions
             if (!_mainWinCentered)
             {
                 _mainWinCentered = true;
-                _mainWinRect.x = Mathf.Max(20f, (Screen.width - _mainWinRect.width) * 0.5f);
-                _mainWinRect.y = Mathf.Max(20f, (Screen.height - _mainWinRect.height) * 0.5f);
+                if (CompanionConfigStore.MainWinPosX >= 0f && CompanionConfigStore.MainWinPosY >= 0f)
+                {
+                    _mainWinRect.x = CompanionConfigStore.MainWinPosX;
+                    _mainWinRect.y = CompanionConfigStore.MainWinPosY;
+                }
+                else
+                {
+                    _mainWinRect.x = Mathf.Max(20f, (Screen.width - _mainWinRect.width) * 0.5f);
+                    _mainWinRect.y = Mathf.Max(20f, (Screen.height - _mainWinRect.height) * 0.5f);
+                }
             }
+            var clampedMain = ClampWindowPosition(new Vector2(_mainWinRect.x, _mainWinRect.y), new Vector2(_mainWinRect.width, _mainWinRect.height));
+            _mainWinRect.x = clampedMain.x;
+            _mainWinRect.y = clampedMain.y;
 
             // 1. Status banner at top-center if active
             if (!string.IsNullOrEmpty(BaseSortingSystem.LastSortStatusBanner) && Time.unscaledTime < BaseSortingSystem.LastSortStatusBannerUntil)
@@ -243,27 +254,70 @@ namespace ZedZone.SmartCompanions
         private static void DrawHudBadge()
         {
             var teammates = SmartChatterSystem.GetActiveTeammateAgents();
-            float w = 310f;
-            float h = 34f;
-            float x = Screen.width - w - 16f;
-            float y = 12f;
+            bool collapsed = CompanionConfigStore.HudBadgeCollapsed;
+            float w = collapsed ? 92f : 368f;
+            float h = 32f;
 
-            GUI.Box(new Rect(x, y, w, h), GUIContent.none, _boxStyle);
+            float defX = Mathf.Clamp(Screen.width * 0.28f, 250f, Mathf.Max(250f, Screen.width - w - 340f));
+            float defY = 10f;
+            Vector2 pos = (CompanionConfigStore.HudBadgePosX >= 0f && CompanionConfigStore.HudBadgePosY >= 0f)
+                ? new Vector2(CompanionConfigStore.HudBadgePosX, CompanionConfigStore.HudBadgePosY)
+                : new Vector2(defX, defY);
+            pos = ClampWindowPosition(pos, new Vector2(w, h));
+            _currentHudBadgeRect = new Rect(pos.x, pos.y, w, h);
+
+            GUI.Box(_currentHudBadgeRect, GUIContent.none, _boxStyle);
+            var dragRect = new Rect(pos.x + 2f, pos.y + 3f, 24f, 26f);
+            GUI.Box(dragRect, "::", _btnStyle);
+            HandleWindowDrag(3, dragRect, ref pos, new Vector2(w, h), p =>
+            {
+                CompanionConfigStore.HudBadgePosX = p.x;
+                CompanionConfigStore.HudBadgePosY = p.y;
+                _currentHudBadgeRect.x = p.x;
+                _currentHudBadgeRect.y = p.y;
+            });
+
+            if (collapsed)
+            {
+                if (GUI.Button(new Rect(pos.x + 28f, pos.y + 3f, 36f, 26f), "F8", _catOnStyle))
+                {
+                    ShowMainWindow = !ShowMainWindow;
+                    if (ShowMainWindow) OnMainWindowOpened();
+                }
+                if (GUI.Button(new Rect(pos.x + 66f, pos.y + 3f, 22f, 26f), "+", _btnStyle))
+                {
+                    CompanionConfigStore.HudBadgeCollapsed = false;
+                    CompanionConfigStore.Save();
+                }
+                return;
+            }
+
             string label = CompanionConfigStore.L(
                 $" Напарники ({teammates.Count}) [F8]",
                 $" Squad ({teammates.Count}) [F8]",
                 $" 队友 ({teammates.Count}) [F8]");
-            if (GUI.Button(new Rect(x + 4f, y + 4f, 152f, 26f), label, _btnStyle))
+            if (GUI.Button(new Rect(pos.x + 28f, pos.y + 3f, 146f, 26f), label, _btnStyle))
             {
                 ShowMainWindow = !ShowMainWindow;
+                if (ShowMainWindow) OnMainWindowOpened();
             }
-            if (GUI.Button(new Rect(x + 160f, y + 4f, 72f, 26f), CompanionConfigStore.L(" Сорт.", " Sort", " 整理"), _btnStyle))
+            if (GUI.Button(new Rect(pos.x + 177f, pos.y + 3f, 68f, 26f), CompanionConfigStore.L(" Сорт.", " Sort", " 整理"), _btnStyle))
             {
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
             }
-            if (GUI.Button(new Rect(x + 236f, y + 4f, 70f, 26f), CompanionConfigStore.L(" Лут", " Loot", " 搜刮"), _btnStyle))
+            if (GUI.Button(new Rect(pos.x + 248f, pos.y + 3f, 66f, 26f), CompanionConfigStore.L(" Лут", " Loot", " 搜刮"), _btnStyle))
             {
                 AutoLootSystem.CommandSweepNearbyLoot(null, 20f);
+            }
+            if (GUI.Button(new Rect(pos.x + 317f, pos.y + 3f, 22f, 26f), "-", _btnStyle))
+            {
+                CompanionConfigStore.HudBadgeCollapsed = true;
+                CompanionConfigStore.Save();
+            }
+            if (GUI.Button(new Rect(pos.x + 341f, pos.y + 3f, 22f, 26f), "x", _btnStyle))
+            {
+                CompanionConfigStore.ShowHudBadge = false;
+                CompanionConfigStore.Save();
             }
         }
 
@@ -280,37 +334,60 @@ namespace ZedZone.SmartCompanions
             var rule = CompanionConfigStore.GetOrCreateRule(boxId, boxTitle);
 
             float panelW = Mathf.Min(780f, Screen.width - 40f);
-            float panelX = (Screen.width - panelW) * 0.5f;
-            float panelY = 46f;
+            float panelH = 158f;
+            float defX = (Screen.width - panelW) * 0.5f;
+            float defY = Mathf.Max(60f, Screen.height - panelH - 92f);
+
+            Vector2 size = CollapseChestBar ? new Vector2(240f, 28f) : new Vector2(panelW, panelH);
+            Vector2 pos = (CompanionConfigStore.ChestBarPosX >= 0f && CompanionConfigStore.ChestBarPosY >= 0f)
+                ? new Vector2(CompanionConfigStore.ChestBarPosX, CompanionConfigStore.ChestBarPosY)
+                : new Vector2(CollapseChestBar ? (Screen.width - 240f) * 0.5f : defX, CollapseChestBar ? Screen.height - 42f : defY);
+            pos = ClampWindowPosition(pos, size);
+            _currentChestBarRect = new Rect(pos.x, pos.y, size.x, size.y);
 
             if (CollapseChestBar)
             {
-                var miniRect = new Rect(panelX, panelY, 380f, 32f);
-                GUI.Box(miniRect, GUIContent.none, _winStyle);
-                if (GUI.Button(new Rect(miniRect.x + 6f, miniRect.y + 4f, 368f, 24f),
+                GUI.Box(_currentChestBarRect, GUIContent.none, _winStyle);
+                var miniDragRect = new Rect(pos.x + 4f, pos.y + 2f, 28f, 24f);
+                GUI.Box(miniDragRect, "::", _btnStyle);
+                HandleWindowDrag(2, miniDragRect, ref pos, size, p =>
+                {
+                    CompanionConfigStore.ChestBarPosX = p.x;
+                    CompanionConfigStore.ChestBarPosY = p.y;
+                    _currentChestBarRect.x = p.x;
+                    _currentChestBarRect.y = p.y;
+                });
+                if (GUI.Button(new Rect(pos.x + 36f, pos.y + 2f, 200f, 24f),
                     CompanionConfigStore.L(lang,
-                        $" Категории ящика «{boxTitle}» (Развернуть v)",
-                        $" Categories: {boxTitle} (Expand v)",
-                        $" 储物箱分类：「{boxTitle}」（展开 v）"), _btnStyle))
+                        $"Категории «{boxTitle}» [v]",
+                        $"Categories: {boxTitle} [v]",
+                        $"箱子分类：「{boxTitle}」[v]"), _btnStyle))
                 {
                     CollapseChestBar = false;
                 }
                 return;
             }
 
-            float panelH = 158f;
-            var rect = new Rect(panelX, panelY, panelW, panelH);
+            var rect = _currentChestBarRect;
             GUI.Box(rect, GUIContent.none, _winStyle);
 
-            // Row 1: Header + Drop-off toggle + Priority + Collapse
+            // Row 1: Drag Handle + Header + Drop-off toggle + Priority + Collapse
             float rx = rect.x + 10f;
             float ry = rect.y + 8f;
 
-            GUI.Label(new Rect(rx, ry, 250f, 24f),
+            var headerDragRect = new Rect(rx, ry, 248f, 24f);
+            GUI.Label(headerDragRect,
                 CompanionConfigStore.L(lang,
-                    $" КАТЕГОРИИ ЯЩИКА: {boxTitle}",
-                    $" CHEST CATEGORIES: {boxTitle}",
-                    $" 储物箱分类：{boxTitle}"), _headerStyle);
+                    $":: КАТЕГОРИИ ЯЩИКА: {boxTitle}",
+                    $":: CHEST CATEGORIES: {boxTitle}",
+                    $":: 储物箱分类：{boxTitle}"), _headerStyle);
+            HandleWindowDrag(2, headerDragRect, ref pos, size, p =>
+            {
+                CompanionConfigStore.ChestBarPosX = p.x;
+                CompanionConfigStore.ChestBarPosY = p.y;
+                _currentChestBarRect.x = p.x;
+                _currentChestBarRect.y = p.y;
+            });
 
             var dropStyle = rule.IsDropoffSource ? _catOnStyle : _catOffStyle;
             string dropLabel = (rule.IsDropoffSource ? "[x] " : "[ ] ") +

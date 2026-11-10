@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "1.4.2";
+        public const string PluginVersion = "1.5.0";
 
         internal static ManualLogSource Logs;
 
@@ -24,6 +24,7 @@ namespace ZedZone.SmartCompanions
             LogInfo($"{PluginName} v{PluginVersion} initializing...");
 
             CompanionConfigStore.Load();
+            CompanionConfigStore.ApplyMaxTeamSizeIfConfigured();
 
             try
             {
@@ -211,10 +212,14 @@ namespace ZedZone.SmartCompanions
                     BaseSortingSystem.CommandSortBase(null, null, instant: false);
                 }
 
-                // Hotkey F6: Quick Order -> Share Ration with Squad ("Подогреть братву пайком")
+                // Hotkey F6 (or Alt+F6 when AVO Expanded compatibility is active): Share Ration with Squad
                 if (Input.GetKeyDown(KeyCode.F6))
                 {
-                    SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
+                    bool altHeld = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+                    if (!CompanionConfigStore.ShouldUseAltForRationHotkey() || altHeld)
+                    {
+                        SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
+                    }
                 }
 
                 // Hotkey F9: Quick Order -> Squad Battle Cry & Focus Assault ("Боевой клич / Штурм")

@@ -258,6 +258,7 @@ namespace ZedZone.SmartCompanions
         public float LastFlashlightCheckTime = -999f;
 
         // Active physical sorting state & invisible carry buffer
+        public bool IsDismissedOrNotInTeam = false;
         public bool IsSortingActive = false;
         public int SortingPhase = 0; // 0=Idle, 1=WalkingToSource, 2=WalkingToDestination
         public string SourceContainerGuid = "";
@@ -460,7 +461,100 @@ namespace ZedZone.SmartCompanions
         public static bool EnableSmartFlashlight = true;
         public static bool EnablePlayerRescue = true;
         public static bool ShowHudBadge = true;
+        public static bool HudBadgeCollapsed = false;
         public static float BaseScanRadius = 48f;
+        public static int MaxTeamSize = 0; // 0 = Auto/Vanilla/AVO Compatibility, or 4, 6, 8, 10, 12, 15
+        public static bool RequireAltForRationHotkey = false;
+        public static float MainWinPosX = -1f;
+        public static float MainWinPosY = -1f;
+        public static float ChestBarPosX = -1f;
+        public static float ChestBarPosY = -1f;
+        public static float HudBadgePosX = -1f;
+        public static float HudBadgePosY = -1f;
+
+        private static bool _avoCheckDone = false;
+        private static bool _avoDetected = false;
+
+        public static bool IsAvoExpandedLoaded()
+        {
+            if (_avoCheckDone) return _avoDetected;
+            _avoCheckDone = true;
+            try
+            {
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    string n = asm?.GetName()?.Name ?? "";
+                    if (n.IndexOf("AVO", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        n.IndexOf("AdvancedSquadControl", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        _avoDetected = true;
+                        break;
+                    }
+                }
+            }
+            catch { }
+            return _avoDetected;
+        }
+
+        public static bool ShouldUseAltForRationHotkey()
+        {
+            return RequireAltForRationHotkey || IsAvoExpandedLoaded();
+        }
+
+        public static void ApplyMaxTeamSizeIfConfigured()
+        {
+            try
+            {
+                if (MaxTeamSize > 0)
+                    CharacterData.maxTeamNPCNumber = MaxTeamSize;
+            }
+            catch { }
+        }
+
+        public static void CycleMaxTeamSize()
+        {
+            int[] presets = { 0, 4, 6, 8, 10, 12, 15 };
+            int next = 4;
+            for (int i = 0; i < presets.Length; i++)
+            {
+                if (presets[i] == MaxTeamSize)
+                {
+                    next = presets[(i + 1) % presets.Length];
+                    break;
+                }
+            }
+            MaxTeamSize = next;
+            if (MaxTeamSize > 0)
+            {
+                try { CharacterData.maxTeamNPCNumber = MaxTeamSize; } catch { }
+            }
+            else
+            {
+                try { if (!IsAvoExpandedLoaded()) CharacterData.maxTeamNPCNumber = 3; } catch { }
+            }
+            Save();
+        }
+
+        public static string FormatMaxTeamSizeLabel(ModLanguage lang)
+        {
+            if (MaxTeamSize <= 0)
+                return L(lang, "Авто (3 / AVO)", "Auto (3 / AVO)", "自动（原版3 / 兼容AVO）");
+            return L(lang, $"{MaxTeamSize} чел.", $"{MaxTeamSize} NPCs", $"{MaxTeamSize} 人");
+        }
+
+        public static void ResetUiPositions()
+        {
+            ShowHudBadge = true;
+            HudBadgeCollapsed = false;
+            MainWinPosX = -1f;
+            MainWinPosY = -1f;
+            ChestBarPosX = -1f;
+            ChestBarPosY = -1f;
+            HudBadgePosX = -1f;
+            HudBadgePosY = -1f;
+            SmartCompanionsUI.ResetWindowRectsToDefault();
+            Save();
+        }
 
         public static CompanionArchetype ResolveArchetypeFromGuid(string guid)
         {
@@ -601,7 +695,16 @@ namespace ZedZone.SmartCompanions
                 sb.AppendLine($"SET|EnableSmartFlashlight|{EnableSmartFlashlight}");
                 sb.AppendLine($"SET|EnablePlayerRescue|{EnablePlayerRescue}");
                 sb.AppendLine($"SET|ShowHudBadge|{ShowHudBadge}");
+                sb.AppendLine($"SET|HudBadgeCollapsed|{HudBadgeCollapsed}");
                 sb.AppendLine($"SET|BaseScanRadius|{BaseScanRadius.ToString("F1", CultureInfo.InvariantCulture)}");
+                sb.AppendLine($"SET|MaxTeamSize|{MaxTeamSize}");
+                sb.AppendLine($"SET|RequireAltForRationHotkey|{RequireAltForRationHotkey}");
+                sb.AppendLine($"SET|MainWinPosX|{MainWinPosX.ToString("F1", CultureInfo.InvariantCulture)}");
+                sb.AppendLine($"SET|MainWinPosY|{MainWinPosY.ToString("F1", CultureInfo.InvariantCulture)}");
+                sb.AppendLine($"SET|ChestBarPosX|{ChestBarPosX.ToString("F1", CultureInfo.InvariantCulture)}");
+                sb.AppendLine($"SET|ChestBarPosY|{ChestBarPosY.ToString("F1", CultureInfo.InvariantCulture)}");
+                sb.AppendLine($"SET|HudBadgePosX|{HudBadgePosX.ToString("F1", CultureInfo.InvariantCulture)}");
+                sb.AppendLine($"SET|HudBadgePosY|{HudBadgePosY.ToString("F1", CultureInfo.InvariantCulture)}");
 
                 foreach (var kv in ContainerRules)
                 {
@@ -691,7 +794,16 @@ namespace ZedZone.SmartCompanions
                         else if (key == "EnableSmartFlashlight" && bool.TryParse(val, out var bFlash)) EnableSmartFlashlight = bFlash;
                         else if (key == "EnablePlayerRescue" && bool.TryParse(val, out var bRescue)) EnablePlayerRescue = bRescue;
                         else if (key == "ShowHudBadge" && bool.TryParse(val, out var b7)) ShowHudBadge = b7;
+                        else if (key == "HudBadgeCollapsed" && bool.TryParse(val, out var bCol)) HudBadgeCollapsed = bCol;
                         else if (key == "BaseScanRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f2)) BaseScanRadius = Mathf.Clamp(f2, 15f, 120f);
+                        else if (key == "MaxTeamSize" && int.TryParse(val, out var mts)) MaxTeamSize = Mathf.Clamp(mts, 0, 30);
+                        else if (key == "RequireAltForRationHotkey" && bool.TryParse(val, out var bAlt)) RequireAltForRationHotkey = bAlt;
+                        else if (key == "MainWinPosX" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var mx)) MainWinPosX = mx;
+                        else if (key == "MainWinPosY" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var my)) MainWinPosY = my;
+                        else if (key == "ChestBarPosX" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var cx)) ChestBarPosX = cx;
+                        else if (key == "ChestBarPosY" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var cy)) ChestBarPosY = cy;
+                        else if (key == "HudBadgePosX" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var hx)) HudBadgePosX = hx;
+                        else if (key == "HudBadgePosY" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var hy)) HudBadgePosY = hy;
                     }
                     else if (parts[0] == "BOX" && parts.Length >= 6)
                     {
