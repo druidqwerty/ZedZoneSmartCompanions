@@ -238,3 +238,12 @@
 - Installed verified 1.8.0 to `G:/Steam/steamapps/common/ZED ZONE/Mods/SmartCompanions`; DLL and manifest checked. Rollback 1.7.0: `backups/before-install-1.8.0`. The public Workshop cache remains 1.7.0.
 - **Publication blocked:** direct GitHub HTTPS also fails with `EOF occurred in violation of protocol (_ssl.c:997)`. No persistent network or OpenClaw settings changed. GitHub push/release, Steam upload and Boosty queue have NOT completed. Public release remains 1.7.0. Status: `docs/publication-1.8.0.json`.
 - **Next:** after connectivity recovers, inspect remote main and the v1.8.0 release before retrying. Push the prepared local commits, publish the exact verified ZIP, sync existing Steam item 3836613312 (public, dependency 3834614258, EN/RU/ZH), then queue BOOSTY_1.8.0.md and remove only the superseded pending 1.7.0 entry. The standing release authorization applies. Do not repeat completed verification or rebuild unless code changes.
+
+
+## 1.8.0 publication resumed and completed (2026-11-11)
+- Network recovered. Inspected remote main and missing release before changes; pushed existing commits b023494 and 682232d without rebuilding or repeating completed tests.
+- Independent package audit passed. GitHub release v1.8.0 published with the original 4,574,927-byte ZIP. Anonymous download matches SHA-256 e97121bb4c11ac2f34fcf7d9cf2d3d0883f839c2faac889b2056b8c718587761; embedded DLL hash and manifest match verified 1.8.0.
+- Steam item 3836613312 updated: EN/RU/ZH uploads succeeded; dependency 3834614258 retained (SDK result29). Anonymous API result1, visibility0, banned0, title1.8.0, size750812, time_updated1794418060. Requested native Steam DownloadItem: both subscribed DLL copies now match the verified 1.8.0 hash.
+- Boosty: queued BOOSTY_1.8.0.md; removed only this project's superseded pending BOOSTY_1.7.0.md. Other projects untouched. Queue acceptance is not publication confirmation.
+- Remaining verification boundary: Steam HTML EN/RU/ZH returned HTTP429; localized page rendering, footer and Required Items sidebar not claimed verified. Do not re-upload because of a read throttle. Evidence: docs/publication-1.8.0.json and docs/steam-verification-1.8.0.json.
+- Release work complete. Only optional HTML recheck remains when Steam's rate limit clears; gameplay/co-op test boundaries are unchanged.

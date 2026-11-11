@@ -1,0 +1,45 @@
+{
+  "checked_at_utc": "2026-11-11T17:28:31.140850+00:00",
+  "workshop_id": "3836613312",
+  "anonymous": true,
+  "api": {
+    "url": "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/",
+    "http_status": 200,
+    "result": 1,
+    "publishedfileid": "3836613312",
+    "title": "ZED ZONE: Smart Companions 1.8.0",
+    "visibility": 0,
+    "banned": 0,
+    "file_size": "750812",
+    "time_updated": 1794418060,
+    "consumer_app_id": 1211600,
+    "creator_app_id": 1211600,
+    "pass": true
+  },
+  "pages": {
+    "english": {
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312&l=english",
+      "pass": false,
+      "error": "HTTP Error 429: Too Many Requests",
+      "http_status": 429,
+      "verification_state": "blocked_by_rate_limit_not_verified"
+    },
+    "russian": {
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312&l=russian",
+      "pass": false,
+      "error": "HTTP Error 429: Too Many Requests",
+      "http_status": 429,
+      "verification_state": "blocked_by_rate_limit_not_verified"
+    },
+    "schinese": {
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312&l=schinese",
+      "pass": false,
+      "error": "HTTP Error 429: Too Many Requests",
+      "http_status": 429,
+      "verification_state": "blocked_by_rate_limit_not_verified"
+    }
+  },
+  "rendering_boundary": "HTML/API verification only; no browser screenshot or image decode verification.",
+  "pass": false,
+  "overall_status": "public_api_verified_html_rate_limited"
+}
