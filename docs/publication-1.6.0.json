@@ -1,0 +1,44 @@
+{
+  "version": "1.6.0",
+  "date": "2026-11-11",
+  "dll": {
+    "bytes": 358400,
+    "sha256": "52330628d659b0213be8803ec47152930977ebbef2e1ec978fe3d99f526393dd"
+  },
+  "github": {
+    "commit": "c1b5ba6",
+    "release_url": "https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.6.0",
+    "asset_url": "https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/download/v1.6.0/ZedZoneSmartCompanions-1.6.0.zip",
+    "asset_bytes": 710752,
+    "asset_sha256": "2930b61a8761a2c6020ea2f1e7b02eac3a31907ffaee7c842a1b58597e5e9cf0",
+    "is_prerelease": false,
+    "anonymous_download_verified": true
+  },
+  "steam_workshop": {
+    "workshop_id": "3836613312",
+    "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312",
+    "result": 1,
+    "visibility": 0,
+    "banned": 0,
+    "title": "ZED ZONE: Smart Companions 1.6.0",
+    "file_size": 717008,
+    "time_updated": 1794358821,
+    "required_dependency": "3834614258",
+    "locales_http_200": ["english", "russian", "schinese"],
+    "local_workshop_cache_synced": true
+  },
+  "boosty": {
+    "card_path": "C:\\Users\\druid\\.openclaw\\workspace-modder\\projects\\zedzone-smart-companions\\BOOSTY_1.6.0.md",
+    "queued": true,
+    "superseded_151_removed_from_queue": true,
+    "note": "Queued in Boosty auto-queue; queue acceptance is not immediate publication."
+  },
+  "verification": {
+    "report": "docs/verification-1.6.0.md",
+    "live_acceptance_log": "docs/combat-acceptance-1.6.0.log",
+    "harmony_patches": 55,
+    "gamedata_files_checked": 8383,
+    "gamedata_identical": true,
+    "two_player_coop_human_npc_visibility": "unverified_in_live_two_player_session"
+  }
+}
