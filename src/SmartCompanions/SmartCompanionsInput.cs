@@ -18,6 +18,22 @@ namespace ZedZone.SmartCompanions
         private static int _mouseReleasedFrame = -1;
         private static float _nextWarningTime;
 
+        public static bool CanProcessWorldHotkeys()
+        {
+            try
+            {
+                var player = GameController.instance?.playerCharacter;
+                if (!Il2CppSafe.IsAliveUnity(player)) return false;
+                if (ZedZone.Net.NetChatBar.isTypingChat) return false;
+                if (GUIUtility.keyboardControl != 0) return false;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         public static bool BlockPlayerControls
         {
             get

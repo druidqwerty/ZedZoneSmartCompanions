@@ -7,17 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.5.1"><strong>Скачать релиз v1.5.1 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.6.0"><strong>Скачать релиз v1.6.0 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
 
-## Экспериментальная v1.5.1 — защита загрузки human NPC (кооператив ещё не проверен)
+## Новое в v1.6.0 — Полная ревизия кода, чистая пересборка, защита кукол/оружия и строгий режим «Не стрелять»
 
-- Добавлена защита инициализации человеческих NPC при отсутствующих или некорректных данных дальнобойного оружия во время сетевой загрузки.
-- Изолированный запуск BepInEx и SelfVerify прошли. Реальный мир с двумя игроками **не тестировался**; видимость NPC у клиента **не подтверждена**, поэтому не считаем это доказанным исправлением. Подробности: [проверки и ограничения](docs/verification-1.5.1.md).
+- **Исправлены нативные ID `MonsterAttr` и защита `CharacterData` игроков (`0 = Игрок`, `200 = Мародёр`, `201 = Выживший`, `202 = Киборг-охранник`):**
+  - Исправлен `LooterMonsterAttrId` (`200` вместо ошибочного `202`), добавлена жёсткая защита локального и сетевых игроков (`IsAnyPlayerCharacterData` — `characterAttrId = 0` игрока никогда не изменяется), добавлена автоматическая починка выживших/бандитов с ошибочным `202` в старых сохранениях, а настройка `MonsterAttr` ограничена только мародёром (`200`).
+- **Полная защита инициализации оружия и анимации рук (`HumanNpcEquipmentGuard`) + спасение регистрации активных NPC:**
+  - Защищает всех не-локальных людей (напарников, диких NPC, клиентских кукол и кукол удалённых игроков) независимо от `IsMultiplayerOnline`, автоматически создаёт резервный `InventoryData` перед `LoadEquipments` / `EquipRangedWeapon` / `EquipMeleeWeapon`, не даёт сбоям оружия оборвать `Init()` и `BasicCharacterController.Start() -> GameController.AddCharacter()`, проверяет все кости рук в `UpdateHand_RangedWeapon` (`0` ошибок оружия/рук в `Player.log` вместо `2 903`) и возвращает пропущенных живых NPC в `GameController.characterList`.
+- **Боевой ИИ, строгий режим «Не стрелять» (`StopFire` / `Passive`), очистка фантомных угроз и защита хоткеев в чате:**
+  - Полное обнуление угрозы для союзников и мирных NPC во всех доктринах, строгая блокировка `GOAPGoal_EliminateThreat` в режиме `StopFire` / `Passive`, удаление выгруженных целей (`!activeInHierarchy`), проверка `IsAnyAlliedPlayerCharacterId` для `IsPlayerTeammate`, точный фильтр врагов для радара тыла, сетевая синхронизация `NPC_DISMISS` и `AutoCompact`, а также блокировка `F6–F9` при вводе в чате (`Esc` закрывает `F8`).
+- **Проверка и кооператив:** Пройдена полная живая проверка в движке ZED ZONE (`55` Harmony-патчей, `[SelfVerify] PASS v1.6.0`, все фазы боя с зомби/мародёрами и тест `StopFire` — `PASS`, все `8 383` файла `GameData` неизменны). Реальная видимость людей-NPC в парной кооперативной сессии (хост + клиент) ещё ждёт живого двухпользовательского теста; подробности в [docs/verification-1.6.0.md](docs/verification-1.6.0.md).
 
 ## Новое в v1.5.0 — Исправление увольнения напарников, перетаскиваемый UI, лимит отряда до 15, совместимость с AVO и сбор ресурсов
 
@@ -125,7 +130,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.5.1.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.6.0.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

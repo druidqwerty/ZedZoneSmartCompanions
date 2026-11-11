@@ -1,17 +1,17 @@
-title=ZED ZONE: Smart Companions 1.5.1 Experimental — 智能队友
+title=ZED ZONE: Smart Companions 1.6.0 — 智能队友
 visibility=public
-description=[h1]智能队友 1.5.1 — 实验性更新[/h1]
-description=组建可靠的幸存者小队：战术战斗、基地物流、实时互动台词与联机队友同步。
+description=[h1]智能队友 1.6.0[/h1]
+description=打造可靠的幸存者小队：智能战术战斗 AI、基地储物箱真实搬运整理、1,179 条三语实时气泡台词与联机同步。
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=喜欢这个模组吗？欢迎在 Boosty 支持开发。
-description=[h2]1.5.1 实验版[/h2]
-description=[list][*]新增人类 NPC 初始化保护，以应对多人加载时缺失或无效的远程武器数据。[*]已通过隔离 BepInEx 启动与自检。[/list]
-description=[h2]联机重要说明[/h2]
-description=本版本尚未在真实双人联机世界中测试。客户端能否因此看到人类 NPC 尚未确认；这是实验性更新，不是已验证的修复。欢迎反馈客户端是否能看到人类幸存者与强盗。
-description=[h2]小队与基地[/h2]
-description=六种战术、可拖拽 F8 中心、最高 15 人小队、玩家标记箱子间的真实搬运、物资搜刮、战地支援、12 类储物箱与中/英/俄语互动台词。无需重置存档。
-description=[h2]安装[/h2]
-description=需要 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]。安装加载器并通过 Steam 启动游戏。联机时双方都应安装当前版本的本模组与加载器。
-description=F8：小队/基地/设置 · F7：整理基地 · F6（与 AVO 冲突时用 Alt+F6）：分享口粮 · F9：战吼。
-description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]源码与详细验证记录[/url]
+description=[h2]1.6.0 更新内容（全面审查与重构）[/h2]
+description=[list][*]修正玩家与人类 NPC 原生属性 ID（0 = 玩家，200 = 强盗，201 = 幸存者），并自动修复旧存档中被误设为 202 的普通幸存者。[*]为队友、野生 NPC 与联机玩偶全面加固远程/近战武器加载及手部动画（彻底消除 LateUpdate 空引用刷屏与 NPC 漏注册问题）。[*]严格执行「停止开火」(Passive / StopFire) 停火令，清理区块卸载残留的幽灵仇恨，不再对营地友好居民误报背后偷袭，并在打字聊天时屏蔽 F6–F9 快捷键。[/list]
+description=[h2]联机说明[/h2]
+description=1.6.0 已在真实 ZED ZONE 引擎中通过战斗、分拣与装备/玩偶保护验收；真实双人联机世界（主机 + 客户端）中的人类 NPC 可见性仍有待双人实测确认，欢迎在讨论区反馈联机表现。
+description=[h2]小队与基地功能[/h2]
+description=六种战术学说、可自由拖拽的 F8 控制中心（支持 Esc 关闭）、最高 15 人队伍上限、12 类玩家标记储物箱间的真实走位搬运、自主物资搜刮、战地急救与弹药支援，以及中/英/俄三语互动吐槽。兼容现有存档，无需重开。
+description=[h2]安装与快捷键[/h2]
+description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次其中的 install.cmd 并通过 Steam 启动游戏）。联机时双方均需更新至 1.6.0。
+description=F8：小队/基地/设置 · F7：整理基地 · F6（与 AVO 共用时为 Alt+F6）：分享口粮 · F9：小队战吼。
+description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]GitHub 源码与详细验证报告[/url]
 description=© 2026 druidqwerty。MIT 许可证。免费开源；代码由 AI 辅助，创意与测试由 druid 完成。

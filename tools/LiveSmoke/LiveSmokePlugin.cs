@@ -10,6 +10,7 @@ using UnityEngine;
 namespace ZedZone.SmartCompanions.LiveSmoke
 {
     [BepInPlugin("zedzone.smartcompanions.livesmoke", "Smart Companions Live Lab", "1.0.0")]
+    [BepInDependency("zedzone.smartcompanions")]
     public sealed class LiveSmokePlugin : BasePlugin
     {
         internal static string Lab;

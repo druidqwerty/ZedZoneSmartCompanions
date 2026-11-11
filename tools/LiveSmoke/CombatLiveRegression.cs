@@ -108,6 +108,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     // disposable test NPC on the normal escort order, not a forced goal.
                     _agent.npcData.ExecuteNPCCommand("Basic.FollowPlayer");
                     SmartCombatAI.ApplyDoctrineToNpcData(_agent, _state);
+                    _agent.SelectPriorityGoalExecute();
                     if (_agent.npcData.combatCommand != "FireAtWill" || _agent.npcData.weaponPreference != "RangedWeaponOnly")
                         return End(false, "FAIL: doctrine is not stored in native bare-leaf format.");
                     _phase = 0;
@@ -176,12 +177,48 @@ namespace ZedZone.SmartCompanions.LiveSmoke
         {
             var testData = new CharacterData { characterAttrId = 0, camp = 21, characterName = "TestLooter" };
             MultiplayerSyncSystem.NormalizeHumanCharacterData(testData, isLooterHint: true);
-            if (testData.characterAttrId != MultiplayerSyncSystem.LooterMonsterAttrId || testData.camp != MultiplayerSyncSystem.RemappedLooterCamp)
-                throw new Exception($"NormalizeHumanCharacterData failed: attr={testData.characterAttrId}, camp={testData.camp}");
+            if (testData.characterAttrId != MultiplayerSyncSystem.LooterMonsterAttrId ||
+                MultiplayerSyncSystem.LooterMonsterAttrId != 200 ||
+                testData.camp != MultiplayerSyncSystem.RemappedLooterCamp)
+                throw new Exception($"NormalizeHumanCharacterData looter failed: attr={testData.characterAttrId}, camp={testData.camp}");
 
-            var attr202 = MonsterManager.instance.GetMonsterAttrById(MultiplayerSyncSystem.LooterMonsterAttrId);
-            if (!Il2CppSafe.IsAliveUnity(attr202) || attr202.monsterThreatLevel < 25f || attr202.monsterThreatRange < 28f)
-                throw new Exception("MonsterAttr(202) threat level/range not configured!");
+            // v1.6.0 Test A: Legacy 202 (SecurityGuard) corruption on ordinary survivor is repaired to 201 (Survivor)
+            var legacyCorruptedSurvivor = new CharacterData { characterAttrId = 202, camp = 2, characterName = "TestSurvivorFemale", gender = 1 };
+            MultiplayerSyncSystem.NormalizeHumanCharacterData(legacyCorruptedSurvivor, isLooterHint: false);
+            if (legacyCorruptedSurvivor.characterAttrId != 201 || legacyCorruptedSurvivor.camp != 2)
+                throw new Exception($"v1.6.0 legacy 202->201 repair failed: attr={legacyCorruptedSurvivor.characterAttrId}, camp={legacyCorruptedSurvivor.camp}");
+
+            var attr200 = MonsterManager.instance.GetMonsterAttrById(MultiplayerSyncSystem.LooterMonsterAttrId);
+            if (!Il2CppSafe.IsAliveUnity(attr200) || attr200.monsterThreatLevel < 25f || attr200.monsterThreatRange < 28f)
+                throw new Exception("MonsterAttr(200 Looter) threat level/range not configured!");
+
+            // v1.6.0 Test B: Player CharacterData (characterAttrId=0) is NEVER overwritten by NormalizeHumanCharacterData or SetThreatData,
+            // and AdjustThreatScore zeroes out friendly player/ally targets!
+            var gcPlayer = GameController.instance.playerCharacter;
+            int origPlayerAttr = gcPlayer.characterData.characterAttrId;
+            int origPlayerCamp = gcPlayer.characterData.camp;
+            MultiplayerSyncSystem.NormalizeHumanCharacterData(gcPlayer.characterData, isLooterHint: true);
+            if (gcPlayer.characterData.characterAttrId != origPlayerAttr || gcPlayer.characterData.camp != origPlayerCamp)
+                throw new Exception($"v1.6.0 PLAYER CORRUPTION: NormalizeHumanCharacterData modified player attr={gcPlayer.characterData.characterAttrId} camp={gcPlayer.characterData.camp}!");
+            float friendlyScore = 50f;
+            SmartCombatAI.AdjustThreatScore(_agent, gcPlayer, ref friendlyScore);
+            if (friendlyScore != 0f)
+                throw new Exception($"v1.6.0 friendly player threat score was not zeroed: {friendlyScore}!");
+
+            // v1.6.0 Test C: NPC_DISMISS multiplayer sync packet clears ownership cleanly
+            var dismissSyncState = CompanionConfigStore.GetOrCreateCompanion("test_mp_dismiss_npc", "TestDismissNpc");
+            dismissSyncState.OwnerCharacterId = "test_owner_id";
+            dismissSyncState.IsDismissedOrNotInTeam = false;
+            var dismissMsg = new ZedZone.Net.MsgChat
+            {
+                senderId = 2,
+                senderName = "CoopFriend",
+                text = MultiplayerSyncSystem.PacketPrefix + "NPC_DISMISS|test_mp_dismiss_npc"
+            };
+            if (!MultiplayerSyncSystem.TryHandleIncomingChatPacket(dismissMsg, null, receivedOnHost: false) ||
+                !dismissSyncState.IsDismissedOrNotInTeam || !string.IsNullOrEmpty(dismissSyncState.OwnerCharacterId))
+                throw new Exception("v1.6.0 NPC_DISMISS packet did not clear companion ownership!");
+            CompanionConfigStore.CompanionStates.Remove("test_mp_dismiss_npc");
 
             var warnGoal = new GOAPGoal_WarningHumanEnemy();
             if (warnGoal.IsValid(_agent))
@@ -338,7 +375,34 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             }
             baseBox.Rule.IsMarkedByPlayer = prevMarked;
 
-            LiveSmokePlugin.Logger.LogInfo($"[CombatLive] PASS v1.5.0 QuitTeam Dismissal, Draggable UI, MaxTeamSize=12, CollectResource & Base Chest Protection, Real ItemAttr Categorizer, Filtered UI (filtered={filteredUi.Count}/{scanned.Count}), & Invisible CarryBuffer checks.");
+            // Verify v1.6.0 Test D: Wild NPC with non-player leaderCharacterGUID is NOT treated as player teammate,
+            // and EquipmentGuard skips invalid weapon items without throwing NRE or breaking ranged state!
+            if (Il2CppSafe.IsAliveUnity(dismissTarget) && Il2CppSafe.IsAlive(dismissTarget.npcData))
+            {
+                string savedLeader = dismissTarget.npcData.leaderCharacterGUID;
+                var stWild = CompanionConfigStore.GetOrCreateCompanion(dismissTarget.npcData.npcGUID);
+                bool savedDismissed = stWild.IsDismissedOrNotInTeam;
+                gc.playerCharacter.characterData.RemoveTeamNPC(dismissTarget.npcData);
+                GOAPNPCManager.instance?.teammateNPCs?.Remove(dismissTarget.npcData);
+                stWild.IsDismissedOrNotInTeam = false;
+                dismissTarget.npcData.leaderCharacterGUID = "non_existent_wild_npc_leader_guid";
+                if (dismissTarget.IsPlayerTeammate())
+                    throw new Exception("v1.6.0 wild NPC with non-player leaderCharacterGUID falsely matched IsPlayerTeammate!");
+                dismissTarget.npcData.leaderCharacterGUID = savedLeader;
+                stWild.IsDismissedOrNotInTeam = savedDismissed;
+                gc.playerCharacter.characterData.teamNPCGuids.Add(dismissTarget.npcData.npcGUID);
+                GOAPNPCManager.instance?.teammateNPCs?.Add(dismissTarget.npcData);
+
+                // EquipmentGuard: pass invalid/non-ranged ItemData (knife 352) to EquipRangedWeapon on non-player NPC -> must NOT throw or break NPC!
+                var savedWeapon = dismissTarget.humanCharacter.rangedWeapon;
+                dismissTarget.humanCharacter.EquipRangedWeapon(knifeItem, false);
+                if (!Il2CppSafe.IsAlive(dismissTarget.humanCharacter.characterData.inventoryData))
+                    throw new Exception("v1.6.0 EquipmentGuard did not preserve/ensure backing inventoryData!");
+                if (Il2CppSafe.IsAliveUnity(savedWeapon) && Il2CppSafe.IsAlive(savedWeapon.weaponData))
+                    dismissTarget.humanCharacter.EquipRangedWeapon(savedWeapon.weaponData, false);
+            }
+
+            LiveSmokePlugin.Logger.LogInfo($"[CombatLive] PASS v1.6.0 Player/Looter(200)/Survivor(201) Guard, Legacy 202 Repair, Wild Leader Guard, EquipmentGuard, QuitTeam Dismissal, Draggable UI, MaxTeamSize=12, CollectResource & Base Chest Protection, Real ItemAttr Categorizer, Filtered UI (filtered={filteredUi.Count}/{scanned.Count}), & Invisible CarryBuffer checks.");
         }
 
         private static void StartPhase(float now)
@@ -368,6 +432,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             }
             _phaseStart = now;
             _seenAt = -1f;
+            IsolateArena(log: false);
             var gun = _agent.humanCharacter.rangedWeapon;
             ResetDischargeBaseline(gun, now);
             LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Begin phase={_phase} distance={distance}m rounds={_initialAmmo} weaponId={gun.weaponData.itemId} range={gun.fireRange:F2} command={_agent.npcData.combatCommand}.");

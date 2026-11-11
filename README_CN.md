@@ -7,17 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.5.1"><strong>下载 v1.5.1 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.6.0"><strong>下载 v1.6.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
 
-## v1.5.1 实验版 — 人类 NPC 加载保护（联机可见性尚未验证）
+## v1.6.0 更新 — 全面源码审查重构、装备与联机玩偶保护及严格停火修复
 
-- 为多人加载期间缺失或无效的远程武器数据增加人类 NPC 初始化保护。
-- 此版本已通过隔离启动与 SelfVerify，但**尚未进行双人联机世界测试**；客户端是否能看到人类 NPC **尚未确认**，不宣称该问题已修复。详情见[验证与限制](docs/verification-1.5.1.md)。
+- **修正原生 `MonsterAttr` ID 并保护玩家数据 (`0 = 玩家`, `200 = 强盗`, `201 = 幸存者`, `202 = 改造安保队员`)：**
+  - 将强盗 ID 从错误的 `202` 修正为 `200`，新增本地与远程联机玩家保护 (`IsAnyPlayerCharacterData`)，自动修复旧存档中被误设为 `202` 的普通幸存者，且仅对 `200 (强盗)` 配置仇恨范围。
+- **全面加固远程/近战武器初始化与手部动画 (`HumanNpcEquipmentGuard`) + 主机活跃 NPC 漏注册救援：**
+  - 无论是否处于联机模式，均保护所有非本地玩家人类角色（队友、野生 NPC、客户端玩偶与远程玩家玩偶），自动补全底层 `InventoryData`，防止损坏武器中断 `Init()` 与 `GameController.AddCharacter()`，并在 `UpdateHand_RangedWeapon` 中校验全部骨骼引用（`Player.log` 武器/手部空引用降至 `0`）。
+- **战斗 AI、严格执行停火令 (`StopFire` / `Passive`)、清理幽灵仇恨与聊天输入防误触：**
+  - 全姿态清零友方/中立人类仇恨值，在 `StopFire` / `Passive` 下严格屏蔽 `GOAPGoal_EliminateThreat`，自动清理区块卸载残留目标，修复野生小队误判与营地居民误报偷袭，新增 `NPC_DISMISS` 与 `AutoCompact` 联机同步，并在聊天打字时屏蔽 `F6–F9`（支持 `Esc` 关闭 `F8`）。
+- **验证与联机说明：** 已通过真实 ZED ZONE 引擎全流程验收（`55` 个 Harmony 补丁、`[SelfVerify] PASS v1.6.0`、丧尸/强盗射击与停火测试全部 `PASS`，`8,383` 个存档文件哈希完全一致）。真实双人联机世界（主机 + 客户端）中的人类 NPC 可见性仍有待双人实测确认；详见[验证报告](docs/verification-1.6.0.md)。
 
 ## v1.5.0 更新 — 修复解雇队友不离队、窗口自由拖拽、队伍上限提升（最高15人）、兼容 AVO 与自主搜刮修复
 
@@ -99,7 +104,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.5.1.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.6.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

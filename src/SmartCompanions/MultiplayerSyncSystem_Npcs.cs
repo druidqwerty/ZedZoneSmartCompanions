@@ -17,6 +17,31 @@ namespace ZedZone.SmartCompanions
 
                 var monsterSync = NetMonsterSync.instance;
                 bool isHostOnline = IsMultiplayerHost && Il2CppSafe.IsAliveUnity(monsterSync);
+                bool peerJoinedRefresh = false;
+                if (isHostOnline && _pendingPeerJoinNpcRefresh)
+                {
+                    _pendingPeerJoinNpcRefresh = false;
+                    peerJoinedRefresh = true;
+                    LastSentWeaponIdByNpc.Clear();
+                }
+
+                // Rescue any active NPCs from GOAPNPCManager.activeNPCs that missed GameController.AddCharacter
+                var npcMgr = GOAPNPCManager.instance;
+                if (Il2CppSafe.IsAlive(npcMgr) && npcMgr.activeNPCs != null)
+                {
+                    foreach (var kv in npcMgr.activeNPCs)
+                    {
+                        var ag = kv.Value;
+                        if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter)) continue;
+                        var hc = ag.humanCharacter;
+                        if (hc.deadFlag || hc.isPlayer || NetSessionConfig.IsNetworkPlayer(hc)) continue;
+                        if (!gc.characterList.Contains(hc))
+                        {
+                            gc.AddCharacter(hc);
+                            SmartCompanionsPlugin.LogInfo($"[MP NPC] Registered active NPC in GameController.characterList: {hc.characterData?.characterName ?? kv.Key}");
+                        }
+                    }
+                }
 
                 var chars = gc.characterList;
                 for (int i = 0; i < chars.Count; i++)
@@ -32,25 +57,37 @@ namespace ZedZone.SmartCompanions
                         (agent.TryCast<GOAPAgent_Looter>() != null ||
                          (Il2CppSafe.IsAlive(agent.npcData) && agent.npcData.isBandit));
 
+                    // Keep CharacterData.zLevel aligned with GOAPNPCData.zLevel so NetMonsterSync.HostUpdateInterest matches layer
+                    if (Il2CppSafe.IsAliveUnity(agent) && Il2CppSafe.IsAlive(agent.npcData) &&
+                        human.characterData.zLevel != agent.npcData.zLevel)
+                    {
+                        human.characterData.zLevel = agent.npcData.zLevel;
+                    }
+
                     int prevAttrId = human.characterData.characterAttrId;
                     NormalizeHumanCharacterData(human.characterData, isLooter);
 
                     if (isHostOnline)
                     {
-                        // If characterAttrId was 0 when NetMonsterSync first cached m_spawnBytesScratch,
-                        // clear the stale entry and resend spawn so Clients spawn the puppet instead of dropping it!
-                        if (prevAttrId == 0 && human.characterData.characterAttrId != 0)
+                        bool attrChanged = prevAttrId != human.characterData.characterAttrId;
+                        // If characterAttrId changed (e.g. 0->201 or legacy 202->201) or a new peer just joined,
+                        // clear stale m_spawnBytesScratch and resend spawn if already tracked by NetMonsterSync.
+                        if (attrChanged || peerJoinedRefresh)
                         {
                             try
                             {
-                                if (monsterSync.HostTryGetNetId(human, out int netId) && monsterSync.m_spawnBytesScratch != null)
-                                    monsterSync.m_spawnBytesScratch.Remove(netId);
-                                monsterSync.HostResendSpawn(human);
+                                if (monsterSync.HostTryGetNetId(human, out int netId))
+                                {
+                                    if (monsterSync.m_spawnBytesScratch != null)
+                                        monsterSync.m_spawnBytesScratch.Remove(netId);
+                                    if (attrChanged)
+                                        monsterSync.HostResendSpawn(human);
+                                }
                             }
                             catch { }
                         }
 
-                        // Sync NPC weapon/equipment visuals to Clients whenever weapon changes
+                        // Sync NPC weapon/equipment visuals to Clients whenever weapon changes (or peer joins)
                         int curWeaponId = human.characterData.characterEquipmentData?.currentWeaponItemData?.itemId ?? 0;
                         if (!LastSentWeaponIdByNpc.TryGetValue(human.Pointer, out int lastWep) || lastWep != curWeaponId)
                         {
@@ -95,6 +132,7 @@ namespace ZedZone.SmartCompanions
                         ag.agentState.SetState("leaderCharacter", (Il2CppSystem.Object)null);
                     }
                 }
+                SyncCompanionDismissed(npcData.npcGUID);
                 CompanionConfigStore.Save();
             }
             catch { }

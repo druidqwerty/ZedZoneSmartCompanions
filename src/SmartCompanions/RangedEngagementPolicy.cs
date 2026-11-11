@@ -14,13 +14,15 @@ namespace ZedZone.SmartCompanions
             var profile=CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID);
             if (!CombatResponse.AllowsRangedResponse(profile, agent.npcData.weaponPreference)) return false;
             var self=agent.humanCharacter;var enemy=agent.mostThreateningCharacter;
-            var player=GameController.instance?.playerCharacter;
+            var leader=Il2CppSafe.IsAliveUnity(agent.leaderCharacter) && !agent.leaderCharacter.deadFlag
+                ? agent.leaderCharacter
+                : GameController.instance?.playerCharacter;
             if (!Il2CppSafe.IsAliveUnity(self) || !Il2CppSafe.IsAliveUnity(enemy) || enemy.deadFlag || self.deadFlag ||
-                !Il2CppSafe.IsAliveUnity(player) || !Il2CppSafe.IsAlive(enemy.characterData) ||
+                !Il2CppSafe.IsAliveUnity(leader) || !Il2CppSafe.IsAlive(enemy.characterData) ||
                 !Il2CppSafe.IsAlive(self.characterData) || enemy.characterData.zLevel != self.characterData.zLevel) return false;
             // Beyond vanilla's near-leader threshold keep its catch-up priorities.
             // We only resolve the FireAtWill vs nearby FollowLeader priority tie.
-            if (Vector2.Distance(self.transform.position,player.transform.position)>8f) return false;
+            if (Vector2.Distance(self.transform.position,leader.transform.position)>8f) return false;
             float distance=Vector2.Distance(self.transform.position,enemy.transform.position);
             if (distance<2.5f || distance>ReadyRange(self)) return false;
             Vector2 muzzle=self.GetProjectileAimOrigin();
@@ -53,12 +55,42 @@ namespace ZedZone.SmartCompanions
             try
             {
                 var agent=agentState?.npcData?.agentCache;
+                if (Il2CppSafe.IsAliveUnity(agent) && Il2CppSafe.IsAlive(agent.npcData) && agent.IsPlayerTeammate())
+                {
+                    string combatCmd = CombatResponse.NormalizeCommand(agentState.combatCommand ?? agent.npcData.combatCommand);
+                    var profile = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID);
+                    if (combatCmd == "StopFire" || profile.Doctrine == TacticalDoctrine.Passive || agent.IsTeammateCombatSuppressed())
+                    {
+                        __result = -1f;
+                        return;
+                    }
+                }
                 if(!RangedEngagementPolicy.CanEngage(agent,agentState))return;
                 float follow=Il2CppSafe.IsAlive(agent.followLeaderGoal) ? agent.followLeaderGoal.GetPriority(agentState) : 2f;
                 // Native FireAtWill adds no command priority; FollowLeader has a
                 // floor of 2 even next to the leader. Do not turn this into a forced
                 // goal: native validity and higher emergency goals still apply.
                 if(!float.IsNaN(follow) && follow<=2.01f) __result=Mathf.Max(__result,follow+0.5f);
+            }
+            catch { }
+        }
+    }
+
+    [HarmonyPatch(typeof(GOAPGoal_EliminateThreat), nameof(GOAPGoal_EliminateThreat.IsValid))]
+    internal static class CeaseFireEliminateThreatGate
+    {
+        private static void Postfix(GOAPAgent agent, ref bool __result)
+        {
+            if (!__result || !Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData)) return;
+            try
+            {
+                if (!agent.IsPlayerTeammate()) return;
+                string combatCmd = CombatResponse.NormalizeCommand(agent.npcData.combatCommand);
+                var profile = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID);
+                if (combatCmd == "StopFire" || profile.Doctrine == TacticalDoctrine.Passive || agent.IsTeammateCombatSuppressed())
+                {
+                    __result = false;
+                }
             }
             catch { }
         }

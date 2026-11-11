@@ -28,7 +28,7 @@ namespace ZedZone.SmartCompanions
                     return;
                 }
                 string safeName = (rule.CustomName ?? "").Replace("|", "/").Replace(";", ",");
-                string payload = $"SC142:{(int)rule.Categories}:{(rule.IsDropoffSource ? 1 : 0)}:{rule.Priority}:{safeName}";
+                string payload = $"SC142:{(int)rule.Categories}:{(rule.IsDropoffSource ? 1 : 0)}:{rule.Priority}:{safeName}:{(rule.AutoCompact ? 1 : 0)}";
                 tobj.objectData.SetProperty(ContainerRulePropertyIndex, payload);
             }
             catch { }
@@ -61,6 +61,8 @@ namespace ZedZone.SmartCompanions
                 rule.IsMarkedByPlayer = (rule.Categories != StorageCategory.None || rule.IsDropoffSource);
                 rule.Priority = Mathf.Clamp(prio, 1, 5);
                 if (!string.IsNullOrEmpty(name)) rule.CustomName = name;
+                if (parts.Length >= 6 && int.TryParse(parts[5], out int compactInt))
+                    rule.AutoCompact = compactInt != 0;
                 return true;
             }
             catch { return false; }
@@ -100,8 +102,21 @@ namespace ZedZone.SmartCompanions
                 if (safeName.Length > 28) safeName = safeName.Substring(0, 28);
                 string px = rule.LastKnownPos.x.ToString("F1", CultureInfo.InvariantCulture);
                 string py = rule.LastKnownPos.y.ToString("F1", CultureInfo.InvariantCulture);
-                string body = $"BOX|{safeId}|{(int)rule.Categories}|{(rule.IsDropoffSource ? 1 : 0)}|{rule.Priority}|{px}|{py}|{safeName}";
+                string body = $"BOX|{safeId}|{(int)rule.Categories}|{(rule.IsDropoffSource ? 1 : 0)}|{rule.Priority}|{px}|{py}|{safeName}|{(rule.AutoCompact ? 1 : 0)}";
 
+                if (IsMultiplayerHost) BroadcastPacketFromHost(body);
+                else if (IsMultiplayerClient) SendPacketToHost(body);
+            }
+            catch { }
+        }
+
+        public static void SyncCompanionDismissed(string npcGuid)
+        {
+            if (string.IsNullOrEmpty(npcGuid) || !IsMultiplayerOnline) return;
+            try
+            {
+                string safeGuid = npcGuid.Replace("|", "/");
+                string body = $"NPC_DISMISS|{safeGuid}";
                 if (IsMultiplayerHost) BroadcastPacketFromHost(body);
                 else if (IsMultiplayerClient) SendPacketToHost(body);
             }
@@ -224,8 +239,29 @@ namespace ZedZone.SmartCompanions
                     float.TryParse(parts[5], NumberStyles.Float, CultureInfo.InvariantCulture, out float px);
                     float.TryParse(parts[6], NumberStyles.Float, CultureInfo.InvariantCulture, out float py);
                     string name = parts.Length >= 8 ? parts[7] : "";
+                    bool autoCompact = true;
+                    if (parts.Length >= 9 && int.TryParse(parts[8], out int compactInt))
+                        autoCompact = compactInt != 0;
 
-                    ApplyReceivedBoxRule(id, (StorageCategory)catInt, dropInt != 0, prio, new Vector2(px, py), name);
+                    ApplyReceivedBoxRule(id, (StorageCategory)catInt, dropInt != 0, prio, new Vector2(px, py), name, autoCompact);
+                    if (receivedOnHost)
+                        BroadcastPacketFromHost(body, senderPeer);
+                    return true;
+                }
+
+                if (cmd == "NPC_DISMISS" && parts.Length >= 2)
+                {
+                    string guid = parts[1];
+                    if (!string.IsNullOrEmpty(guid))
+                    {
+                        var st = CompanionConfigStore.GetOrCreateCompanion(guid);
+                        st.OwnerCharacterId = "";
+                        st.OwnerPlayerName = "";
+                        st.IsDismissedOrNotInTeam = true;
+                        st.IsSortingActive = false;
+                        st.SortingPhase = 0;
+                        CompanionConfigStore.Save();
+                    }
                     if (receivedOnHost)
                         BroadcastPacketFromHost(body, senderPeer);
                     return true;
@@ -285,7 +321,7 @@ namespace ZedZone.SmartCompanions
             return true;
         }
 
-        private static void ApplyReceivedBoxRule(string id, StorageCategory cats, bool isDropoff, int prio, Vector2 pos, string name)
+        private static void ApplyReceivedBoxRule(string id, StorageCategory cats, bool isDropoff, int prio, Vector2 pos, string name, bool autoCompact = true)
         {
             bool isMarked = isDropoff || cats != StorageCategory.None;
             var rule = CompanionConfigStore.GetOrCreateRule(id, name);
@@ -293,6 +329,7 @@ namespace ZedZone.SmartCompanions
             rule.IsDropoffSource = isDropoff;
             rule.IsMarkedByPlayer = isMarked;
             rule.Priority = Mathf.Clamp(prio, 1, 5);
+            rule.AutoCompact = autoCompact;
             if (pos.sqrMagnitude > 0.01f) rule.LastKnownPos = pos;
             if (!string.IsNullOrEmpty(name)) rule.CustomName = name;
 

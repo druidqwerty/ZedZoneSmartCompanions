@@ -136,9 +136,30 @@ namespace ZedZone.SmartCompanions
                 }
                 finally { agent.defaultSightRange = originalRange; }
 
+                if (agent.threatDataDic != null && agent.threatDataDic.Count > 0)
+                {
+                    List<BasicCharacterController> staleThreats = null;
+                    foreach (var kv in agent.threatDataDic)
+                    {
+                        var ch = kv.Key;
+                        if (!Il2CppSafe.IsAliveUnity(ch) || ch.deadFlag || !ch.enabled || !ch.gameObject.activeInHierarchy)
+                        {
+                            staleThreats ??= new List<BasicCharacterController>();
+                            staleThreats.Add(ch);
+                        }
+                    }
+                    if (staleThreats != null)
+                    {
+                        for (int i = 0; i < staleThreats.Count; i++)
+                            agent.threatDataDic.Remove(staleThreats[i]);
+                    }
+                }
+
                 agent.RefreshThreatsNow();
                 var target = agent.GetMostThreatCharacter();
-                IntPtr targetPointer = Il2CppSafe.IsAliveUnity(target) && !target.deadFlag ? target.Pointer : IntPtr.Zero;
+                IntPtr targetPointer = Il2CppSafe.IsAliveUnity(target) && !target.deadFlag &&
+                    target.enabled && target.gameObject.activeInHierarchy
+                    ? target.Pointer : IntPtr.Zero;
                 agent.mostThreateningCharacter = targetPointer != IntPtr.Zero ? target : null;
                 if (targetPointer != IntPtr.Zero)
                 {

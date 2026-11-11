@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "1.5.1";
+        public const string PluginVersion = "1.6.0";
 
         internal static ManualLogSource Logs;
 
@@ -172,7 +172,17 @@ namespace ZedZone.SmartCompanions
                     throw new Exception("CompanionRank XP threshold check failed!");
                 }
 
-                LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}], {uniqueZh.Count} unique ZH lines [Rude={rudeZhCount}, Clean={cleanZhCount}]), 12 storage categories (RU/EN/ZH), {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, MP Sync & Hostile Human Combat AI, ModLanguage Auto/RU/EN/ZH verified.");
+                // Verify native MonsterAttr ID invariants & MP teammate/player guards
+                if (MultiplayerSyncSystem.LooterMonsterAttrId != 200 ||
+                    MultiplayerSyncSystem.SurvivorMonsterAttrId != 201 ||
+                    MultiplayerSyncSystem.SecurityGuardMonsterAttrId != 202 ||
+                    MultiplayerSyncSystem.IsAnyAlliedPlayerCharacterId("") ||
+                    MultiplayerSyncSystem.IsAnyAlliedPlayerCharacterId(null))
+                {
+                    throw new Exception("MultiplayerSyncSystem native MonsterAttr / player ID invariants failed!");
+                }
+
+                LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}], {uniqueZh.Count} unique ZH lines [Rude={rudeZhCount}, Clean={cleanZhCount}]), 12 storage categories (RU/EN/ZH), {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, MP Sync (Looter=200/Survivor=201) & Hostile Human Combat AI, ModLanguage Auto/RU/EN/ZH verified.");
             }
             catch (Exception e)
             {
@@ -198,34 +208,41 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
-                // Hotkey F8: Toggle Smart Companions & Base Sorting Hub
-                if (Input.GetKeyDown(KeyCode.F8))
+                if (SmartCompanionsUI.ShowMainWindow && Input.GetKeyDown(KeyCode.Escape))
                 {
-                    SmartCompanionsUI.ShowMainWindow = !SmartCompanionsUI.ShowMainWindow;
-                    if (SmartCompanionsUI.ShowMainWindow)
-                        SmartCompanionsUI.OnMainWindowOpened();
+                    SmartCompanionsUI.ShowMainWindow = false;
                 }
-
-                // Hotkey F7: Quick Order -> Sort Base Containers
-                if (Input.GetKeyDown(KeyCode.F7))
+                else if (SmartCompanionsInput.CanProcessWorldHotkeys())
                 {
-                    BaseSortingSystem.CommandSortBase(null, null, instant: false);
-                }
-
-                // Hotkey F6 (or Alt+F6 when AVO Expanded compatibility is active): Share Ration with Squad
-                if (Input.GetKeyDown(KeyCode.F6))
-                {
-                    bool altHeld = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
-                    if (!CompanionConfigStore.ShouldUseAltForRationHotkey() || altHeld)
+                    // Hotkey F8: Toggle Smart Companions & Base Sorting Hub
+                    if (Input.GetKeyDown(KeyCode.F8))
                     {
-                        SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
+                        SmartCompanionsUI.ShowMainWindow = !SmartCompanionsUI.ShowMainWindow;
+                        if (SmartCompanionsUI.ShowMainWindow)
+                            SmartCompanionsUI.OnMainWindowOpened();
                     }
-                }
 
-                // Hotkey F9: Quick Order -> Squad Battle Cry & Focus Assault ("Боевой клич / Штурм")
-                if (Input.GetKeyDown(KeyCode.F9))
-                {
-                    SmartCombatAI.CommandSquadBattleCry(null);
+                    // Hotkey F7: Quick Order -> Sort Base Containers
+                    if (Input.GetKeyDown(KeyCode.F7))
+                    {
+                        BaseSortingSystem.CommandSortBase(null, null, instant: false);
+                    }
+
+                    // Hotkey F6 (or Alt+F6 when AVO Expanded compatibility is active): Share Ration with Squad
+                    if (Input.GetKeyDown(KeyCode.F6))
+                    {
+                        bool altHeld = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+                        if (!CompanionConfigStore.ShouldUseAltForRationHotkey() || altHeld)
+                        {
+                            SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
+                        }
+                    }
+
+                    // Hotkey F9: Quick Order -> Squad Battle Cry & Focus Assault ("Боевой клич / Штурм")
+                    if (Input.GetKeyDown(KeyCode.F9))
+                    {
+                        SmartCombatAI.CommandSquadBattleCry(null);
+                    }
                 }
 
                 float now = Time.unscaledTime;

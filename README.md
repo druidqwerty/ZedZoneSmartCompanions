@@ -7,17 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.5.1"><strong>Release v1.5.1 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.6.0"><strong>Release v1.6.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
 
-## v1.5.1 Experimental — Human NPC Loading Guard (Co-op Not Yet Verified)
+## New in v1.6.0 — Full Forensic Audit, Clean Rebuild, Puppet/Weapon Guard & Cease-Fire Fix
 
-- Adds a guarded initialization path for human NPCs whose ranged-weapon data is missing or invalid during multiplayer loading.
-- The experimental build passed isolated BepInEx startup and self-verification. A real two-player co-op world has **not** been tested; it is **not confirmed** that this changes NPC visibility for clients, and this update is not presented as a verified fix. See [verification and limitations](docs/verification-1.5.1.md).
+- **Fixed Native `MonsterAttr` IDs & Player `CharacterData` Protection (`0 = Player`, `200 = Looter`, `201 = Survivor`, `202 = SecurityGuard`):**
+  - Corrected `LooterMonsterAttrId` from `202` (`Augmented Security Officer`) to `200` (`Looter`), added `IsAnyPlayerCharacterData` hard guards (local + remote co-op players) so player `characterAttrId = 0` is never modified, automatically repairs non-guard NPCs previously misassigned to `202` back to `201`/`200`, and scopes `MonsterAttr` threat tuning strictly to `Looter (200)`.
+- **Complete Equipment & Hand-IK Lifecycle Guard (`HumanNpcEquipmentGuard`) + Host Active NPC Rescue:**
+  - Protects all non-local-player humans (companions, world NPCs, client puppets, and remote player puppets) regardless of `IsMultiplayerOnline`, allocates backing `InventoryData` before `LoadEquipments` / `EquipRangedWeapon` / `EquipMeleeWeapon`, cleans up broken weapon state without aborting `HumanCharacterController.Init()` or `BasicCharacterController.Start() -> GameController.AddCharacter()`, validates all hand IK pointers in `UpdateHand_RangedWeapon` (`0` weapon/hand NREs in `Player.log`, down from `2,903`), and rescues any active host NPCs missing from `GameController.characterList`.
+- **Combat AI, Strict Cease-Fire (`StopFire` / `Passive`), Ghost Threat Pruning & Chat Hotkey Gating:**
+  - Hard-zeroes friendly/neutral human threat scores across all doctrines, enforces `GOAPGoal_EliminateThreat` suppression in `StopFire` / `Passive`, prunes culled/inactive (`!activeInHierarchy`) ghost threats, requires `IsAnyAlliedPlayerCharacterId` in `IsPlayerTeammate`, stops false rear-flank callouts on peaceful camp NPCs, syncs `NPC_DISMISS` & `AutoCompact` in co-op, and blocks `F6–F9` while typing in chat (`Esc` closes `F8`).
+- **Verification & Co-op Note:** Live-verified in the ZED ZONE engine (`55` Harmony patches, `[SelfVerify] PASS v1.6.0`, Phases 0–3 zombie/bandit ranged combat & cease-fire `PASS`, `8,383 / 8,383` save `GameData` hashes untouched). Real two-player host+client human NPC visibility still awaits live two-player co-op confirmation; see [docs/verification-1.6.0.md](docs/verification-1.6.0.md).
 
 ## New in v1.5.0 — Companion Dismissal Fix, Draggable UI, Squad Limit (up to 15), AVO Compatibility & Autonomous Scavenging
 
@@ -144,7 +149,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.5.1.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.6.0.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 

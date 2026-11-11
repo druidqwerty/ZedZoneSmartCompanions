@@ -448,9 +448,12 @@ namespace ZedZone.SmartCompanions
             {
                 if (!Il2CppSafe.IsAliveUnity(character)) return true;
                 var human = character.TryCast<HumanCharacterController>();
-                if (Il2CppSafe.IsAliveUnity(human) && Il2CppSafe.IsAlive(human.characterData))
+                if (Il2CppSafe.IsAliveUnity(human) && !human.isPlayer &&
+                    !ZedZone.Net.NetSessionConfig.IsNetworkPlayer(human) &&
+                    Il2CppSafe.IsAlive(human.characterData))
                 {
-                    MultiplayerSyncSystem.NormalizeHumanCharacterData(human.characterData, isLooterHint: true);
+                    bool hostileHuman = SmartCombatAI.IsHostileHumanTarget(__instance, human);
+                    MultiplayerSyncSystem.NormalizeHumanCharacterData(human.characterData, isLooterHint: hostileHuman);
                 }
                 if (Il2CppSafe.IsAliveUnity(__instance) && __instance.threatDataDic != null &&
                     __instance.threatDataDic.TryGetValue(character, out var existing) && Il2CppSafe.IsAlive(existing))
@@ -469,12 +472,14 @@ namespace ZedZone.SmartCompanions
 
         [HarmonyPatch(typeof(GOAPAgent), nameof(GOAPAgent.SetThreatData))]
         [HarmonyPostfix]
-        public static void SetThreatData_Postfix(BasicCharacterController character, ref GOAPAgent.ThreatData __result)
+        public static void SetThreatData_Postfix(GOAPAgent __instance, BasicCharacterController character, ref GOAPAgent.ThreatData __result)
         {
             try
             {
-                if (!Il2CppSafe.IsAlive(__result) || !Il2CppSafe.IsAliveUnity(character)) return;
-                if (character.TryCast<HumanCharacterController>() != null)
+                if (!Il2CppSafe.IsAlive(__result) || !Il2CppSafe.IsAliveUnity(character) || !Il2CppSafe.IsAliveUnity(__instance)) return;
+                if (!__instance.IsPlayerTeammate()) return;
+                var targetHuman = character.TryCast<HumanCharacterController>();
+                if (Il2CppSafe.IsAliveUnity(targetHuman) && SmartCombatAI.IsHostileHumanTarget(__instance, targetHuman))
                 {
                     if (__result.threatLevel < 35f) __result.threatLevel = 35f;
                     if (__result.threatAffectRange < 30f) __result.threatAffectRange = 30f;
@@ -485,12 +490,14 @@ namespace ZedZone.SmartCompanions
 
         [HarmonyPatch(typeof(GOAPAgent_Survivor), nameof(GOAPAgent_Survivor.SetThreatData))]
         [HarmonyPostfix]
-        public static void Survivor_SetThreatData_Postfix(BasicCharacterController character, ref GOAPAgent.ThreatData __result)
+        public static void Survivor_SetThreatData_Postfix(GOAPAgent_Survivor __instance, BasicCharacterController character, ref GOAPAgent.ThreatData __result)
         {
             try
             {
-                if (!Il2CppSafe.IsAlive(__result) || !Il2CppSafe.IsAliveUnity(character)) return;
-                if (character.TryCast<HumanCharacterController>() != null)
+                if (!Il2CppSafe.IsAlive(__result) || !Il2CppSafe.IsAliveUnity(character) || !Il2CppSafe.IsAliveUnity(__instance)) return;
+                if (!__instance.IsPlayerTeammate()) return;
+                var targetHuman = character.TryCast<HumanCharacterController>();
+                if (Il2CppSafe.IsAliveUnity(targetHuman) && SmartCombatAI.IsHostileHumanTarget(__instance, targetHuman))
                 {
                     if (__result.threatLevel < 35f) __result.threatLevel = 35f;
                     if (__result.threatAffectRange < 30f) __result.threatAffectRange = 30f;
@@ -641,7 +648,9 @@ namespace ZedZone.SmartCompanions
                     {
                         return;
                     }
-                    if (!__instance.npcData.isBandit && !string.IsNullOrEmpty(__instance.npcData.leaderCharacterGUID))
+                    if (!__instance.npcData.isBandit &&
+                        !string.IsNullOrEmpty(__instance.npcData.leaderCharacterGUID) &&
+                        MultiplayerSyncSystem.IsAnyAlliedPlayerCharacterId(__instance.npcData.leaderCharacterGUID))
                     {
                         __result = true;
                     }

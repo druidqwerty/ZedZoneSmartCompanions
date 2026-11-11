@@ -47,7 +47,8 @@ namespace ZedZone.SmartCompanions
                 if (Il2CppSafe.IsAlive(targetHuman.characterData))
                 {
                     string leaderId = targetAgent?.npcData?.leaderCharacterGUID;
-                    if (!string.IsNullOrEmpty(leaderId)) return false;
+                    if (!string.IsNullOrEmpty(leaderId) && MultiplayerSyncSystem.IsAnyAlliedPlayerCharacterId(leaderId))
+                        return false;
                     if (CharacterData.IsHostileCamp(targetHuman.characterData.camp)) return true;
                 }
                 if (Il2CppSafe.IsAliveUnity(targetAgent))
@@ -69,6 +70,38 @@ namespace ZedZone.SmartCompanions
             }
             catch { }
             return false;
+        }
+
+        public static bool IsActualHostileCharacter(GOAPAgent observer, BasicCharacterController candidate, int friendlyCamp)
+        {
+            if (!Il2CppSafe.IsAliveUnity(candidate) || candidate.deadFlag || candidate.isPlayer)
+                return false;
+            try
+            {
+                if (ZedZone.Net.NetSessionConfig.IsNetworkPlayer(candidate)) return false;
+                var candAgent = candidate.GetCachedGOAPAgent();
+                if (Il2CppSafe.IsAliveUnity(candAgent))
+                {
+                    if (candAgent.IsPlayerTeammate()) return false;
+                    if (Il2CppSafe.IsAlive(candAgent.npcData) && Il2CppSafe.IsAlive(candAgent.npcData.petData))
+                        return false;
+                }
+                var candHuman = candidate.TryCast<HumanCharacterController>();
+                if (Il2CppSafe.IsAliveUnity(candHuman))
+                    return IsHostileHumanTarget(observer, candHuman);
+
+                if (Il2CppSafe.IsAlive(candidate.characterData))
+                {
+                    int cCamp = candidate.characterData.camp;
+                    if (cCamp == friendlyCamp) return false;
+                    return CharacterData.IsHostileCamp(cCamp) || cCamp == 0;
+                }
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public static void ApplyDoctrineToNpcData(GOAPAgent agent, CompanionRuntimeState st)
@@ -123,6 +156,15 @@ namespace ZedZone.SmartCompanions
             try
             {
                 if (!agent.IsPlayerTeammate()) return;
+
+                // Hard guard: never score friendly players, co-op allies, teammates, or neutral humans as threats in ANY doctrine
+                var targetHuman = target.TryCast<HumanCharacterController>();
+                if (Il2CppSafe.IsAliveUnity(targetHuman) && !IsHostileHumanTarget(agent, targetHuman))
+                {
+                    score = 0f;
+                    return;
+                }
+
                 var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID, agent.npcData.characterData?.characterName);
                 if (st.Doctrine == TacticalDoctrine.Passive)
                 {
@@ -131,37 +173,38 @@ namespace ZedZone.SmartCompanions
                 }
 
                 var gc = GameController.instance;
-                var player = Il2CppSafe.IsAliveUnity(gc) ? gc.playerCharacter : null;
+                var leader = Il2CppSafe.IsAliveUnity(agent.leaderCharacter) && !agent.leaderCharacter.deadFlag
+                    ? agent.leaderCharacter
+                    : (Il2CppSafe.IsAliveUnity(gc) ? gc.playerCharacter : null);
                 Vector2 selfPos = agent.humanCharacter.transform.position;
                 Vector2 targetPos = target.transform.position;
                 float distToSelf = Vector2.Distance(selfPos, targetPos);
 
-                // 1. Protect the player (Bodyguard & Balanced priority for enemies close to player)
-                if (Il2CppSafe.IsAliveUnity(player) && !player.deadFlag)
-                {
-                    float distToPlayer = Vector2.Distance(player.transform.position, targetPos);
-                    if (distToPlayer < 3.8f)
-                    {
-                        float mult = st.Doctrine == TacticalDoctrine.Bodyguard ? 2.75f : 1.90f;
-                        score *= mult;
-                    }
-                    else if (distToPlayer < 6.8f && st.Doctrine == TacticalDoctrine.Bodyguard)
-                    {
-                        score *= 1.50f;
-                    }
-                }
-
                 // 2. Hostile human NPCs (Bandits / Looters / Raiders / Provoked Survivors)
-                var targetHuman = target.TryCast<HumanCharacterController>();
                 if (Il2CppSafe.IsAliveUnity(targetHuman))
                 {
-                    if (score <= 0.01f && IsHostileHumanTarget(agent, targetHuman))
+                    if (score <= 0.01f)
                     {
                         score = 35f / Mathf.Max(1f, distToSelf * 0.15f);
                     }
                     score *= 1.80f;
                     if (Il2CppSafe.IsAliveUnity(targetHuman.rangedWeapon))
                         score *= 1.35f;
+                }
+
+                // 1. Protect the companion's leader (Bodyguard & Balanced priority for enemies close to leader)
+                if (Il2CppSafe.IsAliveUnity(leader) && !leader.deadFlag)
+                {
+                    float distToLeader = Vector2.Distance(leader.transform.position, targetPos);
+                    if (distToLeader < 3.8f)
+                    {
+                        float mult = st.Doctrine == TacticalDoctrine.Bodyguard ? 2.75f : 1.90f;
+                        score *= mult;
+                    }
+                    else if (distToLeader < 6.8f && st.Doctrine == TacticalDoctrine.Bodyguard)
+                    {
+                        score *= 1.50f;
+                    }
                 }
 
                 // 3. Bosses / Giant Mutants / Armed Zombies
@@ -332,28 +375,38 @@ namespace ZedZone.SmartCompanions
                 TickSmartFlashlight(agent, st, hc);
             }
 
-            var alliedPlayers = MultiplayerSyncSystem.GetAllAlliedPlayers();
-            for (int pIdx = 0; pIdx < alliedPlayers.Count; pIdx++)
+            if (!MultiplayerSyncSystem.IsMultiplayerClient)
             {
-                var allyPlayer = alliedPlayers[pIdx];
-                if (!Il2CppSafe.IsAliveUnity(allyPlayer) || allyPlayer.deadFlag) continue;
-                if (CompanionConfigStore.EnablePlayerRescue)
+                var alliedPlayers = MultiplayerSyncSystem.GetAllAlliedPlayers();
+                for (int pIdx = 0; pIdx < alliedPlayers.Count; pIdx++)
                 {
-                    TryEmergencyPlayerRescue(agent, st, allyPlayer, now);
+                    var allyPlayer = alliedPlayers[pIdx];
+                    if (!Il2CppSafe.IsAliveUnity(allyPlayer) || allyPlayer.deadFlag) continue;
+                    if (CompanionConfigStore.EnablePlayerRescue)
+                    {
+                        TryEmergencyPlayerRescue(agent, st, allyPlayer, now);
+                    }
+                    TickFieldSupport(agent, st, allyPlayer, now);
                 }
-                TickFieldSupport(agent, st, allyPlayer, now);
             }
 
-            if (Il2CppSafe.IsAliveUnity(player) && !player.deadFlag)
+            var leader = Il2CppSafe.IsAliveUnity(agent.leaderCharacter) && !agent.leaderCharacter.deadFlag
+                ? agent.leaderCharacter
+                : player;
+
+            if (Il2CppSafe.IsAliveUnity(leader) && !leader.deadFlag)
             {
                 // Anti-Friendly-Fire Corridor
-                if (CompanionConfigStore.EnableAntiFriendlyFire && player.isRangedWeaponAiming)
+                if (CompanionConfigStore.EnableAntiFriendlyFire && leader.isRangedWeaponAiming)
                 {
-                    TryStepOutOfPlayerFireLine(agent, st, player, selfPos, now);
+                    TryStepOutOfPlayerFireLine(agent, st, leader, selfPos, now);
                 }
 
-                // Rear Flank Radar: warn player if an enemy sneaks behind player's back
-                CheckPlayerRearFlank(agent, st, player, now);
+                // Rear Flank Radar: warn local player if an actual hostile sneaks behind their back
+                if (leader.isPlayer)
+                {
+                    CheckPlayerRearFlank(agent, st, leader, now);
+                }
             }
 
             var target = agent.mostThreateningCharacter;
@@ -395,7 +448,8 @@ namespace ZedZone.SmartCompanions
             if (now - st.LastCombatCalloutTime > 7.0f)
             {
                 st.LastCombatCalloutTime = now;
-                int nearbyEnemies = CountNearbyHostiles(selfPos, 13f, hc.characterData?.camp ?? 0);
+                // Tactical Callouts
+                int nearbyEnemies = CountNearbyHostiles(agent, selfPos, 13f, hc.characterData?.camp ?? 1);
 
                 if (Il2CppSafe.IsAliveUnity(player) && Vector2.Distance(player.transform.position, targetPos) < 2.9f)
                 {
@@ -490,13 +544,12 @@ namespace ZedZone.SmartCompanions
                 if (playerForward.sqrMagnitude < 0.01f) return;
                 playerForward.Normalize();
 
-                int friendlyCamp = player.characterData?.camp ?? 0;
+                int friendlyCamp = player.characterData?.camp ?? 1;
                 float maxRadarDist = st.EffectiveArchetype == CompanionArchetype.ParanoidPrepper ? 8.5f : 5.8f;
                 for (int i = 0; i < gc.characterList.Count; i++)
                 {
                     var c = gc.characterList[i];
-                    if (!Il2CppSafe.IsAliveUnity(c) || c.deadFlag) continue;
-                    if (Il2CppSafe.IsAlive(c.characterData) && c.characterData.camp == friendlyCamp) continue;
+                    if (!IsActualHostileCharacter(agent, c, friendlyCamp)) continue;
 
                     Vector2 toEnemy = (Vector2)c.transform.position - playerPos;
                     float dist = toEnemy.magnitude;
@@ -749,7 +802,7 @@ namespace ZedZone.SmartCompanions
                 }
             }
 
-            if (CompanionConfigStore.EnableAmmoShare && st.AllowAmmoShare && now - st.LastAmmoShareTime > 42f)
+            if (CompanionConfigStore.EnableAmmoShare && st.AllowAmmoShare && player.isPlayer && now - st.LastAmmoShareTime > 42f)
             {
                 if (Il2CppSafe.IsAliveUnity(player.rangedWeapon) && Il2CppSafe.IsAlive(player.rangedWeapon.weaponData) &&
                     Il2CppSafe.IsAliveUnity(agent.mostThreateningCharacter))
@@ -821,7 +874,7 @@ namespace ZedZone.SmartCompanions
             catch { }
         }
 
-        private static int CountNearbyHostiles(Vector2 center, float radius, int friendlyCamp)
+        private static int CountNearbyHostiles(GOAPAgent observer, Vector2 center, float radius, int friendlyCamp)
         {
             int count = 0;
             float rSqr = radius * radius;
@@ -832,8 +885,7 @@ namespace ZedZone.SmartCompanions
                 for (int i = 0; i < gc.characterList.Count; i++)
                 {
                     var c = gc.characterList[i];
-                    if (!Il2CppSafe.IsAliveUnity(c) || c.deadFlag) continue;
-                    if (Il2CppSafe.IsAlive(c.characterData) && c.characterData.camp == friendlyCamp) continue;
+                    if (!IsActualHostileCharacter(observer, c, friendlyCamp)) continue;
                     if (((Vector2)c.transform.position - center).sqrMagnitude <= rSqr)
                         count++;
                 }
