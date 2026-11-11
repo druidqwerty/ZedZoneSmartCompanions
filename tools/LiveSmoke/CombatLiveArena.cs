@@ -31,6 +31,18 @@ namespace ZedZone.SmartCompanions.LiveSmoke
 
         internal static bool AllowArenaThreat(GOAPAgent instance, BasicCharacterController character, ref GOAPAgent.ThreatData result)
         {
+            if (PhysicalCarryLiveRegression.ArenaActive && !PhysicalCarryLiveRegression.Finished &&
+                Il2CppSafe.IsAliveUnity(PhysicalCarryLiveRegression.ActiveAgent) &&
+                instance.Pointer == PhysicalCarryLiveRegression.ActiveAgent.Pointer)
+            {
+                if (Il2CppSafe.IsAliveUnity(character) && !character.isPlayer && character.gameObject.activeSelf)
+                {
+                    ParkedEnemies.Add(character.gameObject);
+                    character.gameObject.SetActive(false);
+                }
+                result = null;
+                return false;
+            }
             if (!_arenaActive || Finished || !Il2CppSafe.IsAliveUnity(_agent) || instance.Pointer != _agent.Pointer)
                 return true;
             if (!Il2CppSafe.IsAliveUnity(character)) return true;
@@ -104,6 +116,29 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             if (log)
                 LiveSmokePlugin.Logger.LogInfo("[CombatLive] Isolated one-hostile copied-world arena; temporarily parked "+ParkedEnemies.Count+" other enemies.");
         }
+        internal static void SuppressAllNearbyHostilesForLogistics(GOAPAgent logisticsAgent)
+        {
+            var snapshot = new List<BasicCharacterController>();
+            foreach (var character in GameController.instance.characterList) snapshot.Add(character);
+            foreach (var character in snapshot)
+            {
+                if (!Il2CppSafe.IsAliveUnity(character) || character.isPlayer || character.deadFlag || !character.gameObject.activeSelf) continue;
+                var ag = character.GetCachedGOAPAgent();
+                if (Il2CppSafe.IsAliveUnity(ag) && ag.IsPlayerTeammate()) continue;
+                bool isHostile = character.TryCast<ZombieController>() != null ||
+                    character.TryCast<HordeZombieController>() != null ||
+                    (Il2CppSafe.IsAlive(character.characterData) && BasicCharacterController.IsHostileCamp(character.characterData));
+                if (!isHostile) continue;
+                ParkedEnemies.Add(character.gameObject);
+                character.gameObject.SetActive(false);
+            }
+            if (Il2CppSafe.IsAliveUnity(logisticsAgent))
+            {
+                logisticsAgent.mostThreateningCharacter = null;
+                logisticsAgent.threatDataDic?.Clear();
+            }
+        }
+
         private static void RestoreArena()
         {
             _arenaActive = false;

@@ -5,16 +5,59 @@ using UnityEngine;
 namespace ZedZone.SmartCompanions
 {
     /// <summary>
-    /// Autonomous Camp Life, Base Chores &amp; Vehicle Trunk Logistics for ZED ZONE Smart Companions v1.3.0:
-    /// - Campfire Keeper &amp; Warming (ignites unlit campfires in cold/rain/night, warms hands, tells campfire stories)
-    /// - Base Gardener (waters &amp; fertilizes nearby PlantingPots automatically)
-    /// - Field Armorer &amp; Mechanic (cleans/repairs squad &amp; player weapons/armor and inspects player vehicles)
-    /// - Vehicle Trunk Unloader (unloads items from nearby player vehicle trunks straight into categorized base chests)
+    /// Autonomous Camp Life, Base Chores &amp; Physical Vehicle Trunk Unloading (v1.7.0):
+    /// - Companions physically walk up to campfires, planting pots, and parked vehicle trunks
+    ///   using native A* pathfinding and PlayFarmAction hand interactions — zero item teleportation!
     /// </summary>
     public static class BaseChoreSystem
     {
         private static float _lastCampChoreScanTime = -999f;
         private static float _lastVehicleRideCalloutTime = -999f;
+
+        public static void StepChoreWalkForAgent(GOAPAgent ag, CompanionRuntimeState st)
+        {
+            if (Il2CppSafe.IsAliveUnity(st.ChoreTargetAnchor))
+                st.ChoreTargetPos = st.ChoreTargetAnchor.position;
+
+            PhysicalMovementHelper.StepWalkAndInteract(
+                ag, st, st.ChoreTargetPos, st.ChoreTargetAnchor, st.ChorePropItemId, 0.48f,
+                out bool ready, out bool unreachable);
+
+            if (unreachable)
+            {
+                st.IsChoreWalkActive = false;
+                st.PendingChoreArrivalAction = null;
+                st.CurrentTaskText = "";
+                return;
+            }
+
+            if (!ready) return;
+
+            var act = st.PendingChoreArrivalAction;
+            st.IsChoreWalkActive = false;
+            st.PendingChoreArrivalAction = null;
+            st.ArrivalInteractStarted = false;
+            try { act?.Invoke(); } catch { }
+        }
+
+        public static void StartPhysicalChoreWalk(
+            GOAPAgent ag,
+            CompanionRuntimeState st,
+            Vector2 targetPos,
+            Transform anchor,
+            string walkTaskText,
+            int propItemId,
+            Action onArrived)
+        {
+            st.IsChoreWalkActive = true;
+            st.ChoreTargetPos = targetPos;
+            st.ChoreTargetAnchor = anchor;
+            st.ChoreDisplayText = walkTaskText;
+            st.ChorePropItemId = propItemId;
+            st.PendingChoreArrivalAction = onArrived;
+            st.CurrentTaskText = walkTaskText;
+            PhysicalMovementHelper.BeginLeg(st, ag.humanCharacter.transform.position, targetPos, anchor);
+        }
 
         public static void TickBaseChoresAndCampLife()
         {
@@ -25,7 +68,6 @@ namespace ZedZone.SmartCompanions
             float now = Time.unscaledTime;
             var player = gc.playerCharacter;
 
-            // Check if player is currently driving a vehicle -> companion road-trip callout!
             if (player.isDriving && Il2CppSafe.IsAliveUnity(player.drivingVehicle) && now - _lastVehicleRideCalloutTime > 48f)
             {
                 if (player.drivingVehicle.speedFloat > 2.2f)
@@ -37,12 +79,7 @@ namespace ZedZone.SmartCompanions
                 }
             }
 
-            if (!CompanionConfigStore.EnableBaseChores) return;
-            try
-            {
-                if (ZedZone.Net.NetworkManager.isClient) return;
-            }
-            catch { }
+            if (!CompanionConfigStore.EnableBaseChores || MultiplayerSyncSystem.IsMultiplayerClient) return;
             if (gc.isPlayerInCombat) return;
             if (now - _lastCampChoreScanTime < 6.5f) return;
             _lastCampChoreScanTime = now;
@@ -55,10 +92,11 @@ namespace ZedZone.SmartCompanions
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
                     !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag)
                     continue;
-                if (Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter)) continue;
+                if (Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && !ag.mostThreateningCharacter.deadFlag)
+                    continue;
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
-                if (!st.AllowBaseChores || st.IsSortingActive) continue;
+                if (!st.AllowBaseChores || st.HasAnyPhysicalTask) continue;
                 if (now - st.LastChoreTime < 22f) continue;
 
                 if (TryPerformCampfireChore(ag, st, gc, now)) continue;
@@ -88,31 +126,40 @@ namespace ZedZone.SmartCompanions
                     float dist = Vector2.Distance(selfPos, firePos);
                     if (dist > 14f) continue;
 
-                    // If campfire is unlit at night or during rain, companion lights it up!
-                    // Never call fp.IgnitionFire(true) here: native IgnitionFire(true) (0x5B29F0)
-                    // opens the local player's ToolSelectManager fire-lighting UI (0x1529D30)!
-                    // Instead, check fuel and call fp.OnIgnite() (0x5B4450) directly.
+                    string fireKey = $"fire_{fp.Pointer.ToInt64():X}";
+                    if (PhysicalMovementHelper.IsTargetTemporarilyUnreachable(fireKey)) continue;
+
                     if (!fp.isBurning && isNightOrRain)
                     {
                         var fuelInv = fp.fuelInventoryData;
                         if (Il2CppSafe.IsAlive(fuelInv) && ProductionManager.FindLastCombustibleIndex(fuelInv) >= 0)
                         {
-                            fp.OnIgnite();
                             st.LastChoreTime = now;
-                            st.ChoresDoneThisSession++;
-                            st.AddExperience(8, ag);
-                            st.CurrentTaskText = CompanionConfigStore.L("🔥 Разжёг костёр в лагере", "🔥 Lit the camp fire", "🔥 已点燃营地篝火");
-                            SmartChatterSystem.Speak(ag, ChatterTopic.CampfireStory, minCooldown: 5f, bubbleDuration: 6f);
+                            StartPhysicalChoreWalk(
+                                ag, st, firePos, fp.transform,
+                                CompanionConfigStore.L("Идёт разжигать костёр...", "Walking to light campfire...", "正前往点燃篝火..."),
+                                0,
+                                () =>
+                                {
+                                    if (!Il2CppSafe.IsAliveUnity(fp) || fp.isBurning) return;
+                                    if (Il2CppSafe.IsAlive(fp.fuelInventoryData) && ProductionManager.FindLastCombustibleIndex(fp.fuelInventoryData) >= 0)
+                                    {
+                                        fp.OnIgnite();
+                                        st.ChoresDoneThisSession++;
+                                        st.AddExperience(8, ag);
+                                        st.CurrentTaskText = CompanionConfigStore.L("🔥 Разжёг костёр в лагере", "🔥 Lit the camp fire", "🔥 已点燃营地篝火");
+                                        SmartChatterSystem.Speak(ag, ChatterTopic.CampfireStory, minCooldown: 5f, bubbleDuration: 6f);
+                                    }
+                                });
                             return true;
                         }
                     }
 
-                    // If campfire is burning and companion is nearby, warm hands & restore comfort/morale
-                    if (fp.isBurning && dist <= 6.8f)
+                    if (fp.isBurning && dist <= 5.5f)
                     {
                         var status = ag.npcData.characterData?.characterStatusData;
                         bool needsWarmthOrRest = (status != null && (status.fatigue < 85f || status.sanity < 90f));
-                        if (needsWarmthOrRest || UnityEngine.Random.value < 0.28f)
+                        if (needsWarmthOrRest || UnityEngine.Random.value < 0.25f)
                         {
                             st.LastChoreTime = now;
                             st.ChoresDoneThisSession++;
@@ -139,63 +186,38 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
-                var parent = gc.terrainObjectsParent;
-                if (!Il2CppSafe.IsAliveUnity(parent)) return false;
-
                 Vector2 selfPos = ag.humanCharacter.transform.position;
-                int childCount = parent.childCount;
-                int caredCount = 0;
-                Vector2 lastPotPos = selfPos;
+                var worldObjs = BaseSortingSystem.CollectWorldTerrainObjects(selfPos, 15f);
 
-                for (int i = 0; i < childCount; i++)
+                for (int i = 0; i < worldObjs.Count; i++)
                 {
-                    var tr = parent.GetChild(i);
-                    if (!Il2CppSafe.IsAliveUnity(tr) || !tr.gameObject.activeInHierarchy) continue;
-
-                    Vector2 pos = tr.position;
-                    if ((pos - selfPos).sqrMagnitude > 16f * 16f) continue;
-
-                    var pot = tr.GetComponent<TerrainObject_PlantingPot>();
+                    var tobj = worldObjs[i];
+                    var pot = Il2CppSafe.IsAliveUnity(tobj) ? tobj.TryCast<TerrainObject_PlantingPot>() : null;
                     if (!Il2CppSafe.IsAliveUnity(pot) || pot.currentDef == null || pot.IsHarvested())
                         continue;
 
-                    bool didCare = false;
-                    // Check if pot needs watering or fertilizer
                     float wateredUntil = pot.ParseProp(TerrainObject_PlantingPot.PROP_WATERED_UNTIL, 0f);
-                    if (gc.gameData.inGameTime >= wateredUntil)
-                    {
-                        pot.ApplyWatering();
-                        didCare = true;
-                    }
-                    if (!pot.IsFertilized())
-                    {
-                        pot.ApplyFertilizer(1.25f, 1, 0);
-                        didCare = true;
-                    }
+                    bool needsWater = gc.gameData.inGameTime >= wateredUntil;
+                    bool needsFert = !pot.IsFertilized();
+                    if (!needsWater && !needsFert) continue;
 
-                    if (didCare)
-                    {
-                        caredCount++;
-                        lastPotPos = pos;
-                        if (caredCount >= 4) break;
-                    }
-                }
-
-                if (caredCount > 0)
-                {
+                    Vector2 potPos = pot.transform.position;
                     st.LastChoreTime = now;
-                    st.ChoresDoneThisSession += caredCount;
-                    st.AddExperience(8 * caredCount, ag);
-                    try
-                    {
-                        ag.LookAtPositionSmoothCompat(lastPotPos, 12f);
-                    }
-                    catch { }
-                    st.CurrentTaskText = CompanionConfigStore.L(
-                        $"🌱 Уход за грядками ({caredCount} шт.)",
-                        $"🌱 Tended crops ({caredCount} pots)",
-                        $"🌱 照料农作物（{caredCount} 盆）");
-                    SmartChatterSystem.Speak(ag, ChatterTopic.ChoreGardening, minCooldown: 8f, bubbleDuration: 6f);
+                    StartPhysicalChoreWalk(
+                        ag, st, potPos, pot.transform,
+                        CompanionConfigStore.L("Идёт ухаживать за грядкой...", "Walking to tend crop pot...", "正前往照料农作物..."),
+                        0,
+                        () =>
+                        {
+                            if (!Il2CppSafe.IsAliveUnity(pot) || pot.currentDef == null || pot.IsHarvested()) return;
+                            float wu = pot.ParseProp(TerrainObject_PlantingPot.PROP_WATERED_UNTIL, 0f);
+                            if (gc.gameData.inGameTime >= wu) pot.ApplyWatering();
+                            if (!pot.IsFertilized()) pot.ApplyFertilizer(1.25f, 1, 0);
+                            st.ChoresDoneThisSession++;
+                            st.AddExperience(8, ag);
+                            st.CurrentTaskText = CompanionConfigStore.L("🌱 Полил и удобрил грядку", "🌱 Watered & fertilized crop", "🌱 已为农作物浇水施肥");
+                            SmartChatterSystem.Speak(ag, ChatterTopic.ChoreGardening, minCooldown: 8f, bubbleDuration: 6f);
+                        });
                     return true;
                 }
             }
@@ -210,9 +232,8 @@ namespace ZedZone.SmartCompanions
                 float repairBonus = st.EffectiveArchetype == CompanionArchetype.Veteran ? 14f : 9f;
                 if (st.Rank >= CompanionRank.Veteran) repairBonus += 5f;
 
-                int repairedItems = 0;
-                repairedItems += RepairCharacterEquippedGear(ag.npcData?.characterData, repairBonus);
-                if (Il2CppSafe.IsAliveUnity(player) && Vector2.Distance(ag.humanCharacter.transform.position, player.transform.position) <= 10f)
+                int repairedItems = RepairCharacterEquippedGear(ag.npcData?.characterData, repairBonus);
+                if (Il2CppSafe.IsAliveUnity(player) && Vector2.Distance(ag.humanCharacter.transform.position, player.transform.position) <= 2.8f)
                 {
                     repairedItems += RepairCharacterEquippedGear(player.characterData, repairBonus);
                 }
@@ -248,7 +269,6 @@ namespace ZedZone.SmartCompanions
                 eq.legItemData,
                 eq.feetItemData
             };
-
             if (eq.weaponItemDataAry != null)
             {
                 for (int i = 0; i < eq.weaponItemDataAry.Length; i++)
@@ -274,12 +294,11 @@ namespace ZedZone.SmartCompanions
                 if (!CompanionConfigStore.EnableBaseAutoDropoff || !st.AllowAutoDropoffAtBase) return false;
                 if (player.isDriving) return false;
 
-                int unloaded = CommandUnloadVehiclesToBase(ag, silentIfEmpty: true);
-                if (unloaded > 0)
+                int started = CommandUnloadVehiclesToBase(ag, silentIfEmpty: true);
+                if (started > 0)
                 {
                     st.LastChoreTime = now;
                     st.ChoresDoneThisSession++;
-                    st.AddExperience(12, ag);
                     return true;
                 }
             }
@@ -287,15 +306,21 @@ namespace ZedZone.SmartCompanions
             return false;
         }
 
-        /// <summary>
-        /// Unloads items from nearby vehicles' trunks/storage into categorized base chests (or drop-off chests),
-        /// and performs a light field tune-up on vehicle bodywork.
-        /// </summary>
         public static int CommandUnloadVehiclesToBase(GOAPAgent specificAgent = null, bool silentIfEmpty = false)
         {
-            int totalMoved = 0;
+            int startedVehicles = 0;
             try
             {
+                if (MultiplayerSyncSystem.IsMultiplayerClient)
+                {
+                    if (!silentIfEmpty)
+                        BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                            "🚗 Разгрузка машин выполняется напарниками на стороне хоста.",
+                            "🚗 Vehicle trunk unloading runs on the host's companions.",
+                            "🚗 载具后备箱卸载由主机端队友执行。"));
+                    return 0;
+                }
+
                 var gc = GameController.instance;
                 if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter)) return 0;
 
@@ -312,88 +337,64 @@ namespace ZedZone.SmartCompanions
 
                 Vector2 playerPos = gc.playerCharacter.transform.position;
                 var containers = BaseSortingSystem.ScanNearbyContainers(force: !silentIfEmpty);
-                var destBoxes = new List<DiscoveredContainer>();
-                foreach (var c in containers)
+                bool hasMarkedDest = false;
+                for (int i = 0; i < containers.Count; i++)
                 {
-                    if (c.Rule != null && c.Rule.Categories != StorageCategory.None && !c.Rule.IsDropoffSource)
-                        destBoxes.Add(c);
+                    var c = containers[i];
+                    if (c?.Rule != null && c.Rule.IsMarkedByPlayer && c.Rule.Categories != StorageCategory.None && !c.Rule.IsDropoffSource)
+                    {
+                        hasMarkedDest = true;
+                        break;
+                    }
                 }
 
-                if (destBoxes.Count == 0)
+                if (!hasMarkedDest)
                 {
                     if (!silentIfEmpty)
                         BaseSortingSystem.SetBanner(CompanionConfigStore.L(
-                            "🚗 Нет размеченных по категориям ящиков базы рядом с машиной!",
-                            "🚗 No categorized base chests found near the vehicle!",
-                            "🚗 载具附近未找到已设置分类的基地储物箱！"));
+                            "🚗 Нет отмеченных по категориям ящиков базы рядом с машиной!",
+                            "🚗 No player-marked category chests found near the vehicle!",
+                            "🚗 载具附近未找到已标记分类的基地储物箱！"));
                     return 0;
                 }
-
-                var workers = new List<GOAPAgent>();
-                if (Il2CppSafe.IsAliveUnity(specificAgent))
-                    workers.Add(specificAgent);
-                else
-                    workers.AddRange(SmartChatterSystem.GetActiveTeammateAgents());
 
                 for (int i = 0; i < vehicles.Count; i++)
                 {
                     var v = vehicles[i];
                     if (!Il2CppSafe.IsAliveUnity(v) || !Il2CppSafe.IsAlive(v.vehicleData)) continue;
-                    float dist = Vector2.Distance(v.transform.position, playerPos);
-                    if (dist > 28f) continue;
-
-                    // Light bodywork maintenance while inspecting vehicle
-                    try
-                    {
-                        if (Il2CppSafe.IsAlive(v.bodyworkData) && v.bodyworkData.durability < 95f)
-                            v.bodyworkData.durability = Mathf.Min(100f, v.bodyworkData.durability + 5f);
-                    }
-                    catch { }
+                    if (Vector2.Distance(v.transform.position, playerPos) > 28f) continue;
 
                     var trunkInv = v.vehicleData.inventoryData;
-                    if (Il2CppSafe.IsAlive(trunkInv) && trunkInv.itemList != null && trunkInv.itemList.Count > 0)
-                    {
-                        BaseSortingSystem.CommandSortBase(specificAgent, trunkInv, instant: true);
-                        totalMoved++;
-                    }
+                    if (!Il2CppSafe.IsAlive(trunkInv) || trunkInv.itemList == null || trunkInv.itemList.Count == 0)
+                        continue;
+
+                    string carLabel = CompanionConfigStore.L("Багажник авто", "Vehicle Trunk", "汽车后备箱");
+                    BaseSortingSystem.RegisterExternalInventoryAnchor(trunkInv, v.transform, carLabel);
+                    BaseSortingSystem.CommandSortBase(specificAgent, trunkInv, instant: false);
+                    startedVehicles++;
+                    break;
                 }
 
-                if (totalMoved > 0)
+                if (startedVehicles > 0 && !silentIfEmpty)
                 {
-                    var speaker = workers.Count > 0 ? workers[0] : null;
-                    if (Il2CppSafe.IsAliveUnity(speaker))
-                    {
-                        var st = CompanionConfigStore.GetOrCreateCompanion(speaker.npcData.npcGUID, speaker.npcData.characterData?.characterName);
-                        st.SortedItemsThisSession += totalMoved;
-                        st.ChoresDoneThisSession++;
-                        st.AddExperience(15, speaker);
-                        st.CurrentTaskText = CompanionConfigStore.L(
-                            "🚗 Разгрузил багажник машины на склад",
-                            "🚗 Unloaded vehicle trunk to base",
-                            "🚗 已将车载后备箱物资卸入仓库");
-                        SmartChatterSystem.Speak(speaker, ChatterTopic.ChoreVehicleCheck, minCooldown: 1f, bubbleDuration: 6f, force: true);
-                    }
                     BaseSortingSystem.SetBanner(CompanionConfigStore.L(
-                        "🚗 Напарники разгрузили багажник автомобиля и разложили трофеи по ящикам базы!",
-                        "🚗 Companions unloaded vehicle trunk cargo into categorized base chests!",
-                        "🚗 队友已将汽车后备箱战利品全部卸下并按类别归入基地储物箱！"));
+                        "🚗 Напарники пошли к автомобилю выгружать багажник и разносить хабар по ящикам базы!",
+                        "🚗 Companions are walking to the vehicle trunk to carry cargo into your base chests!",
+                        "🚗 队友正前往汽车后备箱，将战利品搬运至基地分类储物箱！"));
                 }
-                else if (!silentIfEmpty)
+                else if (startedVehicles == 0 && !silentIfEmpty)
                 {
-                    var speaker = workers.Count > 0 ? workers[0] : null;
-                    if (Il2CppSafe.IsAliveUnity(speaker))
-                        SmartChatterSystem.Speak(speaker, ChatterTopic.ChoreVehicleCheck, minCooldown: 1f, bubbleDuration: 5.5f, force: true);
                     BaseSortingSystem.SetBanner(CompanionConfigStore.L(
-                        "🚗 Машина осмотрена, багажник уже пуст (или все вещи на своих местах).",
-                        "🚗 Vehicle inspected — trunk is already empty or sorted.",
-                        "🚗 车辆巡检完毕——后备箱已清空或无可分拣物品。"));
+                        "🚗 Багажник ближайшего автомобиля уже пуст (или нет подходящих ящиков).",
+                        "🚗 Nearby vehicle trunk is already empty (or no matching chests found).",
+                        "🚗 附近车辆后备箱已空（或未找到匹配的分类储物箱）。"));
                 }
             }
             catch (Exception e)
             {
                 SmartCompanionsPlugin.LogWarning("CommandUnloadVehiclesToBase error: " + e.Message);
             }
-            return totalMoved;
+            return startedVehicles;
         }
     }
 }

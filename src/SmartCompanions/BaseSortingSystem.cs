@@ -20,6 +20,8 @@ namespace ZedZone.SmartCompanions
     {
         public static readonly List<DiscoveredContainer> CachedContainers = new List<DiscoveredContainer>();
         private static readonly Dictionary<IntPtr, TerrainObject> KnownInvToTerrainObj = new Dictionary<IntPtr, TerrainObject>();
+        private static readonly Dictionary<IntPtr, Transform> KnownInvToExternalAnchor = new Dictionary<IntPtr, Transform>();
+        private static readonly Dictionary<IntPtr, string> KnownInvToExternalLabel = new Dictionary<IntPtr, string>();
         private static readonly Dictionary<IntPtr, Vector3> KnownInvToWorldPos = new Dictionary<IntPtr, Vector3>();
         private static readonly Dictionary<IntPtr, string> KnownInvToStableId = new Dictionary<IntPtr, string>();
         private static readonly Dictionary<string, IntPtr> KnownStableIdToInv = new Dictionary<string, IntPtr>(StringComparer.OrdinalIgnoreCase);
@@ -27,6 +29,32 @@ namespace ZedZone.SmartCompanions
         private static float _lastCachePruneTime = -999f;
         public static string LastSortStatusBanner = "";
         public static float LastSortStatusBannerUntil = -1f;
+
+        public static void RegisterExternalInventoryAnchor(InventoryData inv, Transform anchor, string label = null)
+        {
+            if (!Il2CppSafe.IsAlive(inv) || !Il2CppSafe.IsAliveUnity(anchor)) return;
+            try
+            {
+                KnownInvToExternalAnchor[inv.Pointer] = anchor;
+                Vector3 pos = anchor.position;
+                KnownInvToWorldPos[inv.Pointer] = pos;
+                inv.worldposition = pos;
+                if (!string.IsNullOrEmpty(label))
+                    KnownInvToExternalLabel[inv.Pointer] = label;
+            }
+            catch { }
+        }
+
+        public static Transform ResolveAnchorTransformForInventory(InventoryData inv)
+        {
+            if (!Il2CppSafe.IsAlive(inv)) return null;
+            if (KnownInvToTerrainObj.TryGetValue(inv.Pointer, out var tobj) && Il2CppSafe.IsAliveUnity(tobj))
+                return tobj.transform;
+            if (KnownInvToExternalAnchor.TryGetValue(inv.Pointer, out var ext) && Il2CppSafe.IsAliveUnity(ext))
+                return ext;
+            var found = FindTerrainObjectByInventory(inv);
+            return Il2CppSafe.IsAliveUnity(found) ? found.transform : null;
+        }
 
         public static void PruneStaleCacheEntries()
         {

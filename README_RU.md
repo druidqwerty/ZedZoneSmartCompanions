@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.6.0"><strong>Скачать релиз v1.6.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.7.0"><strong>Скачать релиз v1.7.0 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v1.7.0 — Реальный обход и переноска лута и ящиков ногами (без телепортации предметов)
+
+- **Честный физический сбор лута с земли, трупов и диких ящиков (`AutoLootSystem_JobRunner.cs`, `AutoLootSystem_Transfer.cs`, `PhysicalMovementHelper.cs`):**
+  - Полностью убран мгновенный дистанционный сбор. По приказу собрать трофеи (и при авто-луте) напарники строят очередь целей (`LootQueue`), подходят к каждому предмету, трупу или ящику с обходом препятствий по нативному A* (`agent.MoveTo` + расчёт дистанции до внешней грани коллайдера `ComputeSurfaceDistance`), делают короткую паузу (`0.35 с`) на дистанции вытянутой руки (`<= 2.45 м`) и только после подхода забирают вещи.
+- **Физическая разноска между ящиками базы (`F7`, `BaseSortingSystem_Worker.cs`, `BaseSortingSystem_PhysicalCarry.cs`):**
+  - Убрана читерская кнопка мгновенной сортировки (`⚡ Мгновенно`). Напарники подходят к ящику-источнику (`SortingPhase = 1`), берут партию вещей в буфер переноски (`CarryBuffer`), идут к целевому ящику нужной категории (`SortingPhase = 2`) и укладывают предметы на месте.
+- **Прерывание боем без обратной телепортации (`BaseSortingSystem_CarryOps.cs`, `BaseChoreSystem.cs`):**
+  - Если во время переноски начался бой или ящик оказался недоступен, `ReturnCarryBufferWithoutTeleport` оставляет переносимые вещи в рюкзаке напарника (`sharedInventoryData` / `inventoryData`) или сбрасывает их у его ног (`DropItem`), никогда не телепортируя предметы обратно через всю базу.
+- **Проверка:** Пройдены все 6 фаз живой приёмки в движке ZED ZONE (`57` Harmony-патчей, `[SelfVerify] PASS v1.7.0`, фазы 0–3 боя и `StopFire` — `PASS`, фаза A подхода к предмету на земле `6.77 м` — `PASS`, фаза B переноски между полками `1.64 м` — `PASS`, `0` телепортаций, все `8 386` файлов `GameData` неизменны); подробности в [docs/verification-1.7.0.md](docs/verification-1.7.0.md).
 
 ## Новое в v1.6.0 — Полная ревизия кода, чистая пересборка, защита кукол/оружия и строгий режим «Не стрелять»
 
@@ -130,7 +140,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.6.0.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.7.0.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

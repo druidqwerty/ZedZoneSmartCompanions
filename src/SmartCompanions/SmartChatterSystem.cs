@@ -218,9 +218,34 @@ namespace ZedZone.SmartCompanions
                 q.Dequeue();
         }
 
+        private static bool ApplySingleCompanionRation(GOAPAgent ag, CompanionRuntimeState st, bool fromAutoShare, float portion = 1f)
+        {
+            if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || st == null) return false;
+            float now = Time.unscaledTime;
+            if (now - st.LastRationTime < 30f) return false;
+            if (!fromAutoShare && !RationSharing.TryConsumePlayerPortion()) return false;
+
+            st.LastRationTime = now;
+            st.FedAndFierceUntil = now + 180f;
+            ag.npcData.hunger = Mathf.Clamp(ag.npcData.hunger + 35f * portion, 0f, 100f);
+            ag.npcData.thirst = Mathf.Clamp(ag.npcData.thirst + 35f * portion, 0f, 100f);
+            ag.npcData.fatigue = Mathf.Clamp(ag.npcData.fatigue + 25f * portion, 0f, 100f);
+            ag.npcData.hireAffinity = Mathf.Clamp(ag.npcData.hireAffinity + 0.15f, 0f, 100f);
+
+            var status = ag.npcData.characterData?.characterStatusData;
+            if (Il2CppSafe.IsAlive(status))
+            {
+                status.hunger = Mathf.Min(status.maxHunger > 0 ? status.maxHunger : 100f, status.hunger + 35f * portion);
+                status.thirst = Mathf.Min(status.maxThirst > 0 ? status.maxThirst : 100f, status.thirst + 35f * portion);
+                status.fatigue = Mathf.Min(status.maxFatigue > 0 ? status.maxFatigue : 100f, status.fatigue + 25f * portion);
+                status.energy = Mathf.Min(status.maxEnergy > 0 ? status.maxEnergy : 100f, status.energy + 40f * portion);
+            }
+            return true;
+        }
+
         /// <summary>
-        /// Shares a ration with one or all active companions: restores hunger/thirst/stamina,
-        /// grants the 180s "Сытый и злой" (Fed &amp; Fierce) combat buff, and triggers appreciative gangster/bro lines.
+        /// Shares a ration with one or all active companions: nearby companions (&lt;= 3.2m) take it from hand immediately,
+        /// while distant companions physically jog up to the player first to take their ration!
         /// </summary>
         public static int CommandShareRationWithSquad(GOAPAgent specificAgent = null, bool fromAutoShare = false)
         {
@@ -232,37 +257,50 @@ namespace ZedZone.SmartCompanions
 
             if (targets.Count == 0) return 0;
 
+            var player = GameController.instance?.playerCharacter;
             float now = Time.unscaledTime;
             int buffedCount = 0;
+            int walkingCount = 0;
             GOAPAgent speaker = null;
+            float portion = fromAutoShare ? 1f / targets.Count : 1f;
 
             foreach (var ag in targets)
             {
-                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData)) continue;
+                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter)) continue;
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
                 if (now - st.LastRationTime < 30f) continue;
 
+                float distToPlayer = Il2CppSafe.IsAliveUnity(player)
+                    ? Vector2.Distance(ag.humanCharacter.transform.position, player.transform.position)
+                    : 0f;
+
+                if (!fromAutoShare && Il2CppSafe.IsAliveUnity(player) && distToPlayer > 3.2f && !st.IsSortingActive && !st.IsLootingActive)
+                {
+                    var capturedAg = ag;
+                    var capturedSt = st;
+                    BaseChoreSystem.StartPhysicalChoreWalk(
+                        capturedAg,
+                        capturedSt,
+                        player.transform.position,
+                        player.transform,
+                        CompanionConfigStore.L("Идёт за пайком к лидеру...", "Jogging to leader for ration...", "正前往队长处领取口粮..."),
+                        0,
+                        () =>
+                        {
+                            if (ApplySingleCompanionRation(capturedAg, capturedSt, fromAutoShare: false, 1f))
+                            {
+                                Speak(capturedAg, ChatterTopic.PlayerShareFoodThanks, minCooldown: 0.5f, bubbleDuration: 6.0f, force: true);
+                            }
+                        });
+                    walkingCount++;
+                    continue;
+                }
+
                 try
                 {
-                    if (!fromAutoShare && !RationSharing.TryConsumePlayerPortion()) continue;
-                    st.LastRationTime = now;
-                    st.FedAndFierceUntil = now + 180f;
-                    // The auto-share action already consumed one meal. Divide its benefit
-                    // across the squad instead of consuming that food a second time.
-                    float portion = fromAutoShare ? 1f / targets.Count : 1f;
-                    ag.npcData.hunger = Mathf.Clamp(ag.npcData.hunger + 35f * portion, 0f, 100f);
-                    ag.npcData.thirst = Mathf.Clamp(ag.npcData.thirst + 35f * portion, 0f, 100f);
-                    ag.npcData.fatigue = Mathf.Clamp(ag.npcData.fatigue + 25f * portion, 0f, 100f);
-                    ag.npcData.hireAffinity = Mathf.Clamp(ag.npcData.hireAffinity + 0.15f, 0f, 100f);
-
-                    var status = ag.npcData.characterData?.characterStatusData;
-                    if (Il2CppSafe.IsAlive(status))
-                    {
-                        status.hunger = Mathf.Min(status.maxHunger > 0 ? status.maxHunger : 100f, status.hunger + 35f * portion);
-                        status.thirst = Mathf.Min(status.maxThirst > 0 ? status.maxThirst : 100f, status.thirst + 35f * portion);
-                        status.fatigue = Mathf.Min(status.maxFatigue > 0 ? status.maxFatigue : 100f, status.fatigue + 25f * portion);
-                        status.energy = Mathf.Min(status.maxEnergy > 0 ? status.maxEnergy : 100f, status.energy + 40f * portion);
-                    }
+                    if (!ApplySingleCompanionRation(ag, st, fromAutoShare, portion)) continue;
+                    if (Il2CppSafe.IsAliveUnity(player))
+                        PhysicalMovementHelper.TriggerReachInteraction(ag.humanCharacter, player.transform.position, 0);
                 }
                 catch { continue; }
 
@@ -275,20 +313,25 @@ namespace ZedZone.SmartCompanions
                 Speak(speaker, ChatterTopic.PlayerShareFoodThanks, minCooldown: 0.5f, bubbleDuration: 6.0f, force: true);
             }
 
-            if (!fromAutoShare && buffedCount > 0)
+            if (!fromAutoShare && (buffedCount > 0 || walkingCount > 0))
             {
-                BaseSortingSystem.SetBanner(CompanionConfigStore.L(
-                    $"🍖 Вы поделились пайком с отрядом ({buffedCount} чел.)! Напарники получили бафф «Сытый и злой» на 3 мин!",
-                    $"🍖 Shared rations with squad ({buffedCount})! Companions gained 'Fed & Fierce' combat buff for 3 min!",
-                    $"🍖 已向小队（{buffedCount} 人）分享口粮！队友获得 3 分钟「饱腹狂暴」战斗增益！"));
+                BaseSortingSystem.SetBanner(walkingCount > 0
+                    ? CompanionConfigStore.L(
+                        $"🍖 Пайки розданы рядом ({buffedCount}), ещё {walkingCount} чел. подходят за своей долей!",
+                        $"🍖 Shared rations nearby ({buffedCount}); {walkingCount} companion(s) walking over to take theirs!",
+                        $"🍖 已向身边队友分发口粮（{buffedCount} 人），另有 {walkingCount} 人正走来领取！")
+                    : CompanionConfigStore.L(
+                        $"🍖 Вы поделились пайком с отрядом ({buffedCount} чел.)! Напарники получили бафф «Сытый и злой» на 3 мин!",
+                        $"🍖 Shared rations with squad ({buffedCount})! Companions gained 'Fed & Fierce' combat buff for 3 min!",
+                        $"🍖 已向小队（{buffedCount} 人）分享口粮！队友获得 3 分钟「饱腹狂暴」战斗增益！"));
             }
 
-            if (!fromAutoShare && buffedCount == 0)
+            if (!fromAutoShare && buffedCount == 0 && walkingCount == 0)
                 BaseSortingSystem.SetBanner(CompanionConfigStore.L(
                     "Нужен съедобный паёк на каждого напарника. Между пайками — 30 секунд.",
                     "One edible ration per companion is required. Wait 30 seconds between rations.",
                     "每名队友需要一份可食用口粮。两次分享间隔为30秒。"));
-            return buffedCount;
+            return buffedCount + walkingCount;
         }
 
         public static void OnPlayerEatOrUseFood(HumanCharacterController character, ItemData foodItemData)

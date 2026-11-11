@@ -384,9 +384,9 @@ namespace ZedZone.SmartCompanions
             }
 
             if (GUI.Button(new Rect(bx + 645f, by, 195f, 26f),
-                CompanionConfigStore.L(lang, "Мгновенно разложить всё", "Instant Sort All Now", "立即一键整理全部"), _btnStyle))
+                CompanionConfigStore.L(lang, "Собрать лут вокруг", "Sweep Nearby Loot", "搜刮周围物资"), _btnStyle))
             {
-                BaseSortingSystem.CommandSortBase(null, null, instant: true);
+                AutoLootSystem.CommandSweepNearbyLoot(null, 24f);
             }
 
             float bodyY = area.y + 48f;

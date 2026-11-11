@@ -200,6 +200,27 @@ namespace ZedZone.SmartCompanions
         }
     }
 
+    [HarmonyPatch(typeof(HumanCharacterController), nameof(HumanCharacterController.EquipWeaponSlot))]
+    internal static class HumanNpcEquipWeaponSlotGuard
+    {
+        [HarmonyPrefix]
+        private static void Prefix(HumanCharacterController __instance)
+        {
+            HumanNpcEquipmentGuard.EnsureBackingInventory(__instance);
+        }
+
+        [HarmonyFinalizer]
+        private static Exception Finalizer(Exception __exception, HumanCharacterController __instance, ItemData m_weaponData)
+        {
+            if (__exception == null || !HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance))
+                return __exception;
+
+            HumanNpcEquipmentGuard.CleanupBrokenRangedState(__instance);
+            HumanNpcEquipmentGuard.LogOnce(__instance, m_weaponData, "native EquipWeaponSlot threw " + __exception.GetType().Name);
+            return null;
+        }
+    }
+
     [HarmonyPatch(typeof(HumanCharacterController), nameof(HumanCharacterController.UpdateHand_RangedWeapon))]
     internal static class HumanNpcUpdateRangedWeaponGuard
     {

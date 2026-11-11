@@ -130,6 +130,7 @@ namespace ZedZone.SmartCompanions
                         inv.worldposition = pos;
                         inv.inventoryId = MultiplayerSyncSystem.BuildPositionBoxKey(pos, bi.itemData.zLevel);
                         string itemName = bi.itemData.GetItemName();
+                        RegisterExternalInventoryAnchor(inv, bi.transform, itemName);
                         AddDiscoveredContainer(inv, null, pos, Vector2.Distance(playerPos, pos), itemName);
                     }
                 }

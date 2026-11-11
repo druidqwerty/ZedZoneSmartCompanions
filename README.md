@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.6.0"><strong>Release v1.6.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.7.0"><strong>Release v1.7.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v1.7.0 — True Physical Looting & Item Transfer (Zero Item Teleportation)
+
+- **Physical Ground, Corpse & Wild Container Scavenging (`AutoLootSystem_JobRunner.cs`, `AutoLootSystem_Transfer.cs`, `PhysicalMovementHelper.cs`):**
+  - Removed all instant/remote loot pickup loops. When ordered to sweep loot (or auto-looting nearby), companions build a distance-ordered `LootQueue`, walk from target to target using obstacle-aware A* pathfinding (`agent.MoveTo` + `ComputeSurfaceDistance` against the target collider's outer edge), pause briefly (`0.35s`) within `<= 2.45m` reach, and transfer items only upon physical arrival.
+- **Physical Chest-to-Chest Base Sorting (`F7`, `BaseSortingSystem_Worker.cs`, `BaseSortingSystem_PhysicalCarry.cs`):**
+  - Removed the instant-teleport sort button (`⚡ Instant Sort`). Companions walk to each source/drop-off chest (`SortingPhase = 1`), pause to take a batch into `CarryBuffer` at close range, walk to each categorized destination chest (`SortingPhase = 2`), and place items inside.
+- **Non-Teleporting Combat Rollback & Chores (`BaseSortingSystem_CarryOps.cs`, `BaseChoreSystem.cs`):**
+  - If combat interrupts a carry job or a destination chest becomes unreachable, `ReturnCarryBufferWithoutTeleport` keeps carried items in the companion's own inventory (`sharedInventoryData` / `inventoryData`) or drops them at their feet (`DropItem`) instead of teleporting items back across the base.
+- **Verification:** Live-verified across all 6 engine phases (`57` Harmony patches, `[SelfVerify] PASS v1.7.0`, Phases 0–3 zombie/bandit ranged combat & cease-fire `PASS`, Phase A `6.77m` ground loot walk `PASS`, Phase B `1.64m` chest-to-chest carry walk `PASS`, `0` teleports, `8,386 / 8,386` save `GameData` hashes untouched); see [docs/verification-1.7.0.md](docs/verification-1.7.0.md).
 
 ## New in v1.6.0 — Full Forensic Audit, Clean Rebuild, Puppet/Weapon Guard & Cease-Fire Fix
 
@@ -149,7 +159,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.6.0.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.7.0.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 

@@ -19,23 +19,30 @@ namespace ZedZone.SmartCompanions
                 ? (Vector2)ag.humanCharacter.transform.position
                 : Vector2.zero;
 
-            var candidates = new List<(InventoryData inv, Vector2 pos, string id, string name, StorageCategory stayMask, float dist)>();
+            var candidates = new List<(InventoryData inv, Vector2 pos, Transform anchor, bool ownBackpack, string id, string name, StorageCategory stayMask, float dist)>();
 
-            // 1. Companion's own sharedInventoryData
+            // 1. Companion's own sharedInventoryData (already physically on the companion's back -> 0m pickup, physical walk to deposit!)
             var shared = ag?.npcData?.sharedInventoryData;
             if (Il2CppSafe.IsAlive(shared) && shared.itemList != null && shared.itemList.Count > 0)
             {
-                candidates.Add((shared, selfPos, "shared_" + ag.npcData.npcGUID,
+                candidates.Add((shared, selfPos, ag.humanCharacter.transform, true, "shared_" + ag.npcData.npcGUID,
                     CompanionConfigStore.L("Рюкзак напарника", "Companion Backpack", "队友背包"), StorageCategory.None, 0f));
             }
 
-            // 2. Explicit extraSource (when player clicks "Разобрать этот ящик")
+            // 2. Explicit extraSource (when player clicks "Разобрать этот ящик" or orders Vehicle Trunk Unload)
             if (Il2CppSafe.IsAlive(extraSource) && extraSource.itemList != null && extraSource.itemList.Count > 0)
             {
+                var anchor = ResolveAnchorTransformForInventory(extraSource);
                 var tobj = FindTerrainObjectByInventory(extraSource);
-                Vector2 pos = Il2CppSafe.IsAliveUnity(tobj) ? (Vector2)tobj.transform.position : selfPos;
+                Vector2 pos = Il2CppSafe.IsAliveUnity(anchor)
+                    ? (Vector2)anchor.position
+                    : (extraSource.worldposition.sqrMagnitude > 0.001f ? extraSource.worldposition : selfPos);
                 string id = GetContainerStableId(extraSource, tobj);
-                candidates.Add((extraSource, pos, id, extraSource.inventoryTitleName ?? "Container", StorageCategory.None, Vector2.Distance(selfPos, pos)));
+                string label = KnownInvToExternalLabel.TryGetValue(extraSource.Pointer, out var extLbl) && !string.IsNullOrEmpty(extLbl)
+                    ? extLbl
+                    : (!string.IsNullOrEmpty(extraSource.inventoryTitleName) ? extraSource.inventoryTitleName : "Container");
+                if (!PhysicalMovementHelper.IsTargetTemporarilyUnreachable(id))
+                    candidates.Add((extraSource, pos, anchor, false, id, label, StorageCategory.None, Vector2.Distance(selfPos, pos)));
             }
 
             // 3. Player-marked Drop-off boxes first, then player-marked categorized boxes with misplaced items
@@ -47,14 +54,16 @@ namespace ZedZone.SmartCompanions
                     if (c == null || !Il2CppSafe.IsAlive(c.Inventory) || c.Inventory.itemList == null || c.Inventory.itemList.Count == 0)
                         continue;
                     if (c.Rule == null || !c.Rule.IsMarkedByPlayer) continue;
+                    if (PhysicalMovementHelper.IsTargetTemporarilyUnreachable(c.ContainerId)) continue;
+                    Transform cAnchor = Il2CppSafe.IsAliveUnity(c.TerrainObj) ? c.TerrainObj.transform : ResolveAnchorTransformForInventory(c.Inventory);
 
                     if (pass == 0 && c.Rule.IsDropoffSource)
                     {
-                        candidates.Add((c.Inventory, c.WorldPos, c.ContainerId, c.DisplayName, StorageCategory.None, Vector2.Distance(selfPos, c.WorldPos)));
+                        candidates.Add((c.Inventory, c.WorldPos, cAnchor, false, c.ContainerId, c.DisplayName, StorageCategory.None, Vector2.Distance(selfPos, c.WorldPos)));
                     }
                     else if (pass == 1 && !c.Rule.IsDropoffSource && c.Rule.Categories != StorageCategory.None && c.Rule.Categories != StorageCategory.All)
                     {
-                        candidates.Add((c.Inventory, c.WorldPos, c.ContainerId, c.DisplayName, c.Rule.Categories, Vector2.Distance(selfPos, c.WorldPos)));
+                        candidates.Add((c.Inventory, c.WorldPos, cAnchor, false, c.ContainerId, c.DisplayName, c.Rule.Categories, Vector2.Distance(selfPos, c.WorldPos)));
                     }
                 }
             }
@@ -75,15 +84,20 @@ namespace ZedZone.SmartCompanions
                 st.SourceContainerGuid = cand.id;
                 st.SourceContainerName = cand.name;
                 st.SourceContainerInv = cand.inv;
+                st.SourceContainerAnchor = cand.anchor;
+                st.SourceIsOwnBackpack = cand.ownBackpack;
                 st.SourceAllowedStayMask = cand.stayMask;
                 st.TargetContainerGuid = cand.id;
                 st.TargetContainerName = cand.name;
+                st.TargetContainerAnchor = cand.anchor;
                 st.TargetContainerPos = cand.pos;
-                st.SortingStateStartTime = Time.unscaledTime;
-                st.CurrentTaskText = CompanionConfigStore.L(
-                    $"Идёт к «{cand.name}» за предметами...",
-                    $"Walking to '{cand.name}' to pick up items...",
-                    $"正在前往「{cand.name}」取物...");
+                PhysicalMovementHelper.BeginLeg(st, selfPos, cand.pos, cand.anchor);
+                st.CurrentTaskText = cand.ownBackpack
+                    ? CompanionConfigStore.L("Достаёт вещи из рюкзака...", "Taking items from backpack...", "正从背包取出物品...")
+                    : CompanionConfigStore.L(
+                        $"Идёт к «{cand.name}» за предметами...",
+                        $"Walking to '{cand.name}' to pick up items...",
+                        $"正在前往「{cand.name}」取物...");
                 return true;
             }
 
@@ -190,6 +204,9 @@ namespace ZedZone.SmartCompanions
                             FallbackSourceInv = srcInv,
                             TargetContainerId = chosenDest.ContainerId,
                             TargetInv = chosenDest.Inventory,
+                            TargetAnchor = Il2CppSafe.IsAliveUnity(chosenDest.TerrainObj)
+                                ? chosenDest.TerrainObj.transform
+                                : ResolveAnchorTransformForInventory(chosenDest.Inventory),
                             TargetPos = chosenDest.WorldPos,
                             TargetDisplayName = chosenDest.DisplayName,
                             Category = cat
@@ -243,8 +260,11 @@ namespace ZedZone.SmartCompanions
             st.SortingPhase = 2;
             st.TargetContainerGuid = bestEntry.TargetContainerId;
             st.TargetContainerName = bestEntry.TargetDisplayName;
+            st.TargetContainerAnchor = Il2CppSafe.IsAliveUnity(bestEntry.TargetAnchor)
+                ? bestEntry.TargetAnchor
+                : ResolveAnchorTransformForInventory(bestEntry.TargetInv);
             st.TargetContainerPos = bestEntry.TargetPos;
-            st.SortingStateStartTime = now;
+            PhysicalMovementHelper.BeginLeg(st, selfPos, bestEntry.TargetPos, st.TargetContainerAnchor);
             st.PendingTransferCount = st.CarryBuffer.Count;
             st.CurrentTaskText = CompanionConfigStore.L(
                 $"Несёт {countForTarget}/{st.CarryBuffer.Count} предм. в «{bestEntry.TargetDisplayName}»...",
@@ -296,18 +316,43 @@ namespace ZedZone.SmartCompanions
                     }
                     else if (destBoxes != null)
                     {
+                        // Never teleport into a distant chest! If another valid chest exists, re-route CarryBuffer entry so the NPC walks there next!
+                        Vector2 selfPos = Il2CppSafe.IsAliveUnity(ag?.humanCharacter)
+                            ? (Vector2)ag.humanCharacter.transform.position
+                            : st.TargetContainerPos;
+                        bool reroutedToWalk = false;
                         for (int d = 0; d < destBoxes.Count; d++)
                         {
                             var alt = destBoxes[d];
                             if (alt?.Inventory == null || (alt.Rule.Categories & entry.Category) == 0) continue;
-                            if (InventoryTransfers.TryDepositOrStackWhole(alt.Inventory, entry.Item))
+                            if (PhysicalMovementHelper.IsTargetTemporarilyUnreachable(alt.ContainerId)) continue;
+                            if (!InventoryTransfers.CanAcceptWholeItem(alt.Inventory, entry.Item)) continue;
+
+                            Transform altAnchor = Il2CppSafe.IsAliveUnity(alt.TerrainObj)
+                                ? alt.TerrainObj.transform
+                                : ResolveAnchorTransformForInventory(alt.Inventory);
+                            float altDist = PhysicalMovementHelper.ComputeSurfaceDistance(selfPos, alt.WorldPos, altAnchor);
+                            if (altDist <= PhysicalMovementHelper.MaxReachableInteractRadius &&
+                                InventoryTransfers.TryDepositOrStackWhole(alt.Inventory, entry.Item))
                             {
                                 placed = true;
                                 usedDestInv = alt.Inventory;
                                 usedCompact = alt.Rule.AutoCompact;
                                 break;
                             }
+                            else if (altDist > PhysicalMovementHelper.MaxReachableInteractRadius)
+                            {
+                                entry.TargetContainerId = alt.ContainerId;
+                                entry.TargetInv = alt.Inventory;
+                                entry.TargetAnchor = altAnchor;
+                                entry.TargetPos = alt.WorldPos;
+                                entry.TargetDisplayName = alt.DisplayName;
+                                reroutedToWalk = true;
+                                break;
+                            }
                         }
+                        if (reroutedToWalk)
+                            continue;
                     }
 
                     if (placed)
@@ -320,7 +365,8 @@ namespace ZedZone.SmartCompanions
                     }
                     else
                     {
-                        InventoryTransfers.RestoreCarriedItemSafely(entry.FallbackSourceInv, entry.TargetInv, entry.Item);
+                        // Keep unplaceable item physically in the companion's own backpack rather than teleporting across the map!
+                        StoreCarriedItemOnCompanionOrSafeFallback(ag, entry);
                     }
 
                     st.CarryBuffer.RemoveAt(i);
@@ -386,6 +432,41 @@ namespace ZedZone.SmartCompanions
             }
         }
 
+        private static void StoreCarriedItemOnCompanionOrSafeFallback(GOAPAgent ag, CarryItemEntry entry)
+        {
+            if (entry == null || !Il2CppSafe.IsAlive(entry.Item)) return;
+            try
+            {
+                if (Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAlive(ag.npcData))
+                {
+                    var shared = ag.npcData.GetOrCreateSharedInventory();
+                    if (Il2CppSafe.IsAlive(shared) && InventoryTransfers.TryDepositOrStackWhole(shared, entry.Item))
+                        return;
+                    var npcInv = ag.npcData.characterData?.inventoryData;
+                    if (Il2CppSafe.IsAlive(npcInv) && InventoryTransfers.TryDepositOrStackWhole(npcInv, entry.Item))
+                        return;
+                }
+            }
+            catch { }
+            InventoryTransfers.RestoreCarriedItemSafely(entry.FallbackSourceInv, entry.TargetInv, entry.Item);
+        }
+
+        public static void ReturnCarryBufferWithoutTeleport(GOAPAgent ag, CompanionRuntimeState st)
+        {
+            if (st == null || st.CarryBuffer.Count == 0) return;
+            try
+            {
+                for (int i = st.CarryBuffer.Count - 1; i >= 0; i--)
+                {
+                    StoreCarriedItemOnCompanionOrSafeFallback(ag, st.CarryBuffer[i]);
+                }
+                st.CarryBuffer.Clear();
+                st.PendingTransferCount = 0;
+                RefreshOpenLootPanelIfNeeded();
+            }
+            catch { }
+        }
+
         public static void FlushCarryBufferSafely(CompanionRuntimeState st)
         {
             if (st == null || st.CarryBuffer.Count == 0) return;
@@ -430,102 +511,6 @@ namespace ZedZone.SmartCompanions
                 }
             }
             catch { }
-        }
-
-        private static int ExecuteInstantSortPass(
-            List<GOAPAgent> workers,
-            List<DiscoveredContainer> allContainers,
-            List<DiscoveredContainer> destContainers,
-            InventoryData extraSource,
-            out StorageCategory dominantCategory)
-        {
-            dominantCategory = StorageCategory.None;
-            int totalMoved = 0;
-            var touchedDestInventories = new HashSet<IntPtr>();
-            var categoryCounts = new Dictionary<StorageCategory, int>();
-
-            try
-            {
-                var sourceInventories = new List<(InventoryData inv, StorageCategory allowedStayMask)>();
-                if (Il2CppSafe.IsAlive(extraSource))
-                    sourceInventories.Add((extraSource, StorageCategory.None));
-
-                foreach (var c in allContainers)
-                {
-                    if (c?.Inventory == null || c.Rule == null || !c.Rule.IsMarkedByPlayer) continue;
-                    if (Il2CppSafe.IsAlive(extraSource) && c.Inventory.Pointer == extraSource.Pointer) continue;
-
-                    if (c.Rule.IsDropoffSource)
-                        sourceInventories.Add((c.Inventory, StorageCategory.None));
-                    else if (c.Rule.Categories != StorageCategory.None && c.Rule.Categories != StorageCategory.All)
-                        sourceInventories.Add((c.Inventory, c.Rule.Categories));
-                }
-
-                foreach (var ag in workers)
-                {
-                    var shared = ag?.npcData?.sharedInventoryData;
-                    if (Il2CppSafe.IsAlive(shared) && shared.itemList != null && shared.itemList.Count > 0)
-                        sourceInventories.Add((shared, StorageCategory.None));
-                }
-
-                foreach (var srcEntry in sourceInventories)
-                {
-                    var srcInv = srcEntry.inv;
-                    if (!Il2CppSafe.IsAlive(srcInv) || srcInv.itemList == null || srcInv.itemList.Count == 0) continue;
-
-                    var snapshot = new List<ItemData>();
-                    for (int i = 0; i < srcInv.itemList.Count; i++)
-                        if (Il2CppSafe.IsAlive(srcInv.itemList[i])) snapshot.Add(srcInv.itemList[i]);
-
-                    foreach (var item in snapshot)
-                    {
-                        var cat = ItemCategorizer.ClassifyItem(item);
-                        if (srcEntry.allowedStayMask != StorageCategory.None && (srcEntry.allowedStayMask & cat) != 0)
-                            continue;
-
-                        foreach (var dest in destContainers)
-                        {
-                            if (dest?.Inventory == null || dest.Inventory.Pointer == srcInv.Pointer) continue;
-                            if ((dest.Rule.Categories & cat) == 0) continue;
-
-                            if (InventoryTransfers.TryMoveWhole(srcInv, dest.Inventory, item))
-                            {
-                                totalMoved++;
-                                touchedDestInventories.Add(dest.Inventory.Pointer);
-                                categoryCounts.TryGetValue(cat, out int cur);
-                                categoryCounts[cat] = cur + 1;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                foreach (var dest in destContainers)
-                {
-                    if (dest?.Inventory != null && dest.Rule.AutoCompact && touchedDestInventories.Contains(dest.Inventory.Pointer))
-                    {
-                        InventoryTransfers.SafeCompactInventory(dest.Inventory);
-                    }
-                }
-
-                RefreshOpenLootPanelIfNeeded();
-
-                int bestCount = 0;
-                foreach (var kv in categoryCounts)
-                {
-                    if (kv.Value > bestCount)
-                    {
-                        bestCount = kv.Value;
-                        dominantCategory = kv.Key;
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                SmartCompanionsPlugin.LogWarning("ExecuteInstantSortPass error: " + e.Message);
-            }
-
-            return totalMoved;
         }
 
         private static void SpeakCategoryDeposit(GOAPAgent agent, StorageCategory cat)

@@ -11,7 +11,13 @@ namespace ZedZone.SmartCompanions
             if (MultiplayerSyncSystem.IsMultiplayerClient)
             {
                 MultiplayerSyncSystem.SendPacketToHost("SORT|1");
+                SetBanner(CompanionConfigStore.L(
+                    "📦 Приказ отправлен напарникам: пойти и разнести предметы по ящикам базы!",
+                    "📦 Ordered companions to walk and carry items between marked base chests!",
+                    "📦 已命令队友前往搬运整理基地储物箱！"));
+                return;
             }
+
             var containers = ScanNearbyContainers(force: true);
             var destBoxes = GetCategorizedDestinationBoxes(containers);
 
@@ -30,38 +36,12 @@ namespace ZedZone.SmartCompanions
             else
                 workers.AddRange(SmartChatterSystem.GetActiveTeammateAgents());
 
-            if (instant || workers.Count == 0)
+            if (workers.Count == 0)
             {
-                int moved = ExecuteInstantSortPass(workers, containers, destBoxes, extraSourceContainer, out var dominantCategory);
-                var speaker = workers.Count > 0 ? workers[0] : null;
-                if (Il2CppSafe.IsAliveUnity(speaker))
-                {
-                    if (moved > 0)
-                    {
-                        var stSpk = CompanionConfigStore.GetOrCreateCompanion(speaker.npcData?.npcGUID ?? "npc");
-                        stSpk.SortedItemsThisSession += moved;
-                        stSpk.AddExperience(Mathf.Clamp(moved * 2, 2, 40), speaker);
-                        SpeakCategoryDeposit(speaker, dominantCategory);
-                    }
-                    SmartChatterSystem.Speak(speaker, ChatterTopic.SortFinished, minCooldown: 0.5f, bubbleDuration: 6f, force: true);
-                }
-
-                int remDrop = InspectRemainingDropoffItems(containers, out var remMask);
-                if (remDrop > 0)
-                {
-                    string remCats = ItemCategorizer.FormatCategoriesSummary(remMask, false);
-                    SetBanner(CompanionConfigStore.L(
-                        $"Перемещено: {moved} шт. В ящике-приёмнике осталось {remDrop} шт. (нет места или ящика для: {remCats})",
-                        $"Moved: {moved}. {remDrop} items remain in Drop-off box (need chest/space for: {remCats})",
-                        $"已移动：{moved} 件。中转箱剩余 {remDrop} 件（缺少对应分类箱或空位：{remCats}）"), 8f);
-                }
-                else
-                {
-                    SetBanner(CompanionConfigStore.L(
-                        $"Мгновенная сортировка выполнена: перемещено предметов — {moved} шт.",
-                        $"Instant sorting complete: {moved} item stacks sorted into marked chests.",
-                        $"一键整理完成：已将 {moved} 组物品按类别归入已标记储物箱。"));
-                }
+                SetBanner(CompanionConfigStore.L(
+                    "Рядом нет активных напарников, которые могли бы отнести и разложить вещи!",
+                    "No active companions nearby to physically carry and sort items!",
+                    "附近没有已招募的队友可前往搬运整理物品！"));
                 return;
             }
 
@@ -71,7 +51,10 @@ namespace ZedZone.SmartCompanions
             {
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData)) continue;
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
-                FlushCarryBufferSafely(st);
+                ReturnCarryBufferWithoutTeleport(ag, st);
+                st.LootQueue.Clear();
+                st.IsLootingActive = false;
+                st.IsChoreWalkActive = false;
 
                 if (TryAssignNextCarrySource(ag, st, containers, destBoxes, extraSourceContainer, claimedSourcePointers))
                 {
@@ -84,8 +67,8 @@ namespace ZedZone.SmartCompanions
             {
                 SetBanner(CompanionConfigStore.L(
                     $"📦 Напарники ({assignedWorkers} чел.) пошли переносить предметы по отмеченным ящикам базы!",
-                    $"📦 Companions ({assignedWorkers}) started carrying items between your marked base chests!",
-                    $"📦 队友（{assignedWorkers} 人）已开始在已标记的基地储物箱之间搬运分拣物品！"));
+                    $"📦 Companions ({assignedWorkers}) started walking and carrying items between your marked base chests!",
+                    $"📦 队友（{assignedWorkers} 人）已开始前往并在已标记的基地储物箱之间搬运物品！"));
             }
             else
             {
@@ -94,16 +77,16 @@ namespace ZedZone.SmartCompanions
                 {
                     string remCats = ItemCategorizer.FormatCategoriesSummary(remMask, false);
                     SetBanner(CompanionConfigStore.L(
-                        $"⚠ В ящике-приёмнике осталось {remDrop} предм. — нет места или не отмечен ящик для: {remCats}",
-                        $"⚠ {remDrop} items remain in Drop-off box — no free space or marked chest for: {remCats}",
-                        $"⚠ 收货中转箱仍有 {remDrop} 件物品无法转移——缺少空位或未标记对应分类箱：{remCats}"), 8f);
+                        $"⚠ В ящике-приёмнике осталось {remDrop} предм. — нет места, пути или ящика для: {remCats}",
+                        $"⚠ {remDrop} items remain in Drop-off box — no space, path, or marked chest for: {remCats}",
+                        $"⚠ 收货中转箱仍有 {remDrop} 件物品无法搬运——缺少空位、路径或分类箱：{remCats}"), 8f);
                 }
                 else
                 {
                     SetBanner(CompanionConfigStore.L(
-                        "Все предметы в отмеченных ящиках базы уже разложены по своим категориям!",
-                        "All items in your marked base containers are already sorted into their categories!",
-                        "所有已标记基地储物箱中的物品均已按分类归位！"));
+                        "Все доступные предметы в отмеченных ящиках базы уже разложены по своим категориям!",
+                        "All reachable items in your marked base containers are already sorted into their categories!",
+                        "所有可达的已标记基地储物箱物品均已按分类归位！"));
                 }
             }
         }
@@ -137,7 +120,8 @@ namespace ZedZone.SmartCompanions
             foreach (var c in containers)
             {
                 if (c?.Rule != null && c.Rule.IsMarkedByPlayer && c.Rule.Categories != StorageCategory.None &&
-                    !c.Rule.IsDropoffSource && Il2CppSafe.IsAlive(c.Inventory))
+                    !c.Rule.IsDropoffSource && Il2CppSafe.IsAlive(c.Inventory) &&
+                    !PhysicalMovementHelper.IsTargetTemporarilyUnreachable(c.ContainerId))
                 {
                     destBoxes.Add(c);
                 }
@@ -152,55 +136,18 @@ namespace ZedZone.SmartCompanions
 
         public static void TickActiveSortingMovementEveryFrame()
         {
-            try
-            {
-                var teammates = SmartChatterSystem.GetActiveTeammateAgents();
-                for (int i = 0; i < teammates.Count; i++)
-                {
-                    var ag = teammates[i];
-                    if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
-                        !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag)
-                        continue;
-
-                    if (!CompanionConfigStore.CompanionStates.TryGetValue(ag.npcData.npcGUID ?? "", out var st) ||
-                        st == null || !st.IsSortingActive)
-                        continue;
-
-                    if (Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && !ag.mostThreateningCharacter.deadFlag)
-                    {
-                        FlushCarryBufferSafely(st);
-                        st.IsSortingActive = false;
-                        st.SortingPhase = 0;
-                        continue;
-                    }
-
-                    Vector2 selfPos = ag.humanCharacter.transform.position;
-                    float dist = Vector2.Distance(selfPos, st.TargetContainerPos);
-                    if (dist > 1.60f)
-                    {
-                        if (ag.isStuck || ag.IsStuckRecovering)
-                            ag.MoveTo(st.TargetContainerPos, 1.4f, true);
-                        else
-                            ag.MoveTo_Direct(st.TargetContainerPos, true, true, false);
-                        ag.LookAtPositionSmoothCompat(st.TargetContainerPos, 10f);
-                    }
-                    else
-                    {
-                        ag.LookAtPositionSmoothCompat(st.TargetContainerPos, 10f);
-                    }
-                }
-            }
-            catch { }
+            // Movement and arrival interactions are now driven authoritatively via
+            // GOAPAgent.UpdateGoal -> PhysicalMovementHelper.TickPhysicalFrameForAgent.
         }
 
         public static void TickActiveSortingJobs()
         {
+            if (MultiplayerSyncSystem.IsMultiplayerClient) return;
             PruneStaleCacheEntries();
             var teammates = SmartChatterSystem.GetActiveTeammateAgents();
             if (teammates.Count == 0) return;
 
             float now = Time.unscaledTime;
-
             foreach (var ag in teammates)
             {
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
@@ -209,73 +156,150 @@ namespace ZedZone.SmartCompanions
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
 
-                // Automatic Base Drop-off when returning to a marked base box out of combat!
-                if (!st.IsSortingActive && CompanionConfigStore.EnableBaseAutoDropoff && st.AllowAutoDropoffAtBase &&
-                    !Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && now - st.LastAutoDropoffTime > 25f)
+                // Automatic Base Drop-off when returning near marked base chests out of combat (walks to each chest!)
+                if (!st.HasAnyPhysicalTask && CompanionConfigStore.EnableBaseAutoDropoff && st.AllowAutoDropoffAtBase &&
+                    !Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && now - st.LastAutoDropoffTime > 20f)
                 {
                     TryAutoDropoffAtBase(ag, st, now);
                 }
+            }
+        }
 
-                if (!st.IsSortingActive) continue;
+        public static void StepSortingJobForAgent(GOAPAgent ag, CompanionRuntimeState st)
+        {
+            float now = Time.unscaledTime;
 
-                if (Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && !ag.mostThreateningCharacter.deadFlag)
+            if (st.SortingPhase == 1)
+            {
+                if (!Il2CppSafe.IsAlive(st.SourceContainerInv))
                 {
-                    FlushCarryBufferSafely(st);
-                    st.IsSortingActive = false;
-                    st.SortingPhase = 0;
-                    continue;
+                    AdvanceOrFinishSorting(ag, st);
+                    return;
                 }
 
-                float elapsed = now - st.SortingStateStartTime;
-                Vector2 selfPos = ag.humanCharacter.transform.position;
-                float distToBox = Vector2.Distance(selfPos, st.TargetContainerPos);
+                if (Il2CppSafe.IsAliveUnity(st.SourceContainerAnchor))
+                    st.TargetContainerPos = st.SourceContainerAnchor.position;
 
-                if (st.SortingPhase == 1)
+                bool ready;
+                bool unreachable = false;
+
+                if (st.SourceIsOwnBackpack)
                 {
-                    if (distToBox > 1.85f && elapsed < 6.5f)
-                        continue;
+                    ready = true;
+                }
+                else
+                {
+                    int previewItemId = st.SourceContainerInv.itemList != null && st.SourceContainerInv.itemList.Count > 0
+                        ? (st.SourceContainerInv.itemList[0]?.itemId ?? 0) : 0;
+                    PhysicalMovementHelper.StepWalkAndInteract(
+                        ag, st, st.TargetContainerPos, st.SourceContainerAnchor, previewItemId, 0.45f,
+                        out ready, out unreachable);
 
-                    var containers = ScanNearbyContainers(force: true);
-                    var destBoxes = GetCategorizedDestinationBoxes(containers);
-                    int picked = PickupBatchIntoCarryBuffer(ag, st, destBoxes);
-
-                    if (picked > 0 && st.CarryBuffer.Count > 0)
+                    if (st.ArrivalInteractStarted && !ready)
                     {
-                        SelectNextDestinationFromBuffer(ag, st, now);
-                        SmartChatterSystem.Speak(ag, ChatterTopic.SortPickUp, minCooldown: 1.0f, bubbleDuration: 5.0f, force: true);
-                    }
-                    else
-                    {
-                        if (!TryAssignNextCarrySource(ag, st, containers, destBoxes, null, null))
-                            FinishCompanionSorting(ag, st, containers);
+                        st.CurrentTaskText = CompanionConfigStore.L(
+                            $"Берёт вещи из «{st.SourceContainerName}»...",
+                            $"Taking items from '{st.SourceContainerName}'...",
+                            $"正从「{st.SourceContainerName}」取物...");
+                        return;
                     }
                 }
-                else if (st.SortingPhase == 2)
+
+                if (unreachable)
                 {
-                    if (distToBox > 1.85f && elapsed < 6.5f)
-                        continue;
+                    PhysicalMovementHelper.MarkTargetTemporarilyUnreachable(st.SourceContainerGuid, 45f);
+                    AdvanceOrFinishSorting(ag, st);
+                    return;
+                }
 
-                    var containers = ScanNearbyContainers(force: true);
-                    var destBoxes = GetCategorizedDestinationBoxes(containers);
-                    int deposited = DepositBatchAtCurrentDestination(ag, st, destBoxes, out var domCat);
+                if (!ready) return;
 
-                    if (deposited > 0)
+                var containers = ScanNearbyContainers(force: true);
+                var destBoxes = GetCategorizedDestinationBoxes(containers);
+                int picked = PickupBatchIntoCarryBuffer(ag, st, destBoxes);
+
+                if (picked > 0 && st.CarryBuffer.Count > 0)
+                {
+                    SelectNextDestinationFromBuffer(ag, st, now);
+                    if (!st.SourceIsOwnBackpack)
+                        SmartChatterSystem.Speak(ag, ChatterTopic.SortPickUp, minCooldown: 2.0f, bubbleDuration: 5.0f, force: false);
+                }
+                else
+                {
+                    AdvanceOrFinishSorting(ag, st, containers, destBoxes);
+                }
+            }
+            else if (st.SortingPhase == 2)
+            {
+                if (Il2CppSafe.IsAliveUnity(st.TargetContainerAnchor))
+                    st.TargetContainerPos = st.TargetContainerAnchor.position;
+
+                int previewCarriedId = st.CarryBuffer.Count > 0 && Il2CppSafe.IsAlive(st.CarryBuffer[0]?.Item)
+                    ? st.CarryBuffer[0].Item.itemId : 0;
+
+                PhysicalMovementHelper.StepWalkAndInteract(
+                    ag, st, st.TargetContainerPos, st.TargetContainerAnchor, previewCarriedId, 0.40f,
+                    out bool ready, out bool unreachable);
+
+                if (st.ArrivalInteractStarted && !ready)
+                {
+                    st.CurrentTaskText = CompanionConfigStore.L(
+                        $"Укладывает вещи в «{st.TargetContainerName}»...",
+                        $"Placing items in '{st.TargetContainerName}'...",
+                        $"正将物品放入「{st.TargetContainerName}」...");
+                    return;
+                }
+
+                if (unreachable)
+                {
+                    PhysicalMovementHelper.MarkTargetTemporarilyUnreachable(st.TargetContainerGuid, 45f);
+                    for (int i = st.CarryBuffer.Count - 1; i >= 0; i--)
                     {
-                        st.SortedItemsThisSession += deposited;
-                        st.AddExperience(Mathf.Clamp(deposited * 2, 2, 40), ag);
-                        SpeakCategoryDeposit(ag, domCat);
+                        var entry = st.CarryBuffer[i];
+                        if (entry != null && string.Equals(entry.TargetContainerId, st.TargetContainerGuid, StringComparison.OrdinalIgnoreCase))
+                        {
+                            StoreCarriedItemOnCompanionOrSafeFallback(ag, entry);
+                            st.CarryBuffer.RemoveAt(i);
+                        }
                     }
-
                     if (st.CarryBuffer.Count > 0)
-                    {
                         SelectNextDestinationFromBuffer(ag, st, now);
-                    }
                     else
-                    {
-                        if (!TryAssignNextCarrySource(ag, st, containers, destBoxes, null, null))
-                            FinishCompanionSorting(ag, st, containers);
-                    }
+                        AdvanceOrFinishSorting(ag, st);
+                    return;
                 }
+
+                if (!ready) return;
+
+                var containers = ScanNearbyContainers(force: true);
+                var destBoxes = GetCategorizedDestinationBoxes(containers);
+                int deposited = DepositBatchAtCurrentDestination(ag, st, destBoxes, out var domCat);
+
+                if (deposited > 0)
+                {
+                    st.SortedItemsThisSession += deposited;
+                    st.AddExperience(Mathf.Clamp(deposited * 2, 2, 40), ag);
+                    SpeakCategoryDeposit(ag, domCat);
+                }
+
+                if (st.CarryBuffer.Count > 0)
+                    SelectNextDestinationFromBuffer(ag, st, now);
+                else
+                    AdvanceOrFinishSorting(ag, st, containers, destBoxes);
+            }
+        }
+
+        private static void AdvanceOrFinishSorting(
+            GOAPAgent ag,
+            CompanionRuntimeState st,
+            List<DiscoveredContainer> containers = null,
+            List<DiscoveredContainer> destBoxes = null)
+        {
+            containers ??= ScanNearbyContainers(force: true);
+            destBoxes ??= GetCategorizedDestinationBoxes(containers);
+            if (!TryAssignNextCarrySource(ag, st, containers, destBoxes, null, null))
+            {
+                FinishCompanionSorting(ag, st, containers);
             }
         }
     }

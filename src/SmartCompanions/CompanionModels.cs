@@ -192,9 +192,29 @@ namespace ZedZone.SmartCompanions
         public InventoryData FallbackSourceInv;
         public string TargetContainerId = "";
         public InventoryData TargetInv;
+        public Transform TargetAnchor;
         public Vector2 TargetPos;
         public string TargetDisplayName = "";
         public StorageCategory Category = StorageCategory.None;
+    }
+
+    public enum PhysicalLootKind
+    {
+        GroundCluster = 0,
+        Corpse = 1,
+        WildContainer = 2
+    }
+
+    public class PhysicalLootStop
+    {
+        public PhysicalLootKind Kind;
+        public Vector2 WorldPos;
+        public Transform TargetTransform;
+        public BasicItem PrimaryGroundItem;
+        public TerrainObject TargetTerrainObj;
+        public InventoryData TargetInventory;
+        public string DisplayName = "";
+        public string TargetKey = "";
     }
 
     public class ContainerRuleProfile
@@ -264,13 +284,41 @@ namespace ZedZone.SmartCompanions
         public string SourceContainerGuid = "";
         public string SourceContainerName = "";
         public InventoryData SourceContainerInv = null;
+        public Transform SourceContainerAnchor = null;
+        public bool SourceIsOwnBackpack = false;
         public StorageCategory SourceAllowedStayMask = StorageCategory.None;
         public string TargetContainerGuid = "";
         public string TargetContainerName = "";
+        public Transform TargetContainerAnchor = null;
         public Vector2 TargetContainerPos;
         public float SortingStateStartTime = 0f;
         public int PendingTransferCount = 0;
         public readonly List<CarryItemEntry> CarryBuffer = new List<CarryItemEntry>();
+
+        // Active physical scavenging / loot queue & physical camp chore walk
+        public bool IsLootingActive = false;
+        public bool IsSilentAutoLoot = false;
+        public int LootPickedInCurrentSweep = 0;
+        public readonly List<PhysicalLootStop> LootQueue = new List<PhysicalLootStop>();
+
+        public bool IsChoreWalkActive = false;
+        public Vector2 ChoreTargetPos;
+        public Transform ChoreTargetAnchor = null;
+        public string ChoreDisplayText = "";
+        public int ChorePropItemId = 0;
+        public Action PendingChoreArrivalAction = null;
+
+        // Shared physical arrival / stuck-detection state (zero-teleport guarantee)
+        public Vector2 WalkOriginPos;
+        public Vector2 LastMovedPos;
+        public float LastMovedTime = 0f;
+        public float WalkBestDist = 9999f;
+        public float LastProgressTime = 0f;
+        public bool NavResetDone = false;
+        public bool ArrivalInteractStarted = false;
+        public float ArrivalInteractUntil = 0f;
+
+        public bool HasAnyPhysicalTask => IsSortingActive || IsLootingActive || IsChoreWalkActive;
 
         public bool HasFedBuff => Time.unscaledTime < FedAndFierceUntil;
         public float FedBuffRemainingSeconds => Mathf.Max(0f, FedAndFierceUntil - Time.unscaledTime);

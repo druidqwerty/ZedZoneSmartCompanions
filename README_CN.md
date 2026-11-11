@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.6.0"><strong>下载 v1.6.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.7.0"><strong>下载 v1.7.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v1.7.0 更新 — 真实走位拾取与箱间搬运（彻底移除隔空传物）
+
+- **地面、尸体与野生容器真实走位搜刮 (`AutoLootSystem_JobRunner.cs`, `AutoLootSystem_Transfer.cs`, `PhysicalMovementHelper.cs`)：**
+  - 移除所有瞬间隔空吸物逻辑。下达搜刮指令或自动拾取时，队友会建立按距离排序的 `LootQueue`，使用带避障的原生 A* 寻路 (`agent.MoveTo` + 基于碰撞体外缘的 `ComputeSurfaceDistance`) 逐一走到每个目标旁，在 `<= 2.45m` 触手可及范围内短暂交互停顿 (`0.35s`) 后才将物品收入背包。
+- **基地储物箱真实走位搬运整理 (`F7`, `BaseSortingSystem_Worker.cs`, `BaseSortingSystem_PhysicalCarry.cs`)：**
+  - 移除一键瞬间整理按钮 (`⚡ 立即秒理`)。队友会先走到收货箱/源箱旁 (`SortingPhase = 1`) 取出物品放入 `CarryBuffer`，再亲自走到对应分类箱旁 (`SortingPhase = 2`) 将物品存入。
+- **战斗中断零瞬移保护 (`BaseSortingSystem_CarryOps.cs`, `BaseChoreSystem.cs`)：**
+  - 若搬运途中突发战斗或目标箱不可达，`ReturnCarryBufferWithoutTeleport` 会将搬运中的物品直接留在队友背包中（满包则放在脚下），绝不隔空传回原箱。
+- **引擎实测验证：** 已通过真实 ZED ZONE 引擎全部 6 阶段验收（`57` 个 Harmony 补丁、`[SelfVerify] PASS v1.7.0`、阶段 0–3 丧尸/强盗射击与停火测试 `PASS`、阶段 A 地面拾取走位 `6.77m` `PASS`、阶段 B 储物箱搬运走位 `1.64m` `PASS`、`0` 次隔空瞬移，`8,386` 个存档文件哈希完全一致）；详见[验证报告](docs/verification-1.7.0.md)。
 
 ## v1.6.0 更新 — 全面源码审查重构、装备与联机玩偶保护及严格停火修复
 
@@ -104,7 +114,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.6.0.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.7.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

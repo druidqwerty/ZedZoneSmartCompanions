@@ -72,7 +72,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         if (!Il2CppSafe.IsAliveUnity(character) || character.deadFlag) continue;
                         var zombie = character.TryCast<ZombieController>();
                         if (Il2CppSafe.IsAliveUnity(zombie) && Il2CppSafe.IsAlive(zombie.characterData) &&
-                            zombie.characterData.zLevel == _agent.npcData.zLevel)
+                            zombie.characterData.zLevel == _agent.npcData.zLevel &&
+                            !zombie.name.Contains("Blast", StringComparison.OrdinalIgnoreCase))
                         {
                             float spawnDistance = Vector2.Distance(zombie.transform.position, gc.playerCharacter.transform.position);
                             if (spawnDistance < nearestZombie) { nearestZombie = spawnDistance; _zombie = zombie; }
@@ -104,6 +105,10 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     var zAttr = MonsterManager.instance?.GetMonsterAttrById(_zombie.characterData.characterAttrId);
                     if (Il2CppSafe.IsAliveUnity(zAttr)) zAttr.deathShotRate = 0f;
                     _state.Doctrine = TacticalDoctrine.SniperKite;
+                    _state.AllowAutoLootNearby = false;
+                    _state.AllowAutoDropoffAtBase = false;
+                    _state.AllowBaseChores = false;
+                    PhysicalMovementHelper.CancelAllPhysicalTasksOnCombat(_agent, _state);
                     // Returning-to-base deliberately suppresses native combat. Put the
                     // disposable test NPC on the normal escort order, not a forced goal.
                     _agent.npcData.ExecuteNPCCommand("Basic.FollowPlayer");
@@ -128,6 +133,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 float distance = _phase == 3 && Il2CppSafe.IsAliveUnity(_hostileHuman)
                     ? Vector2.Distance(_agent.humanCharacter.transform.position, _hostileHuman.transform.position)
                     : Vector2.Distance(_agent.humanCharacter.transform.position, _zombie.transform.position);
+                if (_phase == 3 && Il2CppSafe.IsAliveUnity(_hostileHuman))
+                    _hostileHuman.movementInput = Vector2.zero;
                 var expectedTarget = _phase == 3 && Il2CppSafe.IsAliveUnity(_hostileHuman)
                     ? (BasicCharacterController)_hostileHuman
                     : (BasicCharacterController)_zombie;
@@ -486,6 +493,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 _hostileHuman.characterData.characterStatusData.maxhp = 10000000f;
                 _hostileHuman.characterData.characterStatusData.hp = 10000000f;
             }
+            _hostileHuman.movementInput = Vector2.zero;
             if (!_humanWasFrozen) _hostileHuman.BeginScriptedMoveFreeze();
         }
 

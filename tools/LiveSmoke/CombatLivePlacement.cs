@@ -70,6 +70,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     Vector3 to = _zombie.GetTorsePositionOrRoot();
                     tries++;
                     if (!_agent.HasClearFireLine(from, to)) continue;
+                    if (distance >= 10f && Mathf.Abs(axis.y) > 0.65f) continue;
                     _placement = center;
                     LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Native LOS clear: tries={tries}, origin={origin}, target={center}, muzzle={from}, aim={to}.");
                     return true;

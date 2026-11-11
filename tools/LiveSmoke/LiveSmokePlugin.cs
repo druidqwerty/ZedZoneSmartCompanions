@@ -48,9 +48,18 @@ namespace ZedZone.SmartCompanions.LiveSmoke
     internal static class KeepLabRunning { static void Prefix(ref bool hasFocus) { hasFocus = true; } }
     [HarmonyPatch(typeof(GameController), "get_isSoftPaused")]
     internal static class UnpauseIsolatedLab { static bool Prefix(ref bool __result) { __result=false;return false; } }
+    [HarmonyPatch(typeof(Time), "set_timeScale")]
+    internal static class PinLabTimeScale
+    {
+        static void Prefix(ref float value)
+        {
+            if (LiveRunner.WorldLoaded && value < 1f) value = 1f;
+        }
+    }
     public sealed class LiveRunner : MonoBehaviour
     {
         public LiveRunner(IntPtr ptr) : base(ptr) { }
+        internal static bool WorldLoaded;
         private bool _loading, _loaded;
         private float _started, _nextReport;
         private void LateUpdate() { if(_loaded) Time.timeScale=1f; }
@@ -85,6 +94,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     if (!_loaded)
                     {
                         _loaded=true;
+                        WorldLoaded=true;
+                        Time.timeScale=1f;
                         Application.runInBackground=true;
                         GameController.UpdateFocusAutoPause(true);
                         InGameController.instance.ResumeGame();
@@ -122,15 +133,18 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     }
                     if(CombatLiveRegression.Tick())
                     {
-                        ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
-                        enabled=false;Application.Quit();return;
+                        if(!CombatLiveRegression.Succeeded || PhysicalCarryLiveRegression.Tick())
+                        {
+                            ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
+                            enabled=false;Application.Quit();return;
+                        }
                     }
                 }
-                if(Time.realtimeSinceStartup-_started>50f)
+                if(Time.realtimeSinceStartup-_started>105f)
                 {
-                    if(!_loaded) throw new Exception("World did not load within 50 seconds");
+                    if(!_loaded) throw new Exception("World did not load within 105 seconds");
                     ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
-                    LiveSmokePlugin.Logger.LogInfo("[LiveLab] Inspection complete.");
+                    LiveSmokePlugin.Logger.LogError("[LiveLab] FAIL Overall 105s timeout reached before acceptance completed.");
                     enabled=false;Application.Quit();
                 }
             }

@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 1.5.0 VERIFIED / Locally Installed / Released on GitHub & Boosty
+## Status: 1.7.0 VERIFIED / Locally Installed / Released on GitHub, Steam Workshop & Boosty
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -34,6 +34,9 @@
 - [x] `BaseSortingSystem_PhysicalCarry.cs`
 - [x] `BaseSortingSystem_Worker.cs`
 - [x] `BaseSortingSystem_CarryOps.cs`
+- [x] `PhysicalMovementHelper.cs`
+- [x] `AutoLootSystem_JobRunner.cs`
+- [x] `AutoLootSystem_Transfer.cs`
 
 ## Cover 2026 — completed (2026-11-09)
 
@@ -192,4 +195,14 @@
   - **Steam Workshop (`3836613312`):** https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312 (`result=1`, `visibility=0` public, `banned=0`, `file_size=717008`, `time_updated=1794358821`). Anonymous `english`, `russian`, and `schinese` HTML checks returned `HTTP 200` with `1.6.0` titles/descriptions and required dependency `3834614258`. Local Workshop subscription cache synced to `1.6.0`.
   - **Boosty auto-queue:** `BOOSTY_1.6.0.md` queued via `queue.py add` (superseded unpublished `BOOSTY_1.5.1.md` entry removed; unrelated projects untouched).
   - Evidence recorded in `docs/publication-1.6.0.json`. Real two-player host+client human NPC visibility remains open for live co-op confirmation.
+
+## 1.7.0 True Physical Looting & Item Transfer (Zero Item Teleportation) — completed (2026-11-11)
+- **Root-Cause Analysis & Implementation:**
+  1. **Unified Physical Movement & Surface-Distance Interaction (`PhysicalMovementHelper.cs`):** All companion physical tasks (ground/corpse/wild-container looting, base chest sorting, and base chores) now run through `GOAPAgent.UpdateGoal -> PhysicalMovementHelper.TickPhysicalFrameForAgent` using `ComputeSurfaceDistance(selfPos, targetPos, targetAnchor)` (`Collider2D.ClosestPoint`) so large shelves/chests measure distance to their outer edge rather than interior center, with A* obstacle pathfinding (`agent.MoveTo`) and a `0.35s–0.45s` arrival interaction pause within `MaxReachableInteractRadius = 2.45m`.
+  2. **Physical Ground, Corpse & Wild-Container Loot Queue (`AutoLootSystem_JobRunner.cs`, `AutoLootSystem_Transfer.cs`):** Removed instant pickup loops in `CommandSweepNearbyLoot`; companions now build a distance-ordered `st.LootQueue` and physically walk to each ground item, corpse, or unmarked wild container before transferring items at `<= 2.45m`.
+  3. **Physical Base Chest Carry & Non-Teleporting Rollback (`BaseSortingSystem_Worker.cs`, `BaseSortingSystem_PhysicalCarry.cs`, `BaseSortingSystem_CarryOps.cs`, `BaseChoreSystem.cs`):** Removed the instant-sort button (`⚡ Instant Sort`) and remote chore fallback; if combat interrupts a carry job or a destination chest is unreachable, `ReturnCarryBufferWithoutTeleport` keeps items in the companion's pack or drops them at their feet instead of teleporting items back across the base.
+- **Build & 6-Phase Live Engine Verification (`docs/verification-1.7.0.md`, `docs/combat-acceptance-1.7.0.log`):**
+  - Build: `dotnet build -c Release -t:Rebuild --no-restore -warnaserror` -> `0 warnings, 0 errors`.
+  - Final DLL SHA-256: `e2fefde9349acec87fb5f20792eb96f7ee1bfd81f8cca93d12ea15ff63017224` (`371,200` bytes, `57` Harmony patches, `[SelfVerify] PASS v1.7.0`).
+  - Live ZED ZONE engine 6-phase acceptance: Phases 0–3 (`8m` & `12m` Zombie ranged shots, `StopFire` negative test, `8m` Hostile Human `Looter(200)` ranged shot) + Phase A (`6.77m` Ground Loot Walk, `arrivalDist = 1.40m`, `0` teleports) + Phase B (`1.64m` Chest-to-Chest Carry Walk, `minSrcDist = 0.45m`, `minDestDist = 1.56m`, `0` teleports) `PASS`; `0` weapon/hand IK NREs in `Player.log`; `8,386 / 8,386` real `GameData` save files SHA-256 identical (`gamedata_identical: true`).
 

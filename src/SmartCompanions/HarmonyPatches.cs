@@ -773,7 +773,7 @@ namespace ZedZone.SmartCompanions
             catch { }
         }
 
-        // 20. Redirect GOAPAction_FollowLeader movement to TargetContainerPos while companion is physically carrying items between chests
+        // 20. Defense-in-depth: redirect GOAPAction_FollowLeader to active physical task destination using A* MoveTo
         [HarmonyPatch(typeof(GOAPAction_FollowLeader), nameof(GOAPAction_FollowLeader.Execute))]
         [HarmonyPrefix]
         public static bool FollowLeader_Execute_Prefix(GOAPAgent agent, ref bool __result)
@@ -788,30 +788,20 @@ namespace ZedZone.SmartCompanions
                     return true;
 
                 if (CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID ?? "", out var st) &&
-                    st != null && st.IsSortingActive && (st.SortingPhase == 1 || st.SortingPhase == 2))
+                    st != null && st.HasAnyPhysicalTask)
                 {
-                    float dist = Vector2.Distance(agent.humanCharacter.transform.position, st.TargetContainerPos);
-                    if (dist > 1.60f)
+                    if (PhysicalMovementHelper.TickPhysicalFrameForAgent(agent))
                     {
-                        if (agent.isStuck || agent.IsStuckRecovering)
-                            agent.MoveTo(st.TargetContainerPos, 1.4f, true);
-                        else
-                            agent.MoveTo_Direct(st.TargetContainerPos, true, true, false);
-                        agent.LookAtPositionSmoothCompat(st.TargetContainerPos, 10f);
+                        __result = true;
+                        return false;
                     }
-                    else
-                    {
-                        agent.LookAtPositionSmoothCompat(st.TargetContainerPos, 10f);
-                    }
-                    __result = true;
-                    return false;
                 }
             }
             catch { }
             return true;
         }
 
-        // 21. Allow companions ordered to CollectResource / CollectSpecifiedItem to roam up to 42m without FollowLeader pulling them back at 12m
+        // 21. Allow companions on physical tasks or CollectResource / CollectSpecifiedItem to roam up to 48m without FollowLeader pulling them back
         [HarmonyPatch(typeof(GOAPGoal_FollowLeader), nameof(GOAPGoal_FollowLeader.GetPriority))]
         [HarmonyPostfix]
         public static void FollowLeader_GetPriority_Postfix(GOAPAgentState agentState, ref float __result)
@@ -820,7 +810,10 @@ namespace ZedZone.SmartCompanions
             {
                 if (!Il2CppSafe.IsAlive(agentState) || !Il2CppSafe.IsAlive(agentState.npcData)) return;
                 string cmd = agentState.basicCommand ?? agentState.npcData.basicCommand ?? "";
-                if (!cmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) &&
+                bool hasPhysicalTask = CompanionConfigStore.CompanionStates.TryGetValue(agentState.npcData.npcGUID ?? "", out var st) &&
+                                       st != null && st.HasAnyPhysicalTask;
+                if (!hasPhysicalTask &&
+                    !cmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) &&
                     !cmd.EndsWith("CollectSpecifiedItem", StringComparison.OrdinalIgnoreCase))
                     return;
 
@@ -834,8 +827,8 @@ namespace ZedZone.SmartCompanions
                 if (Il2CppSafe.IsAliveUnity(leader))
                 {
                     float dist = Vector2.Distance(agentState.agentPosition, leader.transform.position);
-                    if (dist <= 42f && __result > 1.5f)
-                        __result = 1.5f;
+                    if (dist <= 48f && __result > 1.2f)
+                        __result = 1.2f;
                 }
             }
             catch { }

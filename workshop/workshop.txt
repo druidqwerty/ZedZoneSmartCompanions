@@ -1,19 +1,19 @@
 version=1
 id=3836613312
-title=ZED ZONE: Smart Companions 1.6.0
+title=ZED ZONE: Smart Companions 1.7.0
 visibility=public
-description=[h1]Smart Companions 1.6.0[/h1]
-description=Turn your recruited survivors into a smart, reliable squad: tactical combat AI, physical base chest sorting, 1,179 live chatter lines and co-op sync.
+description=[h1]Smart Companions 1.7.0[/h1]
+description=Turn your recruited survivors into a smart, reliable squad: tactical combat AI, true physical item carrying & scavenging, 1,179 live chatter lines and co-op sync.
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Enjoy the mod? Support development on Boosty.
-description=[h2]What's new in 1.6.0 (Full Audit & Rebuild)[/h2]
-description=[list][*]Fixed human NPC & player IDs (0 = Player, 200 = Looter, 201 = Survivor) and automatic save repair for NPCs previously misassigned to 202.[*]Guarded ranged & melee equipment loading and hand IK across companions, world NPCs and network puppets (eliminating LateUpdate NullReferenceException spam and skipped NPC registration).[*]Enforced strict cease-fire in Passive / StopFire doctrine, cleared culled ghost threats, stopped false ambush callouts on peaceful camp NPCs, and blocked F6–F9 hotkeys while typing in chat.[/list]
-description=[h2]Co-op note[/h2]
-description=1.6.0 passed live ZED ZONE engine combat, sorting and puppet/equipment verification, while real two-player host+client human NPC visibility still awaits live co-op confirmation—please share feedback if you play co-op.
+description=[h2]What's new in 1.7.0 (True Physical Looting & Carrying)[/h2]
+description=[list][*]Removed all instant item teleportation: companions now physically walk to every ground item, zombie corpse, and wild container using obstacle-aware A* pathfinding, pause briefly to pick up loot within arm's reach, and move to the next target.[*]Physical chest-to-chest base sorting (F7): removed the instant-sort shortcut—companions walk to each source/drop-off chest, pick up items at close range, walk to each categorized destination chest, and place them inside.[*]Safe non-teleporting combat interruption: if combat breaks out mid-carry, carried items stay in the companion's pack (or drop at their feet if full) instead of teleporting back across the map.[/list]
+description=[h2]Highlights from 1.6.0[/h2]
+description=[list][*]Fixed native human & player IDs (0 = Player, 200 = Looter, 201 = Survivor) and guarded ranged/melee equipment loading & hand IK across companions, world NPCs, and network puppets.[*]Enforced strict cease-fire in Passive / StopFire doctrine, cleared culled ghost threats, and blocked F6–F9 hotkeys while typing in chat.[/list]
 description=[h2]Your squad and base[/h2]
 description=Six combat doctrines, draggable F8 hub (Esc to close), squad cap up to 15, physical item carrying between player-marked base chests across 12 categories, autonomous scavenging, emergency field medic & ammo aid, and English / Russian / Simplified Chinese chatter. Safe for existing saves.
 description=[h2]Install & Hotkeys[/h2]
-description=Requires third-party [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (run its install.cmd once, then launch via Steam). In co-op, both players should run 1.6.0.
-description=F8: squad, base & settings · F7: sort base · F6 (Alt+F6 with AVO): share rations · F9: battle cry.
+description=Requires third-party [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (run its install.cmd once, then launch via Steam). In co-op, both players should run 1.7.0.
+description=F8: squad, base & settings · F7: physical base sort · F6 (Alt+F6 with AVO): share rations · F9: battle cry.
 description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]GitHub repository & verification reports[/url]
 description=© 2026 druidqwerty. MIT License. Free and open source; AI-assisted code, direction and testing by druid.
