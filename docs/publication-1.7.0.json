@@ -1,0 +1,17 @@
+{
+  "version": "1.7.0",
+  "workshop_id": "3836613312",
+  "steam_result": 1,
+  "steam_visibility": 0,
+  "steam_banned": 0,
+  "steam_file_size": "742606",
+  "steam_time_updated": 1794402000,
+  "steam_title": "ZED ZONE: Smart Companions 1.7.0",
+  "github_release": "https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.7.0",
+  "zip_name": "ZedZoneSmartCompanions-1.7.0.zip",
+  "zip_size": 715212,
+  "zip_sha256": "e1bba9f466744566201a8749522ab07a4bb792bd1fb2b672a569e119dd408059",
+  "dll_size": 371200,
+  "dll_sha256": "e2fefde9349acec87fb5f20792eb96f7ee1bfd81f8cca93d12ea15ff63017224",
+  "boosty_queued": "BOOSTY_1.7.0.md"
+}

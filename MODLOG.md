@@ -205,4 +205,9 @@
   - Build: `dotnet build -c Release -t:Rebuild --no-restore -warnaserror` -> `0 warnings, 0 errors`.
   - Final DLL SHA-256: `e2fefde9349acec87fb5f20792eb96f7ee1bfd81f8cca93d12ea15ff63017224` (`371,200` bytes, `57` Harmony patches, `[SelfVerify] PASS v1.7.0`).
   - Live ZED ZONE engine 6-phase acceptance: Phases 0–3 (`8m` & `12m` Zombie ranged shots, `StopFire` negative test, `8m` Hostile Human `Looter(200)` ranged shot) + Phase A (`6.77m` Ground Loot Walk, `arrivalDist = 1.40m`, `0` teleports) + Phase B (`1.64m` Chest-to-Chest Carry Walk, `minSrcDist = 0.45m`, `minDestDist = 1.56m`, `0` teleports) `PASS`; `0` weapon/hand IK NREs in `Player.log`; `8,386 / 8,386` real `GameData` save files SHA-256 identical (`gamedata_identical: true`).
+- **Publication & Verification (2026-11-11):**
+  - **GitHub Release (`v1.7.0`):** https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.7.0 (commit `66191f5`). Release asset `ZedZoneSmartCompanions-1.7.0.zip` verified (`715,212` bytes, ZIP SHA-256 `e1bba9f466744566201a8749522ab07a4bb792bd1fb2b672a569e119dd408059`, embedded DLL SHA-256 `e2fefde9349acec87fb5f20792eb96f7ee1bfd81f8cca93d12ea15ff63017224`).
+  - **Steam Workshop (`3836613312`):** https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312 (`result=1`, `visibility=0` public, `banned=0`, `file_size=742606`, `time_updated=1794402000`). Localized `english`, `russian`, and `schinese` pages uploaded and verified with required dependency `3834614258`. Local Workshop subscription cache synced to `1.7.0`.
+  - **Boosty auto-queue:** `BOOSTY_1.7.0.md` queued via `queue.py add` (superseded pending `BOOSTY_1.6.0.md` entry removed).
+  - Evidence recorded in `docs/publication-1.7.0.json`.
 
