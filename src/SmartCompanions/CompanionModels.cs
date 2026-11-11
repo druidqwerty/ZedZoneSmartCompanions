@@ -513,6 +513,8 @@ namespace ZedZone.SmartCompanions
         public static float BaseScanRadius = 48f;
         public static int MaxTeamSize = 0; // 0 = Auto/Vanilla/AVO Compatibility, or 4, 6, 8, 10, 12, 15
         public static bool RequireAltForRationHotkey = false;
+        public static float UiViewportWidth = 0f, UiViewportHeight = 0f;
+        public static float UiScale = 0f; // 0=Auto; otherwise 0.75..2, capped to screen fit.
         public static float MainWinPosX = -1f;
         public static float MainWinPosY = -1f;
         public static float ChestBarPosX = -1f;
@@ -747,6 +749,9 @@ namespace ZedZone.SmartCompanions
                 sb.AppendLine($"SET|BaseScanRadius|{BaseScanRadius.ToString("F1", CultureInfo.InvariantCulture)}");
                 sb.AppendLine($"SET|MaxTeamSize|{MaxTeamSize}");
                 sb.AppendLine($"SET|RequireAltForRationHotkey|{RequireAltForRationHotkey}");
+                sb.AppendLine($"SET|UiViewportWidth|{UiViewportWidth.ToString("F2", CultureInfo.InvariantCulture)}");
+                sb.AppendLine($"SET|UiViewportHeight|{UiViewportHeight.ToString("F2", CultureInfo.InvariantCulture)}");
+                sb.AppendLine($"SET|UiScale|{UiScale.ToString("F2", CultureInfo.InvariantCulture)}");
                 sb.AppendLine($"SET|MainWinPosX|{MainWinPosX.ToString("F1", CultureInfo.InvariantCulture)}");
                 sb.AppendLine($"SET|MainWinPosY|{MainWinPosY.ToString("F1", CultureInfo.InvariantCulture)}");
                 sb.AppendLine($"SET|ChestBarPosX|{ChestBarPosX.ToString("F1", CultureInfo.InvariantCulture)}");
@@ -846,6 +851,12 @@ namespace ZedZone.SmartCompanions
                         else if (key == "BaseScanRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f2)) BaseScanRadius = Mathf.Clamp(f2, 15f, 120f);
                         else if (key == "MaxTeamSize" && int.TryParse(val, out var mts)) MaxTeamSize = Mathf.Clamp(mts, 0, 30);
                         else if (key == "RequireAltForRationHotkey" && bool.TryParse(val, out var bAlt)) RequireAltForRationHotkey = bAlt;
+                        else if (key == "UiViewportWidth" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var uiW))
+                            UiViewportWidth = float.IsFinite(uiW) && uiW > 0f ? uiW : 0f;
+                        else if (key == "UiViewportHeight" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var uiH))
+                            UiViewportHeight = float.IsFinite(uiH) && uiH > 0f ? uiH : 0f;
+                        else if (key == "UiScale" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var uiScale))
+                            UiScale = float.IsNaN(uiScale) || float.IsInfinity(uiScale) || uiScale <= 0f ? 0f : Mathf.Clamp(uiScale, 0.75f, 2f);
                         else if (key == "MainWinPosX" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var mx)) MainWinPosX = mx;
                         else if (key == "MainWinPosY" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var my)) MainWinPosY = my;
                         else if (key == "ChestBarPosX" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var cx)) ChestBarPosX = cx;

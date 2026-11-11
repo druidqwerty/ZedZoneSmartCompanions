@@ -1,0 +1,116 @@
+=== ui180-20261111-201703 ===
+[Message: Preloader] BepInEx 6.0.0-be.793 - ZEDZONE (07.11.2026 23:46:52)
+[Message: Preloader] Built from commit dbc82f05b8ea34833de5b6a723eb60dd8398e0b1
+[Info   :   BepInEx] System platform: Windows 10 64-bit
+[Info   :   BepInEx] Process bitness: 64-bit (x64)
+[Info   :   BepInEx] Running under Unity 2023.1.18f1
+[Info   :   BepInEx] Runtime version: 6.0.7
+[Info   :   BepInEx] Runtime information: .NET 6.0.7
+[Info   : Preloader] 0 patcher plugins loaded
+[Info   : Preloader] 0 assemblies discovered
+[Message:AssemblyPatcher] Executing 0 patch(es)
+[Message:   BepInEx] Chainloader initialized
+[Warning:Il2CppInterop] Class::Init signatures have been exhausted, using a substitute!
+[Info   :Il2CppInterop] Registered mono type Il2CppInterop.Runtime.DelegateSupport+Il2CppToMonoDelegateReference in il2cpp domain
+[Info   :   BepInEx] 1 plugin to load
+[Info   :   BepInEx] Loading [ZED ZONE Code Mod Loader 1.1.0]
+[Info   :ZED ZONE Code Mod Loader]   + [game] G:\Steam\steamapps\common\ZED ZONE\Mods
+[Info   :ZED ZONE Code Mod Loader]   + [workshop] G:\Steam\steamapps\workshop\content\1211600
+[Info   :ZED ZONE Code Mod Loader] Code mod directories:
+[Info   :ZED ZONE Code Mod Loader]   G:\Steam\steamapps\common\ZED ZONE\Mods
+[Info   :ZED ZONE Code Mod Loader]   G:\Steam\steamapps\workshop\content\1211600
+[Warning:   BepInEx] Skipping [ZED ZONE Smart Companions 1.8.0] because a newer version exists (ZED ZONE Smart Companions 1.8.0)
+[Warning:   BepInEx] Skipping [ZED ZONE Smart Companions 1.8.0] because a newer version exists (ZED ZONE Smart Companions 1.8.0)
+[Warning:   BepInEx] Skipping [zedzone.zedmodsloader] because a plugin with a similar GUID ([ZED ZONE Code Mod Loader 1.1.0]) has been already loaded.
+[Info   :   BepInEx] Loading [ZED ZONE Smart Companions 1.8.0]
+[Info   :ZED ZONE Smart Companions] ZED ZONE Smart Companions v1.8.0 initializing...
+[Info   :ZED ZONE Smart Companions] Patched 57 game method(s) via Harmony.
+[Info   :Il2CppInterop] Registered mono type ZedZone.SmartCompanions.SmartCompanionsController in il2cpp domain
+[Info   :ZED ZONE Smart Companions] Registered SmartCompanionsController MonoBehaviour in IL2CPP domain.
+[Info   :ZED ZONE Smart Companions] [SelfVerify] PASS v1.8.0: 60 chatter topics (565 unique RU lines [Rude=349, Clean=216], 290 unique EN lines [Rude=194, Clean=134], 324 unique ZH lines [Rude=190, Clean=134]), 12 storage categories (RU/EN/ZH), 11 custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, MP Sync (Looter=200/Survivor=201) & Hostile Human Combat AI, ModLanguage Auto/RU/EN/ZH verified.
+[Info   :   BepInEx] Loading [Smart Companions UI Smoke 1.0.0]
+[Info   :Il2CppInterop] Registered mono type ZedZone.SmartCompanions.UiSmoke.OsProbeRunner in il2cpp domain
+[Info   :Smart Companions UI Smoke] [UiSmoke] Enabled. Main-menu fixtures only; no save is loaded or written.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3834614258\payload\ZedModsLoader.dll': an assembly named 'ZedModsLoader' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3836613312\Mods\SmartCompanions\SmartCompanions.dll': an assembly named 'SmartCompanions' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3836613312\SmartCompanions\SmartCompanions.dll': an assembly named 'SmartCompanions' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Code mods loaded: 2
+[Info   :ZED ZONE Code Mod Loader]   - ZED ZONE Smart Companions 1.8.0 [BepInEx plugin] G:\Steam\steamapps\common\ZED ZONE\Mods\SmartCompanions\SmartCompanions.dll
+[Info   :ZED ZONE Code Mod Loader]   - Smart Companions UI Smoke 1.0.0 [BepInEx plugin] G:\Steam\steamapps\common\ZED ZONE\Mods\ZUiSmoke\SmartCompanions.UiSmoke.dll
+[Info   :Il2CppInterop] Registered mono type ZedZone.ZedModsLoader.ModsLoadedNotifier in il2cpp domain
+[Message:   BepInEx] Chainloader startup complete
+[Info   :Smart Companions UI Smoke] [UiSmoke] Created three disabled native GOAPAgent fixtures.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Inert chest editor, native overlay panel and multiline chatter fixtures ready.
+[Info   :Smart Companions UI Smoke] [OsProbe] Ready for external exact-PID PostMessage driver; no saves loaded.
+[Info   :ZED ZONE Smart Companions] [UI] Font ready: Microsoft YaHei (Latin/Cyrillic/Chinese glyphs verified).
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=MouseDown type=MouseDown position=(1224.00, 341.00) delta=(0.00, 0.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=mouseUp type=mouseUp position=(1224.00, 341.00) delta=(-152.00, -384.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=scrollWheel type=scrollWheel position=(1344.00, 643.00) delta=(0.00, 9.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Inside BeginScrollArea raw=scrollWheel type=scrollWheel position=(1792.00, 857.33) delta=(0.00, 9.00) viewport=(x:814.00, y:480.00, width:932.00, height:534.00) contains=False matrix=0,750 effective=0,750.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=MouseDown type=MouseDown position=(1304.00, 754.00) delta=(0.00, 0.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=mouseUp type=mouseUp position=(1304.00, 754.00) delta=(148.00, 219.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=MouseDown type=MouseDown position=(675.00, 311.00) delta=(0.00, 0.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=MouseDrag type=MouseDrag position=(707.00, 311.00) delta=(-546.00, -371.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=mouseUp type=mouseUp position=(707.00, 311.00) delta=(-812.00, -578.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=MouseDown type=MouseDown position=(1316.00, 311.00) delta=(0.00, 0.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=mouseUp type=mouseUp position=(1316.00, 311.00) delta=(-740.00, -892.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=mouseUp type=mouseUp position=(0.00, 1.00) delta=(-1316.00, -310.00) matrix=1,000.
+
+
+=== ui180-20261111-201740 ===
+[Message: Preloader] BepInEx 6.0.0-be.793 - ZEDZONE (07.11.2026 23:46:52)
+[Message: Preloader] Built from commit dbc82f05b8ea34833de5b6a723eb60dd8398e0b1
+[Info   :   BepInEx] System platform: Windows 10 64-bit
+[Info   :   BepInEx] Process bitness: 64-bit (x64)
+[Info   :   BepInEx] Running under Unity 2023.1.18f1
+[Info   :   BepInEx] Runtime version: 6.0.7
+[Info   :   BepInEx] Runtime information: .NET 6.0.7
+[Info   : Preloader] 0 patcher plugins loaded
+[Info   : Preloader] 0 assemblies discovered
+[Message:AssemblyPatcher] Executing 0 patch(es)
+[Message:   BepInEx] Chainloader initialized
+[Warning:Il2CppInterop] Class::Init signatures have been exhausted, using a substitute!
+[Info   :Il2CppInterop] Registered mono type Il2CppInterop.Runtime.DelegateSupport+Il2CppToMonoDelegateReference in il2cpp domain
+[Info   :   BepInEx] 1 plugin to load
+[Info   :   BepInEx] Loading [ZED ZONE Code Mod Loader 1.1.0]
+[Info   :ZED ZONE Code Mod Loader]   + [game] G:\Steam\steamapps\common\ZED ZONE\Mods
+[Info   :ZED ZONE Code Mod Loader]   + [workshop] G:\Steam\steamapps\workshop\content\1211600
+[Info   :ZED ZONE Code Mod Loader] Code mod directories:
+[Info   :ZED ZONE Code Mod Loader]   G:\Steam\steamapps\common\ZED ZONE\Mods
+[Info   :ZED ZONE Code Mod Loader]   G:\Steam\steamapps\workshop\content\1211600
+[Warning:   BepInEx] Skipping [ZED ZONE Smart Companions 1.8.0] because a newer version exists (ZED ZONE Smart Companions 1.8.0)
+[Warning:   BepInEx] Skipping [ZED ZONE Smart Companions 1.8.0] because a newer version exists (ZED ZONE Smart Companions 1.8.0)
+[Warning:   BepInEx] Skipping [zedzone.zedmodsloader] because a plugin with a similar GUID ([ZED ZONE Code Mod Loader 1.1.0]) has been already loaded.
+[Info   :   BepInEx] Loading [ZED ZONE Smart Companions 1.8.0]
+[Info   :ZED ZONE Smart Companions] ZED ZONE Smart Companions v1.8.0 initializing...
+[Info   :ZED ZONE Smart Companions] Patched 57 game method(s) via Harmony.
+[Info   :Il2CppInterop] Registered mono type ZedZone.SmartCompanions.SmartCompanionsController in il2cpp domain
+[Info   :ZED ZONE Smart Companions] Registered SmartCompanionsController MonoBehaviour in IL2CPP domain.
+[Info   :ZED ZONE Smart Companions] [SelfVerify] PASS v1.8.0: 60 chatter topics (565 unique RU lines [Rude=349, Clean=216], 290 unique EN lines [Rude=194, Clean=134], 324 unique ZH lines [Rude=190, Clean=134]), 12 storage categories (RU/EN/ZH), 11 custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, MP Sync (Looter=200/Survivor=201) & Hostile Human Combat AI, ModLanguage Auto/RU/EN/ZH verified.
+[Info   :   BepInEx] Loading [Smart Companions UI Smoke 1.0.0]
+[Info   :Il2CppInterop] Registered mono type ZedZone.SmartCompanions.UiSmoke.OsProbeRunner in il2cpp domain
+[Info   :Smart Companions UI Smoke] [UiSmoke] Enabled. Main-menu fixtures only; no save is loaded or written.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3834614258\payload\ZedModsLoader.dll': an assembly named 'ZedModsLoader' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3836613312\Mods\SmartCompanions\SmartCompanions.dll': an assembly named 'SmartCompanions' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Skipping 'G:\Steam\steamapps\workshop\content\1211600\3836613312\SmartCompanions\SmartCompanions.dll': an assembly named 'SmartCompanions' is already loaded.
+[Info   :ZED ZONE Code Mod Loader] Code mods loaded: 2
+[Info   :ZED ZONE Code Mod Loader]   - ZED ZONE Smart Companions 1.8.0 [BepInEx plugin] G:\Steam\steamapps\common\ZED ZONE\Mods\SmartCompanions\SmartCompanions.dll
+[Info   :ZED ZONE Code Mod Loader]   - Smart Companions UI Smoke 1.0.0 [BepInEx plugin] G:\Steam\steamapps\common\ZED ZONE\Mods\ZUiSmoke\SmartCompanions.UiSmoke.dll
+[Info   :Il2CppInterop] Registered mono type ZedZone.ZedModsLoader.ModsLoadedNotifier in il2cpp domain
+[Message:   BepInEx] Chainloader startup complete
+[Info   :Smart Companions UI Smoke] [UiSmoke] Created three disabled native GOAPAgent fixtures.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Inert chest editor, native overlay panel and multiline chatter fixtures ready.
+[Info   :Smart Companions UI Smoke] [OsProbe] Ready for external exact-PID PostMessage driver; no saves loaded.
+[Info   :ZED ZONE Smart Companions] [UI] Font ready: Microsoft YaHei (Latin/Cyrillic/Chinese glyphs verified).
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=MouseDown type=MouseDown position=(1530.00, 109.00) delta=(0.00, 0.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=mouseUp type=mouseUp position=(1530.00, 109.00) delta=(523.00, -1074.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=scrollWheel type=scrollWheel position=(1007.00, 1183.00) delta=(0.00, 9.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Inside BeginScrollArea raw=scrollWheel type=scrollWheel position=(622.85, 731.71) delta=(0.00, 9.00) viewport=(x:127.78, y:94.00, width:932.00, height:534.00) contains=False matrix=1,617 effective=1,617.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=MouseDown type=MouseDown position=(1700.00, 1000.00) delta=(0.00, 0.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=mouseUp type=mouseUp position=(1700.00, 1000.00) delta=(1104.00, 283.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=MouseDown type=MouseDown position=(346.00, 46.00) delta=(0.00, 0.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=MouseDrag type=MouseDrag position=(378.00, 46.00) delta=(-333.00, -565.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=mouseUp type=mouseUp position=(378.00, 46.00) delta=(-363.00, -557.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=MouseDown type=MouseDown position=(1690.00, 46.00) delta=(0.00, 0.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=mouseUp type=mouseUp position=(1690.00, 46.00) delta=(661.00, -389.00) matrix=1,000.
+[Info   :Smart Companions UI Smoke] [OsProbe] Native event raw=mouseUp type=mouseUp position=(0.00, 1.00) delta=(-1690.00, -45.00) matrix=1,000.

@@ -20,9 +20,17 @@ namespace ZedZone.SmartCompanions
 
         public static bool IsDraggingAnyWindow => _activeWindowDragId != 0;
 
+        private static void ReleaseUiGestures()
+        {
+            if (_activeWindowDragId != 0) CompanionConfigStore.Save();
+            _activeWindowDragId = 0;
+            _scrollDragId = 0;
+        }
+
         public static void ResetWindowRectsToDefault()
         {
             _activeWindowDragId = 0;
+            _scrollDragId = 0;
             _mainWinCentered = false;
             _currentHudBadgeRect = Rect.zero;
             _currentChestBarRect = Rect.zero;
@@ -30,8 +38,10 @@ namespace ZedZone.SmartCompanions
 
         internal static Vector2 ClampWindowPosition(Vector2 pos, Vector2 size)
         {
-            float maxX = Mathf.Max(4f, Screen.width - size.x - 4f);
-            float maxY = Mathf.Max(4f, Screen.height - size.y - 4f);
+            if (float.IsNaN(pos.x) || float.IsInfinity(pos.x)) pos.x = 4f;
+            if (float.IsNaN(pos.y) || float.IsInfinity(pos.y)) pos.y = 4f;
+            float maxX = Mathf.Max(4f, ViewportWidth - size.x - 4f);
+            float maxY = Mathf.Max(4f, ViewportHeight - size.y - 4f);
             return new Vector2(Mathf.Clamp(pos.x, 4f, maxX), Mathf.Clamp(pos.y, 4f, maxY));
         }
 
@@ -65,8 +75,10 @@ namespace ZedZone.SmartCompanions
         {
             var gc = GameController.instance;
             if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter)) return false;
-            if (_activeWindowDragId != 0) return true;
+            position /= EffectiveUiScale;
+            if (_activeWindowDragId != 0 || _scrollDragId != 0) return true;
             if (ShowMainWindow && _mainWinRect.Contains(position)) return true;
+            if (ShowMainWindow) return false; // Background chest controls are hidden by the modal hub.
             if (!ShowMainWindow && CompanionConfigStore.ShowHudBadge &&
                 _currentHudBadgeRect.width > 0f && _currentHudBadgeRect.Contains(position)) return true;
             var panel = LootInventoryPanel.instance;

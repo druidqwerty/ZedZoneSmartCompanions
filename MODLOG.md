@@ -211,3 +211,26 @@
   - **Boosty auto-queue:** `BOOSTY_1.7.0.md` queued via `queue.py add` (superseded pending `BOOSTY_1.6.0.md` entry removed).
   - Evidence recorded in `docs/publication-1.7.0.json`.
 
+
+## 1.8.0 Adaptive UI refresh — in progress (2026-11-11)
+- Goal: owner-requested UI redesign and multi-resolution support; preserve verified 1.7.0 gameplay.
+- Preflight: clean repository, 1.7.0 released; existing IMGUI/font/clipping/input helpers are the adequate solution (no new UI framework/dependency). No existing graphify index; targeted source inspection used.
+- SmartCompanionsUI_Display.cs: added logical viewport, auto/manual 75–200% scale capped to fit, live repositioning, localized display controls.
+- SmartCompanionsUI.cs / Runtime.cs: logical coordinates, 960x660 hub, teal/neutral theme, larger type, physical-pixel input conversion and bounds guards.
+- CompanionModels.cs: backward-compatible UiScale persistence, invalid numeric values sanitized.
+- In parallel: Hub redesign (4 tabs and grouped settings); UiSmoke graphical multi-resolution/language coverage.
+- Next: integrate, build warnings-as-errors, run graphical smoke in isolated fixtures, inspect screenshots, document verification; publish only a verified candidate.
+- Saves/gameplay and existing released Workshop install unchanged so far. Never ship the test plugin.
+- Hub redesign completed: four tabs, full-width grouped settings, measured speech rows, flexible commands/cards. Build passes warnings-as-errors.
+- Review fixes: Auto minimum100% (then screen fit); modal hub hides chest overlay to prevent click-through; closing hub releases active drag/scroll; compact chest labels and RU HUD label.
+- Initial graphical attempt stopped before cases to incorporate review fixes; second uncovered test-only partial-class static initializer ordering (UiSmokeRunner .cctor NRE). Both runners restored original install/config/log files and Screenmanager prefs; GameData8386/8386 unchanged. Harness fix in progress, not a production UI failure.
+- Graphical 720p screenshot inspected: new layout renders correctly, shortened squad-cap label after spotting wrapping. Two synthetic event attempts failed identically because changing GUI.matrix resets the native cached Event mouse to(0,0) even at scale1. Switched test method (native coordinate roundtrip + logical-event handler tests); not a demonstrated production pointer failure. Both attempts restored all originals and8386 save hashes. No release yet.
+- Primary graphical matrix is now running successfully: PID84944, runner session38834, backups/ui180-20261111-200144 (270 cases incl6 resolutions+manual75/200). Observed1280x720,1920x1080,2560x1440,3840x2160,3440x1440 actual backbuffers; native coordinate roundtrip, pointer gates and rendering PASS so far. Synthetic Event injection abandoned (engine noops), not counted as verified drag input.
+- Visual review found container list44px rows and compact chest-bar labels clipping. Source now fixes dynamic measured rows,4-column×3-row chest categories,202px panel height, concise captions and CJK squad cap. IMPORTANT: these source fixes are NOT in current running DLL; rebuild AFTER runner exits/restores, then final verification.
+- Separate real-window PostMessage OS pointer probe being prepared in tools/UiSmoke; no live world loaded. Final release still pending.
+- First matrix COMPLETE270/270; all8386 save files, original install/config/logs and screen prefs restored. Evidence backups/ui180-20261111-200144.
+- Final production rebuild after visual fixes:0warnings/0errors; DLL SHA2560f1aa6c6663f53ac86116cf67b90befa33cd34377e76211a95213bd0f64b9462. Needs final matrix and actual-window input probe before packaging.
+- FINAL ACCEPTANCE:270/270 unique cases verified on DLL0f1aa6c6663f53ac86116cf67b90befa33cd34377e76211a95213bd0f64b9462. Segments244+26 (ui180-20261111-200813 and201617); minimized window paused first run, final coverage has no gaps/duplicates. Eight final screenshots visually reviewed; zero UI fallbacks. Native57patches/SelfVerifyPASS.
+- OS probes ui180-20261111-201703 and201740:1920x1080 at75% andrequested200%(effective161.68%) passed real tab clicks, scrollbar buttons, scaled title drag/release andclose. Background WM_MOUSEWHEEL location was outsideviewport, not counted; optional additionalprobe didnotreachready, safely stopped. No production changes to compensate for injection limits.
+- All runs restored installs/config/logs/screenpreferences and kept8386/8386 GameData hashes unchanged. Temp testplugin removed. Verification scope inertengineUI, not new loadedworld/co-op acceptance.
+- Packaged exactverifiedDLL and inspected screenshots:dist/ZedZoneSmartCompanions-1.8.0.zip4574927bytes SHA256e97121bb4c11ac2f34fcf7d9cf2d3d0883f839c2faac889b2056b8c718587761. Packaging validates embeddedDLL/manifests and excludes harness. Ready for authorized release sync.

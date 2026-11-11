@@ -31,14 +31,10 @@ namespace ZedZone.SmartCompanions
             float y = r.y + 10f;
             float w = r.width - 28f;
 
-            // Title bar (draggable handle)
-            var titleDragRect = new Rect(x, y, w - 310f, 28f);
+            // Keep the title separate from controls; the whole free header is draggable.
+            var titleDragRect = new Rect(x, y, w - 300f, 32f);
             GUI.Label(titleDragRect,
-                CompanionConfigStore.L(lang,
-                    ":: ZED ZONE — УМНЫЕ НАПАРНИКИ И ЛОГИСТИКА БАЗЫ [F8]",
-                    ":: ZED ZONE — SMART COMPANIONS & BASE LOGISTICS [F8]",
-                    ":: ZED ZONE — 智能队友与基地物流中心 [F8]"),
-                _headerStyle);
+                CompanionConfigStore.L(lang, "УМНЫЕ НАПАРНИКИ", "SMART COMPANIONS", "智能队友"), _headerStyle);
             var winPos = new Vector2(_mainWinRect.x, _mainWinRect.y);
             HandleWindowDrag(1, titleDragRect, ref winPos, new Vector2(_mainWinRect.width, _mainWinRect.height), p =>
             {
@@ -48,68 +44,48 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.MainWinPosY = p.y;
             });
 
-            // 4-mode language selector in header bar: Auto | RU | EN | 中文
-            float lx = r.xMax - 306f;
-            if (GUI.Button(new Rect(lx, y, 62f, 26f), " Auto",
-                CompanionConfigStore.LanguageMode == ModLanguage.Auto ? _catOnStyle : _btnStyle))
-                SetLanguageMode(ModLanguage.Auto);
-            if (GUI.Button(new Rect(lx + 65f, y, 50f, 26f), " RU",
-                CompanionConfigStore.LanguageMode == ModLanguage.Russian ? _catOnStyle : _btnStyle))
-                SetLanguageMode(ModLanguage.Russian);
-            if (GUI.Button(new Rect(lx + 118f, y, 50f, 26f), " EN",
-                CompanionConfigStore.LanguageMode == ModLanguage.English ? _catOnStyle : _btnStyle))
-                SetLanguageMode(ModLanguage.English);
-            if (GUI.Button(new Rect(lx + 171f, y, 54f, 26f), " 中文",
-                CompanionConfigStore.LanguageMode == ModLanguage.Chinese ? _catOnStyle : _btnStyle))
-                SetLanguageMode(ModLanguage.Chinese);
-
-            if (GUI.Button(new Rect(r.xMax - 76f, y, 64f, 26f),
-                CompanionConfigStore.L(lang, "Закрыть", "Close", "关闭"), _btnStyle))
+            float lx = r.xMax - 300f;
+            var languages = new[] { ModLanguage.Auto, ModLanguage.Russian, ModLanguage.English, ModLanguage.Chinese };
+            var languageLabels = new[] { "Auto", "RU", "EN", "中文" };
+            for (int i = 0; i < languages.Length; i++)
+                if (GUI.Button(new Rect(lx + i * 53f, y, 49f, 28f), languageLabels[i],
+                    CompanionConfigStore.LanguageMode == languages[i] ? _catOnStyle : _btnStyle))
+                    SetLanguageMode(languages[i]);
+            if (GUI.Button(new Rect(r.xMax - 82f, y, 68f, 28f), "Esc / F8", _btnStyle))
             {
                 ShowMainWindow = false;
                 return;
             }
 
-            y += 34f;
-            // Tabs
-            float tabW = (w - 16f) / 3f;
-            if (GUI.Button(new Rect(x, y, tabW, 30f),
-                CompanionConfigStore.L(lang,
-                    " 1. Напарники и Боевой ИИ",
-                    " 1. Companions & Combat AI",
-                    " 1. 队友与智能战斗 AI"),
-                _activeTab == 0 ? _catOnStyle : _btnStyle))
+            y += 36f;
+            var tabs = new[]
             {
-                _activeTab = 0;
-            }
-            if (GUI.Button(new Rect(x + tabW + 8f, y, tabW, 30f),
-                CompanionConfigStore.L(lang,
-                    " 2. Ящики базы и Сортировка",
-                    " 2. Base Containers & Sorting",
-                    " 2. 基地储物箱与分类整理"),
-                _activeTab == 1 ? _catOnStyle : _btnStyle))
-            {
-                _activeTab = 1;
-                BaseSortingSystem.ScanNearbyContainers(force: true);
-            }
-            if (GUI.Button(new Rect(x + (tabW + 8f) * 2f, y, tabW, 30f),
-                CompanionConfigStore.L(lang,
-                    " 3. Фразы, Реакции и Настройки",
-                    " 3. Chatter, Reactions & Settings",
-                    " 3. 语录、反应与语言设置"),
-                _activeTab == 2 ? _catOnStyle : _btnStyle))
-            {
-                _activeTab = 2;
-            }
-
-            y += 38f;
-            var contentRect = new Rect(x, y, w, r.height - (y - r.y) - 14f);
+                CompanionConfigStore.L(lang, "01  ОТРЯД", "01  SQUAD", "01  队伍"),
+                CompanionConfigStore.L(lang, "02  БАЗА", "02  BASE", "02  基地"),
+                CompanionConfigStore.L(lang, "03  РЕПЛИКИ", "03  CHATTER", "03  对话"),
+                CompanionConfigStore.L(lang, "04  НАСТРОЙКИ", "04  SETTINGS", "04  设置")
+            };
+            float tabW = (w - 24f) / tabs.Length;
+            for (int i = 0; i < tabs.Length; i++)
+                if (GUI.Button(new Rect(x + i * (tabW + 8f), y, tabW, 34f), tabs[i],
+                    _activeTab == i ? _catOnStyle : _btnStyle))
+                {
+                    _activeTab = i;
+                    if (i == 1) BaseSortingSystem.ScanNearbyContainers(force: true);
+                }
+            y += 44f;
+            var contentRect = new Rect(x, y, w, r.height - (y - r.y) - 36f);
+            GUI.Label(new Rect(x, r.yMax - 29f, w, 20f), CompanionConfigStore.L(lang,
+                "F8 / Esc — закрыть   ·   Колесо мыши — прокрутка   ·   Перетащите заголовок, чтобы переместить окно",
+                "F8 / Esc — close   ·   Mouse wheel — scroll   ·   Drag the title to move this window",
+                "F8 / Esc 关闭   ·   鼠标滚轮滚动   ·   拖动标题可移动窗口"), _labelStyle);
 
             try
             {
                 if (_activeTab == 0) DrawTabSquad(contentRect, lang);
                 else if (_activeTab == 1) DrawTabBaseBoxes(contentRect, lang);
-                else DrawTabChatterAndSettings(contentRect, lang);
+                else if (_activeTab == 2) DrawTabChatter(contentRect, lang);
+                else DrawTabSettings(contentRect, lang);
             }
             catch (Exception error)
             {
@@ -128,50 +104,42 @@ namespace ZedZone.SmartCompanions
         {
             var teammates = SmartChatterSystem.GetActiveTeammateAgents();
 
-            // Squad-wide quick command row
-            GUI.Box(new Rect(area.x, area.y, area.width, 42f), GUIContent.none, _boxStyle);
+            // One calm summary row, followed by evenly sized direct orders.
+            GUI.Box(new Rect(area.x, area.y, area.width, 80f), GUIContent.none, _boxStyle);
             float bx = area.x + 8f;
-            float by = area.y + 8f;
-            string limitStr = CompanionConfigStore.FormatMaxTeamSizeLabel(lang);
-            if (GUI.Button(new Rect(bx, by, 162f, 26f),
-                CompanionConfigStore.L(lang,
-                    $"Отряд: {teammates.Count} | Лимит: {limitStr}",
-                    $"Squad: {teammates.Count} | Cap: {limitStr}",
-                    $"在队:{teammates.Count} | 上限:{limitStr}"), _btnStyle))
-            {
+            float by = area.y + 6f;
+            string limitStr = CompanionConfigStore.MaxTeamSize <= 0
+                ? CompanionConfigStore.L(lang, "Авто (3/AVO)", "Auto (3/AVO)", "自动 (3/AVO)")
+                : CompanionConfigStore.MaxTeamSize.ToString();
+            GUI.Label(new Rect(bx + 8f, by, area.width - 265f, 28f), CompanionConfigStore.L(lang,
+                $"Напарников рядом: {teammates.Count}", $"Companions nearby: {teammates.Count}", $"附近队友：{teammates.Count}"), _subHeaderStyle);
+            if (GUI.Button(new Rect(area.xMax - 232f, by, 224f, 28f), CompanionConfigStore.L(lang,
+                $"Лимит: {limitStr}", $"Squad cap: {limitStr}", $"队伍上限：{limitStr}"), _btnStyle))
                 CompanionConfigStore.CycleMaxTeamSize();
-            }
-
-            if (GUI.Button(new Rect(bx + 166f, by, 108f, 26f),
-                CompanionConfigStore.L(lang, " Сорт. [F7]", " Sort [F7]", " 整理 [F7]"), _catOnStyle))
+            by += 34f;
+            float actionW = (area.width - 16f - 5f * 6f) / 6f;
+            if (GUI.Button(new Rect(bx, by, actionW, 30f),
+                CompanionConfigStore.L(lang, "Сортировать [F7]", "Sort Base [F7]", "整理基地 [F7]"), _catOnStyle))
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
-
-            if (GUI.Button(new Rect(bx + 278f, by, 114f, 26f),
-                CompanionConfigStore.L(lang, " Багажник", " Unload Car", " 卸后备箱"), _btnStyle))
+            if (GUI.Button(new Rect(bx + (actionW + 6f), by, actionW, 30f),
+                CompanionConfigStore.L(lang, "Багажник", "Unload Car", "卸后备箱"), _btnStyle))
                 BaseChoreSystem.CommandUnloadVehiclesToBase(null, silentIfEmpty: false);
-
-            if (GUI.Button(new Rect(bx + 396f, by, 112f, 26f),
-                CompanionConfigStore.L(lang, " Собрать лут", " Sweep Loot", " 搜刮物资"), _btnStyle))
+            if (GUI.Button(new Rect(bx + (actionW + 6f) * 2f, by, actionW, 30f),
+                CompanionConfigStore.L(lang, "Собрать лут", "Sweep Loot", "搜刮物资"), _btnStyle))
                 AutoLootSystem.CommandSweepNearbyLoot(null, 24f);
-
             string rationKey = CompanionConfigStore.ShouldUseAltForRationHotkey() ? "Alt+F6" : "F6";
-            if (GUI.Button(new Rect(bx + 512f, by, 118f, 26f),
-                CompanionConfigStore.L(lang, $" Паёк [{rationKey}]", $" Ration [{rationKey}]", $" 分口粮 [{rationKey}]"), _catOnStyle))
+            if (GUI.Button(new Rect(bx + (actionW + 6f) * 3f, by, actionW, 30f),
+                CompanionConfigStore.L(lang, $"Паёк [{rationKey}]", $"Ration [{rationKey}]", $"分口粮 [{rationKey}]"), _btnStyle))
                 SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
-
-            if (GUI.Button(new Rect(bx + 634f, by, 114f, 26f),
-                CompanionConfigStore.L(lang, " Штурм [F9]", " Rally [F9]", " 战吼 [F9]"), _catOnStyle))
+            if (GUI.Button(new Rect(bx + (actionW + 6f) * 4f, by, actionW, 30f),
+                CompanionConfigStore.L(lang, "Штурм [F9]", "Rally [F9]", "战吼 [F9]"), _btnStyle))
                 SmartCombatAI.CommandSquadBattleCry(null);
+            if (GUI.Button(new Rect(bx + (actionW + 6f) * 5f, by, actionW, 30f),
+                CompanionConfigStore.L(lang, "Первая помощь", "First Aid", "急救"), _btnStyle) && teammates.Count > 0)
+                CustomNpcCommands.ExecuteCustomCommand(teammates[0].npcData, CustomNpcCommands.EmergencyAid);
 
-            if (GUI.Button(new Rect(bx + 752f, by, 90f, 26f),
-                CompanionConfigStore.L(lang, " Аптечка", " Aid", " 急救"), _btnStyle))
-            {
-                if (teammates.Count > 0)
-                    CustomNpcCommands.ExecuteCustomCommand(teammates[0].npcData, CustomNpcCommands.EmergencyAid);
-            }
-
-            float listY = area.y + 50f;
-            float listH = area.height - 50f;
+            float listY = area.y + 90f;
+            float listH = area.height - 90f;
 
             if (teammates.Count == 0)
             {
@@ -185,7 +153,7 @@ namespace ZedZone.SmartCompanions
                 return;
             }
 
-            float cardH = 128f;
+            float cardH = 164f;
             var viewRect = new Rect(0, 0, area.width - 20f, teammates.Count * (cardH + 8f));
             BeginScrollArea(new Rect(area.x, listY, area.width, listH), ref _scrollSquad, viewRect, 1);
             try
@@ -230,22 +198,19 @@ namespace ZedZone.SmartCompanions
                         : $" [{ownerLabel}]";
                 }
 
-                GUI.Label(new Rect(cx, cy, 415f, 22f),
-                    $"* {name}{ownerBadge} [{rankTitle} · {st.ExperiencePoints}/{nextXp} XP]  |  HP: {hp:F0}/{maxHp:F0}  |   {wepName}",
-                    _subHeaderStyle);
-
-                if (GUI.Button(new Rect(cx + 420f, cy, 170f, 22f), archTitle, _btnStyle))
+                float innerW = viewRect.width - 20f;
+                GUI.Label(new Rect(cx, cy, innerW - 190f, 24f),
+                    $"{name}{ownerBadge}  ·  {rankTitle}  ·  {st.ExperiencePoints}/{nextXp} XP", _subHeaderStyle);
+                if (GUI.Button(new Rect(cx + innerW - 180f, cy, 180f, 24f), archTitle, _btnStyle))
                 {
                     st.Archetype = (CompanionArchetype)(((int)st.Archetype + 1) % 6);
                     CompanionConfigStore.Save();
                 }
-
-                GUI.Label(new Rect(cx + 596f, cy, viewRect.width - 604f, 22f),
-                    CompanionConfigStore.L(lang,
-                        $"{st.CurrentTaskText} | K:{st.KillsThisSession} S:{st.SortedItemsThisSession} C:{st.ChoresDoneThisSession}",
-                        $"{st.CurrentTaskText} | K:{st.KillsThisSession} S:{st.SortedItemsThisSession} C:{st.ChoresDoneThisSession}",
-                        $"{st.CurrentTaskText} | K:{st.KillsThisSession} S:{st.SortedItemsThisSession} C:{st.ChoresDoneThisSession}"),
-                    _labelStyle);
+                cy += 26f;
+                GUI.Label(new Rect(cx, cy, innerW * 0.53f, 28f),
+                    $"HP {hp:F0}/{maxHp:F0}  ·  {wepName}", _labelStyle);
+                GUI.Label(new Rect(cx + innerW * 0.54f, cy, innerW * 0.46f, 28f),
+                    $"{st.CurrentTaskText}  |  K:{st.KillsThisSession} S:{st.SortedItemsThisSession} C:{st.ChoresDoneThisSession}", _labelStyle);
 
                 // Row 2: Doctrines
                 cy += 26f;
@@ -297,16 +262,17 @@ namespace ZedZone.SmartCompanions
 
                 // Row 4: Direct Companion Orders
                 cy += 30f;
-                if (GUI.Button(new Rect(cx, cy, 195f, 24f), CompanionConfigStore.L(lang, " Сортировать базу", " Sort Base Chests", " 整理基地储物箱"), _btnStyle))
+                float orderW = (innerW - 18f) / 4f;
+                if (GUI.Button(new Rect(cx, cy, orderW, 28f), CompanionConfigStore.L(lang, " Сортировать базу", " Sort Base Chests", " 整理基地储物箱"), _btnStyle))
                     BaseSortingSystem.CommandSortBase(ag, null, instant: false);
 
-                if (GUI.Button(new Rect(cx + 202f, cy, 195f, 24f), CompanionConfigStore.L(lang, " Разгрузить багажник", " Unload Car Trunk", " 卸载汽车后备箱"), _btnStyle))
+                if (GUI.Button(new Rect(cx + orderW + 6f, cy, orderW, 28f), CompanionConfigStore.L(lang, " Разгрузить багажник", " Unload Car Trunk", " 卸载汽车后备箱"), _btnStyle))
                     BaseChoreSystem.CommandUnloadVehiclesToBase(ag, silentIfEmpty: false);
 
-                if (GUI.Button(new Rect(cx + 404f, cy, 195f, 24f), CompanionConfigStore.L(lang, " Байка у костра", " Campfire Story", " 篝火旁闲聊"), _btnStyle))
+                if (GUI.Button(new Rect(cx + (orderW + 6f) * 2f, cy, orderW, 28f), CompanionConfigStore.L(lang, " Байка у костра", " Campfire Story", " 篝火旁闲聊"), _btnStyle))
                     SmartChatterSystem.Speak(ag, ChatterTopic.CampfireStory, minCooldown: 0.1f, bubbleDuration: 6.5f, force: true);
 
-                if (GUI.Button(new Rect(cx + 606f, cy, 195f, 24f), CompanionConfigStore.L(lang, " Боевой клич [F9]", " Battle Cry [F9]", " 战吼突击 [F9]"), _btnStyle))
+                if (GUI.Button(new Rect(cx + (orderW + 6f) * 3f, cy, orderW, 28f), CompanionConfigStore.L(lang, " Боевой клич [F9]", " Battle Cry [F9]", " 战吼突击 [F9]"), _btnStyle))
                     SmartCombatAI.CommandSquadBattleCry(ag);
                 }
                 catch (Exception error)
@@ -354,50 +320,76 @@ namespace ZedZone.SmartCompanions
             var containers = BaseSortingSystem.GetFilteredContainersForUI(forceScan: false);
 
             // Top action bar
-            GUI.Box(new Rect(area.x, area.y, area.width, 42f), GUIContent.none, _boxStyle);
+            GUI.Box(new Rect(area.x, area.y, area.width, 46f), GUIContent.none, _boxStyle);
             float bx = area.x + 8f;
             float by = area.y + 8f;
+            float commandW = (area.width - 34f) / 4f;
 
             string filterLabel = BaseSortingSystem.ContainerListFilterMode switch
             {
                 1 => CompanionConfigStore.L(lang, "Фильтр: Рядом (≤7м)", "Filter: Nearby (≤7m)", "筛选：附近（≤7米）"),
                 2 => CompanionConfigStore.L(lang, "Фильтр: Все вокруг (18м)", "Filter: All (18m)", "筛选：全部（18米）"),
-                _ => CompanionConfigStore.L(lang, "Фильтр: Мои + у ног (≤2м)", "Filter: Mine + Close (≤2m)", "筛选：已标记 + 脚边")
+                _ => CompanionConfigStore.L(lang, "Мои + у ног (≤2м)", "Mine + Close (≤2m)", "筛选：已标记 + 脚边")
             };
-            if (GUI.Button(new Rect(bx, by, 185f, 26f), filterLabel, BaseSortingSystem.ContainerListFilterMode == 0 ? _catOnStyle : _btnStyle))
+            if (GUI.Button(new Rect(bx, by, commandW, 30f), filterLabel, BaseSortingSystem.ContainerListFilterMode == 0 ? _catOnStyle : _btnStyle))
             {
                 BaseSortingSystem.ContainerListFilterMode = (BaseSortingSystem.ContainerListFilterMode + 1) % 3;
                 containers = BaseSortingSystem.GetFilteredContainersForUI(forceScan: true);
             }
 
-            if (GUI.Button(new Rect(bx + 190f, by, 215f, 26f),
+            if (GUI.Button(new Rect(bx + commandW + 6f, by, commandW, 30f),
                 CompanionConfigStore.L(lang, "Авто-разметка рядом (≤8м)", "Auto-Detect Near (≤8m)", "自动识别身边箱子（≤8米）"), _btnStyle))
             {
                 BaseSortingSystem.AutoDetectCategoriesFromContents();
                 containers = BaseSortingSystem.GetFilteredContainersForUI(forceScan: true);
             }
 
-            if (GUI.Button(new Rect(bx + 410f, by, 230f, 26f),
-                CompanionConfigStore.L(lang, "Приказ NPC: Сортировать [F7]", "Order NPCs: Sort Base [F7]", "命令队友：整理仓库 [F7]"), _catOnStyle))
+            if (GUI.Button(new Rect(bx + (commandW + 6f) * 2f, by, commandW, 30f),
+                CompanionConfigStore.L(lang, "Сортировать базу [F7]", "Sort Base [F7]", "命令队友：整理仓库 [F7]"), _catOnStyle))
             {
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
             }
 
-            if (GUI.Button(new Rect(bx + 645f, by, 195f, 26f),
+            if (GUI.Button(new Rect(bx + (commandW + 6f) * 3f, by, commandW, 30f),
                 CompanionConfigStore.L(lang, "Собрать лут вокруг", "Sweep Nearby Loot", "搜刮周围物资"), _btnStyle))
             {
                 AutoLootSystem.CommandSweepNearbyLoot(null, 24f);
             }
 
-            float bodyY = area.y + 48f;
-            float bodyH = area.height - 48f;
+            float bodyY = area.y + 54f;
+            float bodyH = area.height - 54f;
 
             // Left column: container list; Right column: selected container's category editor
-            float leftW = 360f;
+            float leftW = area.width * 0.38f;
             float rightW = area.width - leftW - 10f;
 
             GUI.Box(new Rect(area.x, bodyY, leftW, bodyH), GUIContent.none, _boxStyle);
-            var viewRect = new Rect(0, 0, leftW - 20f, Mathf.Max(bodyH - 10f, containers.Count * 48f));
+            // Reserve the scrollbar gutter before measuring text, so adding a scrollbar
+            // cannot change wrapping and invalidate the row heights in this GUI pass.
+            float rowWidth = leftW - 36f;
+            var rowLabels = new string[containers.Count];
+            var rowOffsets = new float[containers.Count];
+            var rowHeights = new float[containers.Count];
+            float totalRowHeight = 0f;
+            for (int i = 0; i < containers.Count; i++)
+            {
+                var c = containers[i];
+                if (c == null || c.Rule == null) continue;
+                string markPrefix = c.Rule.IsMarkedByPlayer ? "[*] " : "";
+                string summary = c.Rule.IsMarkedByPlayer
+                    ? ItemCategorizer.FormatCategoriesSummary(c.Rule.Categories, c.Rule.IsDropoffSource, lang)
+                    : CompanionConfigStore.L(lang, "Не отмечен (игнорируется)", "Not marked (ignored)", "未标记（不参与整理）");
+                string unit = CompanionConfigStore.L(lang, "шт.", "items", "件");
+                string mUnit = CompanionConfigStore.L(lang, "м", "m", "米");
+                string coordTag = $"[{Mathf.RoundToInt(c.WorldPos.x)},{Mathf.RoundToInt(c.WorldPos.y)}]";
+                string btnText = $"{markPrefix}{c.DisplayName} {coordTag} ({c.DistanceToPlayer:F1}{mUnit} | {c.ItemCount} {unit})\n{summary}";
+
+                rowLabels[i] = btnText;
+                rowOffsets[i] = totalRowHeight;
+                rowHeights[i] = Mathf.Max(48f, _btnStyle.CalcHeight(new GUIContent(btnText), rowWidth) + 8f);
+                totalRowHeight += rowHeights[i] + 6f;
+            }
+            var viewRect = new Rect(0f, 0f, leftW - 28f, Mathf.Max(bodyH - 10f, totalRowHeight));
             DiscoveredContainer selectedContainer = null;
             BeginScrollArea(new Rect(area.x + 4f, bodyY + 4f, leftW - 8f, bodyH - 8f), ref _scrollBoxes, viewRect, 2);
             try
@@ -436,16 +428,8 @@ namespace ZedZone.SmartCompanions
                     selectedContainer = c;
 
                 bool isSel = c.ContainerId == _selectedBoxIdInHub;
-                string markPrefix = c.Rule.IsMarkedByPlayer ? "[*] " : "";
-                string summary = c.Rule.IsMarkedByPlayer
-                    ? ItemCategorizer.FormatCategoriesSummary(c.Rule.Categories, c.Rule.IsDropoffSource, lang)
-                    : CompanionConfigStore.L(lang, "Не отмечен (игнорируется)", "Not marked (ignored)", "未标记（不参与整理）");
-                string unit = CompanionConfigStore.L(lang, "шт.", "items", "件");
-                string mUnit = CompanionConfigStore.L(lang, "м", "m", "米");
-                string coordTag = $"[{Mathf.RoundToInt(c.WorldPos.x)},{Mathf.RoundToInt(c.WorldPos.y)}]";
-                string btnText = $"{markPrefix}{c.DisplayName} {coordTag} ({c.DistanceToPlayer:F1}{mUnit} | {c.ItemCount} {unit})\n{summary}";
 
-                if (GUI.Button(new Rect(4f, i * 48f, viewRect.width - 8f, 44f), btnText, isSel ? _catOnStyle : _btnStyle))
+                if (GUI.Button(new Rect(4f, rowOffsets[i], rowWidth, rowHeights[i]), rowLabels[i], isSel ? _catOnStyle : _btnStyle))
                 {
                     _selectedBoxIdInHub = c.ContainerId;
                     selectedContainer = c;
@@ -465,20 +449,20 @@ namespace ZedZone.SmartCompanions
                 float ry = rightRect.y + 8f;
                 float rw = rightRect.width - 24f;
 
-                GUI.Label(new Rect(rx, ry, rw, 22f),
+                GUI.Label(new Rect(rx, ry, rw, 46f),
                     CompanionConfigStore.L(lang,
                         $"Ящик: {selectedContainer.DisplayName} (предметов: {selectedContainer.ItemCount} | {selectedContainer.DistanceToPlayer:F1}м)",
                         $"Chest: {selectedContainer.DisplayName} (items: {selectedContainer.ItemCount} | {selectedContainer.DistanceToPlayer:F1}m)",
                         $"储物箱：{selectedContainer.DisplayName}（物品：{selectedContainer.ItemCount} | {selectedContainer.DistanceToPlayer:F1}米）"),
-                    _headerStyle);
+                    _labelStyle);
 
-                ry += 26f;
+                ry += 50f;
                 string markText = (rule.IsMarkedByPlayer ? "[x] " : "[ ] ") +
                     CompanionConfigStore.L(lang,
-                        "Отмечен как ящик моей базы (Участвует в сортировке)",
+                        "Ящик базы — участвует в сортировке",
                         "Marked as Base Chest (Included in sorting)",
                         "标记为我的基地储物箱（参与自动分拣）");
-                if (GUI.Button(new Rect(rx, ry, rw, 26f), markText, rule.IsMarkedByPlayer ? _catOnStyle : _catOffStyle))
+                if (GUI.Button(new Rect(rx, ry, rw, 30f), markText, rule.IsMarkedByPlayer ? _catOnStyle : _catOffStyle))
                 {
                     rule.IsMarkedByPlayer = !rule.IsMarkedByPlayer;
                     if (!rule.IsMarkedByPlayer)
@@ -490,13 +474,13 @@ namespace ZedZone.SmartCompanions
                     CompanionConfigStore.Save();
                 }
 
-                ry += 30f;
+                ry += 36f;
                 string dropText = (rule.IsDropoffSource ? "[x] " : "[ ] ") +
                     CompanionConfigStore.L(lang,
-                        "Ящик-приёмник (NPC забирают хабар ОТСЮДА и разносят по базе)",
-                        "Drop-off Chest (NPCs take items FROM here to sort)",
+                        "Приёмник — NPC разносят вещи ОТСЮДА",
+                        "Drop-off source — NPCs carry items FROM here",
                         "收货中转箱（队友会从此处取出战利品并分拣到各个分类箱）");
-                if (GUI.Button(new Rect(rx, ry, rw, 26f), dropText, rule.IsDropoffSource ? _catOnStyle : _catOffStyle))
+                if (GUI.Button(new Rect(rx, ry, rw, 30f), dropText, rule.IsDropoffSource ? _catOnStyle : _catOffStyle))
                 {
                     rule.IsDropoffSource = !rule.IsDropoffSource;
                     rule.IsMarkedByPlayer = rule.IsDropoffSource || rule.Categories != StorageCategory.None;
@@ -504,11 +488,11 @@ namespace ZedZone.SmartCompanions
                     CompanionConfigStore.Save();
                 }
 
-                ry += 30f;
-                if (GUI.Button(new Rect(rx, ry, rw * 0.48f, 24f),
+                ry += 36f;
+                if (GUI.Button(new Rect(rx, ry, rw * 0.48f, 30f),
                     CompanionConfigStore.L(lang,
-                        $"Приоритет укладки: *{rule.Priority} (сменить)",
-                        $"Fill Priority: *{rule.Priority} (cycle)",
+                        $"Приоритет: {rule.Priority} (сменить)",
+                        $"Priority: {rule.Priority} (cycle)",
                         $"存放优先级：*{rule.Priority}（点击切换）"), _btnStyle))
                 {
                     rule.Priority = (rule.Priority % 5) + 1;
@@ -516,7 +500,7 @@ namespace ZedZone.SmartCompanions
                     MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
-                if (GUI.Button(new Rect(rx + rw * 0.50f, ry, rw * 0.50f, 24f),
+                if (GUI.Button(new Rect(rx + rw * 0.50f, ry, rw * 0.50f, 30f),
                     (rule.AutoCompact ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Авто-уплотнение сетки", "Auto-Compact Grid", "整理后自动紧凑排列"),
                     rule.AutoCompact ? _catOnStyle : _catOffStyle))
                 {
@@ -525,11 +509,11 @@ namespace ZedZone.SmartCompanions
                     CompanionConfigStore.Save();
                 }
 
-                ry += 28f;
+                ry += 36f;
                 GUI.Label(new Rect(rx, ry, rw, 20f),
                     CompanionConfigStore.L(lang,
-                        "Отметьте категории предметов (выбор категории автоматически отмечает ящик):",
-                        "Select item categories (selecting a category automatically marks this chest):",
+                        "Категории хранения (отмечают ящик автоматически):",
+                        "Storage categories (automatically mark this chest):",
                         "勾选存入此储物箱的物品分类（勾选后自动标记为基地箱子）："),
                     _subHeaderStyle);
 
@@ -537,7 +521,7 @@ namespace ZedZone.SmartCompanions
                 var cats = ItemCategorizer.AllCategories;
                 int cols = 2;
                 float cellW = (rw - 8f) / cols;
-                float cellH = 26f;
+                float cellH = 30f;
                 for (int i = 0; i < cats.Length; i++)
                 {
                     var cat = cats[i];
@@ -545,7 +529,7 @@ namespace ZedZone.SmartCompanions
                     int cIdx = i % cols;
                     bool on = (rule.Categories & cat) != 0;
                     string label = (on ? "[x] " : "[ ] ") + ItemCategorizer.GetCategoryName(cat, lang);
-                    if (GUI.Button(new Rect(rx + cIdx * (cellW + 8f), ry + rIdx * 29f, cellW, cellH), label, on ? _catOnStyle : _catOffStyle))
+                    if (GUI.Button(new Rect(rx + cIdx * (cellW + 8f), ry + rIdx * 34f, cellW, cellH), label, on ? _catOnStyle : _catOffStyle))
                     {
                         if (on) rule.Categories &= ~cat;
                         else rule.Categories |= cat;
@@ -555,16 +539,16 @@ namespace ZedZone.SmartCompanions
                     }
                 }
 
-                ry += 6 * 29f + 6f;
+                ry += ((cats.Length + cols - 1) / cols) * 34f + 6f;
                 float pw = (rw - 12f) / 3f;
-                if (GUI.Button(new Rect(rx, ry, pw, 25f), CompanionConfigStore.L(lang, "Выбрать все", "Select All", "全选分类"), _btnStyle))
+                if (GUI.Button(new Rect(rx, ry, pw, 30f), CompanionConfigStore.L(lang, "Выбрать все", "Select All", "全选分类"), _btnStyle))
                 {
                     rule.Categories = StorageCategory.All;
                     rule.IsMarkedByPlayer = true;
                     MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
-                if (GUI.Button(new Rect(rx + pw + 6f, ry, pw, 25f), CompanionConfigStore.L(lang, "Убрать из базы", "Unmark / Clear", "取消标记/清空"), _btnStyle))
+                if (GUI.Button(new Rect(rx + pw + 6f, ry, pw, 30f), CompanionConfigStore.L(lang, "Убрать из базы", "Unmark / Clear", "取消标记/清空"), _btnStyle))
                 {
                     rule.Categories = StorageCategory.None;
                     rule.IsDropoffSource = false;
@@ -572,80 +556,34 @@ namespace ZedZone.SmartCompanions
                     MultiplayerSyncSystem.SyncBoxRuleChange(rule, selectedContainer.TerrainObj);
                     CompanionConfigStore.Save();
                 }
-                if (GUI.Button(new Rect(rx + (pw + 6f) * 2f, ry, pw, 25f),
-                    CompanionConfigStore.L(lang, "Разобрать этот ящик", "Sort From This Box", "整理此箱物品"), _catOnStyle))
+                if (GUI.Button(new Rect(rx + (pw + 6f) * 2f, ry, pw, 30f),
+                    CompanionConfigStore.L(lang, "Сортировать", "Sort This Box", "整理此箱物品"), _catOnStyle))
                 {
                     BaseSortingSystem.CommandSortBase(null, selectedContainer.Inventory, instant: false);
                 }
             }
         }
 
-        private static void DrawTabChatterAndSettings(Rect area, ModLanguage lang)
-        {
-            float leftW = 420f;
-            float rightW = area.width - leftW - 10f;
+        private static float _settingsContentHeight = 1100f;
 
-            GUI.Box(new Rect(area.x, area.y, leftW, area.height), GUIContent.none, _boxStyle);
-            BeginScrollArea(new Rect(area.x + 2f, area.y + 2f, leftW - 4f, area.height - 4f),
-                ref _scrollSettings, new Rect(0f, 0f, leftW - 24f, 640f), 4);
+        private static float DrawSettingsHeading(float x, float y, float width, string title)
+        {
+            GUI.Box(new Rect(x, y, width, 30f), GUIContent.none, _boxStyle);
+            GUI.Label(new Rect(x + 8f, y, width - 16f, 30f), title, _subHeaderStyle);
+            return y + 38f;
+        }
+
+        private static void DrawTabSettings(Rect area, ModLanguage lang)
+        {
+            BeginScrollArea(area, ref _scrollSettings, new Rect(0f, 0f, area.width - 22f, _settingsContentHeight), 4);
             try
             {
-            float lx = 8f;
-            float ly = 8f;
-            float lw = leftW - 40f;
-
-            // Language selector row (4 modes: Auto, RU, EN, ZH)
-            GUI.Label(new Rect(lx, ly, lw, 20f),
-                CompanionConfigStore.L(lang,
-                    " Язык мода (Автоопределение или выбор):",
-                    " Mod Language (Auto-detect or manual):",
-                    " 模组语言（自动识别或手动选择）："), _subHeaderStyle);
-            ly += 22f;
-            float langBtnW = (lw - 12f) / 4f;
-            if (GUI.Button(new Rect(lx, ly, langBtnW, 24f),
-                CompanionConfigStore.L(lang, " Авто", " Auto", " 自动"),
-                CompanionConfigStore.LanguageMode == ModLanguage.Auto ? _catOnStyle : _catOffStyle))
-                SetLanguageMode(ModLanguage.Auto);
-            if (GUI.Button(new Rect(lx + langBtnW + 4f, ly, langBtnW, 24f), " Русский",
-                CompanionConfigStore.LanguageMode == ModLanguage.Russian ? _catOnStyle : _catOffStyle))
-                SetLanguageMode(ModLanguage.Russian);
-            if (GUI.Button(new Rect(lx + (langBtnW + 4f) * 2f, ly, langBtnW, 24f), " English",
-                CompanionConfigStore.LanguageMode == ModLanguage.English ? _catOnStyle : _catOffStyle))
-                SetLanguageMode(ModLanguage.English);
-            if (GUI.Button(new Rect(lx + (langBtnW + 4f) * 3f, ly, langBtnW, 24f), " 简体中文",
-                CompanionConfigStore.LanguageMode == ModLanguage.Chinese ? _catOnStyle : _catOffStyle))
-                SetLanguageMode(ModLanguage.Chinese);
-            ly += 27f;
-
-            GUI.Label(new Rect(lx, ly, lw, 20f),
-                CompanionConfigStore.L(lang, " Режим лексики и характера NPC:", " NPC Profanity & Attitude Mode:", " 队友台词风格与脏话模式："), _subHeaderStyle);
-            ly += 22f;
-
-            float mw = (lw - 10f) / 3f;
-            if (GUI.Button(new Rect(lx, ly, mw, 24f),
-                CompanionConfigStore.L(lang, " Мат 18+ (Быдло)", " Hardcore 18+", " 末日粗口 18+"),
-                CompanionConfigStore.Profanity == ProfanityMode.HardcoreRude ? _catOnStyle : _catOffStyle))
-            {
-                CompanionConfigStore.Profanity = ProfanityMode.HardcoreRude;
-                CompanionConfigStore.Save();
-            }
-            if (GUI.Button(new Rect(lx + mw + 5f, ly, mw, 24f),
-                CompanionConfigStore.L(lang, " Смешанный", " Mixed", " 混合模式"),
-                CompanionConfigStore.Profanity == ProfanityMode.Mixed ? _catOnStyle : _catOffStyle))
-            {
-                CompanionConfigStore.Profanity = ProfanityMode.Mixed;
-                CompanionConfigStore.Save();
-            }
-            if (GUI.Button(new Rect(lx + (mw + 5f) * 2f, ly, mw, 24f),
-                CompanionConfigStore.L(lang, " Без мата", " Clean", " 纯净无脏话"),
-                CompanionConfigStore.Profanity == ProfanityMode.Clean ? _catOnStyle : _catOffStyle))
-            {
-                CompanionConfigStore.Profanity = ProfanityMode.Clean;
-                CompanionConfigStore.Save();
-            }
-            ly += 27f;
-
-            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+            float lx = 4f;
+            float ly = 4f;
+            float lw = area.width - 30f;
+            ly = DrawDisplaySettings(lx, ly, lw, lang);
+            ly = DrawSettingsHeading(lx, ly, lw, CompanionConfigStore.L(lang, "Бой и тактика", "Combat & tactics", "战斗与战术"));
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 (CompanionConfigStore.EnableSmartCombat ? "[x] " : "[ ] ") +
                 CompanionConfigStore.L(lang, "Умный боевой ИИ, радар тыла и авто-клин", "Smart Combat AI, Flank Radar & Auto-Unjam", "智能战斗 AI、背后偷袭雷达与自动排障"),
                 CompanionConfigStore.EnableSmartCombat ? _catOnStyle : _catOffStyle))
@@ -653,9 +591,9 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.EnableSmartCombat = !CompanionConfigStore.EnableSmartCombat;
                 CompanionConfigStore.Save();
             }
-            ly += 26f;
+            ly += 36f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 (CompanionConfigStore.EnableKiting ? "[x] " : "[ ] ") +
                 CompanionConfigStore.L(lang, "Тактический кайтинг (отход при стрельбе вблизи)", "Tactical Kiting (Backpedal while firing)", "战术风筝走位（近身边退边打）"),
                 CompanionConfigStore.EnableKiting ? _catOnStyle : _catOffStyle))
@@ -663,9 +601,9 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.EnableKiting = !CompanionConfigStore.EnableKiting;
                 CompanionConfigStore.Save();
             }
-            ly += 26f;
+            ly += 36f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 (CompanionConfigStore.EnableAntiFriendlyFire ? "[x] " : "[ ] ") +
                 CompanionConfigStore.L(lang, "Анти-Френдли-Фаер (выход с линии огня игрока)", "Anti-Friendly-Fire (Step out of player aim line)", "防误伤让枪线（自动闪开玩家射界）"),
                 CompanionConfigStore.EnableAntiFriendlyFire ? _catOnStyle : _catOffStyle))
@@ -673,9 +611,10 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.EnableAntiFriendlyFire = !CompanionConfigStore.EnableAntiFriendlyFire;
                 CompanionConfigStore.Save();
             }
-            ly += 26f;
+            ly += 36f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+            ly = DrawSettingsHeading(lx, ly, lw, CompanionConfigStore.L(lang, "Поддержка отряда", "Squad support", "队伍支援"));
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 (CompanionConfigStore.EnableFieldMedic ? "[x] " : "[ ] ") +
                 CompanionConfigStore.L(lang, "Полевой медик и снабженец патронами", "Field Medic & Emergency Ammo Supplier", "战地急救包扎与紧急弹药支援"),
                 CompanionConfigStore.EnableFieldMedic ? _catOnStyle : _catOffStyle))
@@ -684,9 +623,9 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.EnableAmmoShare = CompanionConfigStore.EnableFieldMedic;
                 CompanionConfigStore.Save();
             }
-            ly += 26f;
+            ly += 36f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 (CompanionConfigStore.AutoShareFoodOnEat ? "[x] " : "[ ] ") +
                 CompanionConfigStore.L(lang, "Авто-делёжка пайка при еде (Бафф «Сытый и злой»)", "Auto-Share Food When Eating ('Fed & Fierce' Buff)", "进食自动分口粮（触发「饱腹狂暴」增益）"),
                 CompanionConfigStore.AutoShareFoodOnEat ? _catOnStyle : _catOffStyle))
@@ -694,9 +633,10 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.AutoShareFoodOnEat = !CompanionConfigStore.AutoShareFoodOnEat;
                 CompanionConfigStore.Save();
             }
-            ly += 26f;
+            ly += 36f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+            ly = DrawSettingsHeading(lx, ly, lw, CompanionConfigStore.L(lang, "База и походный быт", "Base & camp life", "基地与营地生活"));
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 (CompanionConfigStore.EnableBaseAutoDropoff ? "[x] " : "[ ] ") +
                 CompanionConfigStore.L(lang, "Авто-выгрузка хабара на базе и реплики мира", "Base Auto-Dropoff & World NPC Chatter", "回基地自动卸货与野生 NPC 路人台词"),
                 CompanionConfigStore.EnableBaseAutoDropoff ? _catOnStyle : _catOffStyle))
@@ -705,9 +645,9 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.EnableWorldNpcChatter = CompanionConfigStore.EnableBaseAutoDropoff;
                 CompanionConfigStore.Save();
             }
-            ly += 26f;
+            ly += 36f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 (CompanionConfigStore.EnableBaseChores ? "[x] " : "[ ] ") +
                 CompanionConfigStore.L(lang, "Живой лагерь (костёр, огород, чистка оружия, багажник)", "Camp Chores (Campfire, Crops, Gear Repair & Trunk)", "营地内务（篝火取暖、种菜浇水、擦枪修甲与卸车）"),
                 CompanionConfigStore.EnableBaseChores ? _catOnStyle : _catOffStyle))
@@ -715,9 +655,9 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.EnableBaseChores = !CompanionConfigStore.EnableBaseChores;
                 CompanionConfigStore.Save();
             }
-            ly += 25f;
+            ly += 36f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 (CompanionConfigStore.EnableSmartFlashlight ? "[x] " : "[ ] ") +
                 CompanionConfigStore.L(lang, "Умный фонарь (вкл. ночью / гашение в стелсе) и Реанимация", "Smart Flashlight (Night/Stealth) & Emergency Rescue", "智能手电筒（夜间开启/潜行熄灯）与濒死强心抢救"),
                 CompanionConfigStore.EnableSmartFlashlight ? _catOnStyle : _catOffStyle))
@@ -726,20 +666,11 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.EnablePlayerRescue = CompanionConfigStore.EnableSmartFlashlight;
                 CompanionConfigStore.Save();
             }
-            ly += 25f;
+            ly += 36f;
 
-            if (GUI.Button(new Rect(lx, ly, lw, 24f),
-                (CompanionConfigStore.EnableChatter ? "[x] " : "[ ] ") +
-                CompanionConfigStore.L(lang, "Живые комментарии и фразы напарников (60 тем)", "Companion Context Chatter & Reactions (60 Topics)", "开启队友实时情景吐槽与互动气泡（60大主题）"),
-                CompanionConfigStore.EnableChatter ? _catOnStyle : _catOffStyle))
-            {
-                CompanionConfigStore.EnableChatter = !CompanionConfigStore.EnableChatter;
-                CompanionConfigStore.Save();
-            }
-            ly += 25f;
-
+            ly = DrawSettingsHeading(lx, ly, lw, CompanionConfigStore.L(lang, "Отряд и управление", "Squad & controls", "队伍与操作"));
             string capLabel = CompanionConfigStore.FormatMaxTeamSizeLabel(lang);
-            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 CompanionConfigStore.L(lang,
                     $"Лимит напарников в отряде: {capLabel} (нажмите для смены до 15)",
                     $"Max Squad Companions Limit: {capLabel} (click to cycle up to 15)",
@@ -748,10 +679,10 @@ namespace ZedZone.SmartCompanions
             {
                 CompanionConfigStore.CycleMaxTeamSize();
             }
-            ly += 25f;
+            ly += 36f;
 
             bool useAltF6 = CompanionConfigStore.ShouldUseAltForRationHotkey();
-            if (GUI.Button(new Rect(lx, ly, lw, 24f),
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 (useAltF6 ? "[x] " : "[ ] ") +
                 CompanionConfigStore.L(lang,
                     "Хоткей пайка Alt+F6 (совместимость с AVO Expanded на F6)",
@@ -762,10 +693,10 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.RequireAltForRationHotkey = !CompanionConfigStore.RequireAltForRationHotkey;
                 CompanionConfigStore.Save();
             }
-            ly += 25f;
+            ly += 36f;
 
             float uiBtnW = (lw - 6f) * 0.5f;
-            if (GUI.Button(new Rect(lx, ly, uiBtnW, 24f),
+            if (GUI.Button(new Rect(lx, ly, uiBtnW, 30f),
                 (CompanionConfigStore.ShowHudBadge ? "[x] " : "[ ] ") +
                 CompanionConfigStore.L(lang, "Мини-панель на экране", "Show Mini-HUD Bar", "显示顶部快捷栏"),
                 CompanionConfigStore.ShowHudBadge ? _catOnStyle : _catOffStyle))
@@ -774,59 +705,124 @@ namespace ZedZone.SmartCompanions
                 if (CompanionConfigStore.ShowHudBadge) CompanionConfigStore.HudBadgeCollapsed = false;
                 CompanionConfigStore.Save();
             }
-            if (GUI.Button(new Rect(lx + uiBtnW + 6f, ly, uiBtnW, 24f),
+            if (GUI.Button(new Rect(lx + uiBtnW + 6f, ly, uiBtnW, 30f),
                 CompanionConfigStore.L(lang, "Сбросить позиции UI", "Reset UI Positions", "重置所有窗口位置"), _btnStyle))
             {
                 CompanionConfigStore.ResetUiPositions();
             }
-            ly += 25f;
+            ly += 36f;
+
+            _settingsContentHeight = ly + 12f;
+            }
+            finally { EndScrollArea(); }
+        }
+
+        private static void DrawTabChatter(Rect area, ModLanguage lang)
+        {
+            GUI.Box(new Rect(area.x, area.y, area.width, 182f), GUIContent.none, _boxStyle);
+            float lx = area.x + 12f;
+            float ly = area.y + 8f;
+            float lw = area.width - 24f;
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
+                (CompanionConfigStore.EnableChatter ? "[x] " : "[ ] ") +
+                CompanionConfigStore.L(lang, "Живые комментарии и фразы напарников (60 тем)", "Companion Context Chatter & Reactions (60 Topics)", "开启队友实时情景吐槽与互动气泡（60大主题）"),
+                CompanionConfigStore.EnableChatter ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.EnableChatter = !CompanionConfigStore.EnableChatter;
+                CompanionConfigStore.Save();
+            }
+            ly += 34f;
+
+            GUI.Label(new Rect(lx, ly, lw, 20f),
+                CompanionConfigStore.L(lang, " Режим лексики и характера NPC:", " NPC Profanity & Attitude Mode:", " 队友台词风格与脏话模式："), _subHeaderStyle);
+            ly += 22f;
+
+            float mw = (lw - 10f) / 3f;
+            if (GUI.Button(new Rect(lx, ly, mw, 30f),
+                CompanionConfigStore.L(lang, " Мат 18+ (Быдло)", " Hardcore 18+", " 末日粗口 18+"),
+                CompanionConfigStore.Profanity == ProfanityMode.HardcoreRude ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.Profanity = ProfanityMode.HardcoreRude;
+                CompanionConfigStore.Save();
+            }
+            if (GUI.Button(new Rect(lx + mw + 5f, ly, mw, 30f),
+                CompanionConfigStore.L(lang, " Смешанный", " Mixed", " 混合模式"),
+                CompanionConfigStore.Profanity == ProfanityMode.Mixed ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.Profanity = ProfanityMode.Mixed;
+                CompanionConfigStore.Save();
+            }
+            if (GUI.Button(new Rect(lx + (mw + 5f) * 2f, ly, mw, 30f),
+                CompanionConfigStore.L(lang, " Без мата", " Clean", " 纯净无脏话"),
+                CompanionConfigStore.Profanity == ProfanityMode.Clean ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.Profanity = ProfanityMode.Clean;
+                CompanionConfigStore.Save();
+            }
+            ly += 34f;
 
             GUI.Label(new Rect(lx, ly, lw, 20f),
                 CompanionConfigStore.L(lang, " Проверить реплику напарника прямо сейчас:", " Test Companion Speech Now:", " 立即测试队友气泡台词："), _subHeaderStyle);
             ly += 22f;
 
-            float hw = (lw - 6f) * 0.5f;
+            float hw = (lw - 18f) / 4f;
             var player = GameController.instance?.playerCharacter;
             var nearest = Il2CppSafe.IsAliveUnity(player)
                 ? SmartChatterSystem.PickNearestTeammate(player.transform.position, 50f)
                 : null;
-            if (GUI.Button(new Rect(lx, ly, hw, 24f),
+            if (GUI.Button(new Rect(lx, ly, hw, 30f),
                 CompanionConfigStore.L(lang, " Стейк (Наезд/Зависть)", " Steak Envy", " 偷吃牛排吐槽"), _catOnStyle))
                 if (nearest != null) SmartChatterSystem.Speak(nearest, ChatterTopic.PlayerEatSteakMeat, 0.1f, 6.5f, true);
 
-            if (GUI.Button(new Rect(lx + hw + 6f, ly, hw, 24f),
-                CompanionConfigStore.L(lang, " Подогреть братву [F6]", " Share Ration [F6]", " 分享口粮 [F6]"), _catOnStyle))
+            string rationKey = CompanionConfigStore.ShouldUseAltForRationHotkey() ? "Alt+F6" : "F6";
+            if (GUI.Button(new Rect(lx + hw + 6f, ly, hw, 30f),
+                CompanionConfigStore.L(lang, $"Паёк [{rationKey}]", $"Ration [{rationKey}]", $"分享口粮 [{rationKey}]"), _catOnStyle))
                 SmartChatterSystem.CommandShareRationWithSquad(nearest, fromAutoShare: false);
 
-            ly += 26f;
-            if (GUI.Button(new Rect(lx, ly, hw, 24f),
+            if (GUI.Button(new Rect(lx + (hw + 6f) * 2f, ly, hw, 30f),
                 CompanionConfigStore.L(lang, " Орда / Замес (Мат)", " Horde Callout", " 遭遇尸潮喊话"), _btnStyle))
                 if (nearest != null) SmartChatterSystem.Speak(nearest, ChatterTopic.CombatSpotHorde, 0.1f, 5.5f, true);
 
-            if (GUI.Button(new Rect(lx + hw + 6f, ly, hw, 24f),
+            if (GUI.Button(new Rect(lx + (hw + 6f) * 3f, ly, hw, 30f),
                 CompanionConfigStore.L(lang, " Перегруз (Плюшкин)", " Overweight Rant", " 背包超重吐槽"), _btnStyle))
                 if (nearest != null) SmartChatterSystem.Speak(nearest, ChatterTopic.LootOverweight, 0.1f, 5.5f, true);
 
-            }
-            finally { EndScrollArea(); }
-
-            // Right column: Recent Speech Log
-            var rightRect = new Rect(area.x + leftW + 10f, area.y, rightW, area.height);
-            GUI.Box(rightRect, GUIContent.none, _boxStyle);
-            GUI.Label(new Rect(rightRect.x + 10f, rightRect.y + 10f, rightW - 20f, 24f),
-                CompanionConfigStore.L(lang, " Журнал последних реплик напарников:", " Recent Companion Speech Log:", " 最近队友台词记录："), _headerStyle);
 
             var log = SmartChatterSystem.RecentSpeechLog;
-            var logView = new Rect(0, 0, rightW - 28f, Mathf.Max(area.height - 50f, log.Count * 36f));
-            BeginScrollArea(new Rect(rightRect.x + 8f, rightRect.y + 38f, rightW - 16f, area.height - 46f), ref _scrollChatter, logView, 3);
-            try
+            var logArea = new Rect(area.x, area.y + 192f, area.width, area.height - 192f);
+            GUI.Box(logArea, GUIContent.none, _boxStyle);
+            GUI.Label(new Rect(logArea.x + 12f, logArea.y + 6f, logArea.width - 24f, 28f),
+                CompanionConfigStore.L(lang, "ПОСЛЕДНИЕ РЕПЛИКИ", "RECENT SPEECH", "最近的对话"), _subHeaderStyle);
+            if (log.Count == 0)
             {
+                GUI.Label(new Rect(logArea.x + 12f, logArea.y + 42f, logArea.width - 24f, 64f),
+                    CompanionConfigStore.L(lang, "Здесь появятся реплики напарников. Выберите тему выше, чтобы начать разговор.",
+                        "Your companions' recent lines will appear here. Choose a topic above to start a conversation.",
+                        "队友最近说的话会显示在这里。选择上面的主题即可开始对话。"), _labelStyle);
+                return;
+            }
+            float textWidth = logArea.width - 54f;
+            var rowHeights = new float[log.Count];
+            float totalHeight = 0f;
             for (int i = 0; i < log.Count; i++)
             {
-                GUI.Label(new Rect(4f, i * 36f, logView.width - 8f, 34f), log[i], _labelStyle);
+                rowHeights[i] = Mathf.Max(42f, _labelStyle.CalcHeight(new GUIContent(log[i]), textWidth) + 14f);
+                totalHeight += rowHeights[i] + 4f;
             }
+            BeginScrollArea(new Rect(logArea.x + 8f, logArea.y + 38f, logArea.width - 16f, logArea.height - 46f),
+                ref _scrollChatter, new Rect(0f, 0f, logArea.width - 36f, totalHeight), 3);
+            try
+            {
+                float rowY = 0f;
+                for (int i = 0; i < log.Count; i++)
+                {
+                    GUI.Box(new Rect(0f, rowY, textWidth + 14f, rowHeights[i]), GUIContent.none, _winStyle);
+                    GUI.Label(new Rect(7f, rowY + 5f, textWidth, rowHeights[i] - 10f), log[i], _labelStyle);
+                    rowY += rowHeights[i] + 4f;
+                }
             }
             finally { EndScrollArea(); }
+
         }
     }
 }

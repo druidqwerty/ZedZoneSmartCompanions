@@ -1,0 +1,38 @@
+[
+  {
+    "pid": 70916,
+    "transport": "PostMessageW exact-PID window",
+    "checks": [
+      "actual tab switch to settings",
+      "actual scrollbar arrow scrolling (wheel unverified)",
+      "actual scaled title drag and release",
+      "actual close button and released capture"
+    ],
+    "passed": true,
+    "width": 1920,
+    "height": 1080,
+    "effective_scale": 0.75,
+    "wheel_verified": false,
+    "limitations": [
+      "Background WM_MOUSEWHEEL did not change scroll; not verified."
+    ]
+  },
+  {
+    "pid": 83824,
+    "transport": "PostMessageW exact-PID window",
+    "checks": [
+      "actual tab switch to settings",
+      "actual scrollbar arrow scrolling (wheel unverified)",
+      "actual scaled title drag and release",
+      "actual close button and released capture"
+    ],
+    "passed": true,
+    "width": 1920,
+    "height": 1080,
+    "effective_scale": 1.6167665,
+    "wheel_verified": false,
+    "limitations": [
+      "Background WM_MOUSEWHEEL did not change scroll; not verified."
+    ]
+  }
+]

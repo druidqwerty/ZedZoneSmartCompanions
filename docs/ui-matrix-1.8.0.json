@@ -1,0 +1,13 @@
+{
+  "passed_unique_cases": 270,
+  "coverage": "0..269, no gaps or duplicates",
+  "segments": [
+    "ui180-20261111-200813",
+    "ui180-20261111-201617"
+  ],
+  "dll_sha256": "0f1aa6c6663f53ac86116cf67b90befa33cd34377e76211a95213bd0f64b9462",
+  "save_files": 8386,
+  "gamedata_identical": true,
+  "original_files_restored": true,
+  "screen_preferences_restored": true
+}

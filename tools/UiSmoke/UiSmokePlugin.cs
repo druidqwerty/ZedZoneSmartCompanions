@@ -11,6 +11,7 @@ using UnityEngine;
 namespace ZedZone.SmartCompanions.UiSmoke
 {
     [BepInPlugin("zedzone.smartcompanions.uismoke", "Smart Companions UI Smoke", "1.0.0")]
+    [BepInDependency("zedzone.smartcompanions")]
     public sealed class UiSmokePlugin : BasePlugin
     {
         internal static bool Enabled;
@@ -21,30 +22,33 @@ namespace ZedZone.SmartCompanions.UiSmoke
             if (!Enabled) return;
             Logger = Log;
             new Harmony("zedzone.smartcompanions.uismoke").PatchAll(typeof(UiSmokePlugin).Assembly);
-            AddComponent<UiSmokeRunner>();
+            if (Environment.GetCommandLineArgs().Contains("--sc-ui-os-probe")) AddComponent<OsProbeRunner>();
+            else AddComponent<UiSmokeRunner>();
             Log.LogInfo("[UiSmoke] Enabled. Main-menu fixtures only; no save is loaded or written.");
         }
     }
 
-    public sealed class UiSmokeRunner : MonoBehaviour
+    public sealed partial class UiSmokeRunner : MonoBehaviour
     {
         public UiSmokeRunner(IntPtr ptr) : base(ptr) { }
-        private static readonly BindingFlags Flags = BindingFlags.Static | BindingFlags.NonPublic;
-        private static readonly Type Ui = typeof(SmartCompanionsUI);
+        private const BindingFlags Flags = BindingFlags.Static | BindingFlags.NonPublic;
+        private static Type Ui => typeof(SmartCompanionsUI);
         private static readonly FieldInfo Tab = Ui.GetField("_activeTab", Flags);
         private static readonly FieldInfo Window = Ui.GetField("_mainWinRect", Flags);
         private static readonly FieldInfo Centered = Ui.GetField("_mainWinCentered", Flags);
         private static readonly FieldInfo SquadScroll = Ui.GetField("_scrollSquad", Flags);
+        private static readonly FieldInfo SettingsScroll = Ui.GetField("_scrollSettings", Flags);
         private readonly ModLanguage[] _languages = { ModLanguage.Russian, ModLanguage.English, ModLanguage.Chinese };
         private ModLanguage _originalLanguage;
         private string _output;
-        private int _case = -1, _repaints, _passed;
+        private int _case = -1, _repaints, _passed, _startCase;
         private float _nextAt;
         private bool _initialized, _failed;
         private bool _nativeOnly;
         private float _menuSceneAt = -1f;
         private float _closingAt = -1f;
-        private const int Cases = 15;
+        private const int Variants = 9;
+        private int Cases => _profiles.Length * _languages.Length * Variants;
 
         private void Update()
         {
@@ -71,6 +75,11 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     _output = Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith("--sc-ui-smoke-output="));
                     _output = _output == null ? Path.Combine(BepInEx.Paths.BepInExRootPath, "UiSmoke") : _output.Substring(21);
                     Directory.CreateDirectory(_output);
+                    InitializeProfiles();
+                    var startArg = Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith("--sc-ui-start-case="));
+                    if (startArg != null && (!int.TryParse(startArg.Split('=')[1], out _startCase) || _startCase < 0 || _startCase >= Cases))
+                        throw new Exception("Invalid matrix start case.");
+                    _case = _startCase - 1;
                     if (Environment.GetCommandLineArgs().Contains("--sc-native-menu-only"))
                     {
                         NativeMenuRegression.VerifyAllLanguages();
@@ -82,6 +91,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                         return;
                     }
                     SmokeFixtures.Create();
+                    ContainerFixtures.Create();
                     SmartCompanionsUI.ShowMainWindow = true;
                     if (!SmartCompanionsInput.BlockPlayerControls || !SmartCompanionsInput.BlockPlayerMouse)
                         throw new Exception("Open F8 does not block player input.");
@@ -113,33 +123,38 @@ namespace ZedZone.SmartCompanions.UiSmoke
                         return;
                     }
                     int images = Directory.GetFiles(_output, "case-*.png").Count(p => new FileInfo(p).Length > 1000);
-                    if (images != Cases) throw new Exception($"Expected {Cases} rendered screenshots, found {images}.");
+                    if (images != Cases - _startCase) throw new Exception($"Expected {Cases - _startCase} rendered screenshots, found {images}.");
                     if (SmokeFixtures.UiFailures != 0) throw new Exception($"UI used {SmokeFixtures.UiFailures} error fallbacks; see earlier full-stack reports.");
-                    UiSmokePlugin.Logger.LogInfo($"[UiSmoke] PASS {_passed}/{Cases} actual repaint cases; screenshots={images}; fixture NPCs={SmokeFixtures.Agents.Count}.");
+                    UiSmokePlugin.Logger.LogInfo($"[UiSmoke] PASS {_passed}/{Cases - _startCase} actual repaint cases; screenshots={images}; fixture NPCs={SmokeFixtures.Agents.Count}.");
                     Finish();
                     return;
                 }
-                if (_case >= 0 && _repaints < 3) return;
+                if (_case >= _startCase && _repaints < 3) return;
                 _case++;
                 _repaints = 0;
-                int language = _case / 5;
-                int variant = _case % 5;
+                int language = (_case / Variants) % _languages.Length;
+                int variant = _case % Variants;
+                PrepareResolution(_case / (Variants * _languages.Length));
                 CompanionConfigStore.LanguageMode = _languages[language];
                 SmartCompanionsUI.InvalidateStyles();
-                Tab.SetValue(null, variant >= 3 ? 0 : variant);
-                SquadScroll.SetValue(null, new Vector2(0f, variant == 4 ? 150f : 0f));
-                Window.SetValue(null, new Rect(10, 10, 880, 600));
-                Centered.SetValue(null, true);
-                SmokeFixtures.ShowAgents = variant != 3;
-                SmokeFixtures.LongSquad = variant == 4;
-                _nextAt = Time.realtimeSinceStartup + 1.2f;
+                Tab.SetValue(null, variant == 8 ? 3 : variant >= 4 ? 0 : variant);
+                SquadScroll.SetValue(null, new Vector2(0f, variant == 5 ? 100000f : 0f));
+                SettingsScroll.SetValue(null, new Vector2(0f, variant == 8 ? 100000f : 0f));
+                Centered.SetValue(null, false);
+                SmokeFixtures.ShowAgents = variant != 4;
+                SmokeFixtures.LongSquad = variant == 5;
+                SmartCompanionsUI.ShowMainWindow = variant != 6 && variant != 7;
+                CompanionConfigStore.ShowHudBadge = true;
+                CompanionConfigStore.HudBadgeCollapsed = variant == 7;
+                ContainerFixtures.SetVisible(variant == 6 || variant == 7, variant == 7);
+                _nextAt = Time.realtimeSinceStartup + 1.0f;
             }
             catch (Exception e) { Fail(e); }
         }
 
         private void OnGUI()
         {
-            if (!_initialized || _failed || _case < 0 || _case >= Cases || _closingAt >= 0f) return;
+            if (!_initialized || _failed || _case < _startCase || _case >= Cases || _closingAt >= 0f || !ResolutionReady()) return;
             var oldMatrix = GUI.matrix;
             var oldColor = GUI.color;
             var oldContentColor = GUI.contentColor;
@@ -155,6 +170,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 var dirtyMatrix = Matrix4x4.identity;
                 dirtyMatrix.m00 = 0.7f;
                 dirtyMatrix.m11 = 0.7f;
+                dirtyMatrix.m03 = 13f;
+                dirtyMatrix.m13 = 17f;
                 GUI.matrix = dirtyMatrix;
                 GUI.color = Color.yellow;
                 GUI.contentColor = Color.red;
@@ -170,16 +187,21 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 gc.playerCharacter = SmokeFixtures.Agents[0].humanCharacter;
                 if(!Il2CppSafe.IsAliveUnity(gc.playerCharacter))throw new Exception("UI fixture was destroyed during a scene transition.");
                 SmartCompanionsUI.DrawAllGUI();
-                if (GUI.enabled || Mathf.Abs(GUI.matrix.m00 - expectedScale) > 0.0001f || GUI.color != expectedColor ||
+                VerifyLayoutAndPointer();
+                if (GUI.enabled || Mathf.Abs(GUI.matrix.m00 - expectedScale) > 0.0001f || GUI.matrix.m03 != 13f ||
+                    GUI.matrix.m13 != 17f || GUI.depth != -1000 || GUI.color != expectedColor ||
                     GUI.contentColor != expectedContent || GUI.backgroundColor != expectedBackground)
                     throw new Exception($"Production DrawAllGUI did not restore GUI state: enabled={GUI.enabled}, scale={GUI.matrix.m00}, colorB={GUI.color.b}, contentG={GUI.contentColor.g}, backgroundR={GUI.backgroundColor.r}.");
                 if (Event.current.type != EventType.Repaint) return;
                 _repaints++;
-                if (_repaints != 3) return;
-                string name = $"case-{_case:00}-{_languages[_case / 5]}-{_case % 5}";
-                ScreenCapture.CaptureScreenshot(Path.Combine(_output, name + ".png"));
+                bool firstInProfile = _case % (Variants * _languages.Length) == 0;
+                if (_repaints != 3 && !(firstInProfile && _repaints == 4)) return;
+                string name = $"case-{_case:000}-{Screen.width}x{Screen.height}-pref{_preferences[_profile]:0.00}-{_languages[(_case / Variants) % _languages.Length]}-{_case % Variants}";
+                if (_repaints == 3) ScreenCapture.CaptureScreenshot(Path.Combine(_output, name + ".png"));
+                if (firstInProfile && _repaints == 3) return;
+                if (firstInProfile) VerifyScaledInteraction();
                 _passed++;
-                UiSmokePlugin.Logger.LogInfo($"[UiSmoke] PASS actual repaint {name}, NPCs={SmokeFixtures.VisibleAgentCount}.");
+                UiSmokePlugin.Logger.LogInfo($"[UiSmoke] PASS actual repaint {name}, NPCs={SmokeFixtures.VisibleAgentCount}, uiScale={ReadUiFloat("EffectiveUiScale"):0.000}.");
             }
             catch (Exception e) { Fail(e); }
             finally
@@ -205,6 +227,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
         private void Finish()
         {
             CompanionConfigStore.LanguageMode = _originalLanguage;
+            RestoreDisplayOptions();
+            ContainerFixtures.Cleanup();
             SmartCompanionsUI.ShowMainWindow = false;
             SmokeFixtures.Cleanup();
             enabled = false;

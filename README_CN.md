@@ -7,12 +7,24 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.7.0"><strong>下载 v1.7.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.8.0"><strong>下载 v1.8.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v1.8.0 更新 — 更清晰、适应屏幕的界面
+
+- **四个独立 F8 标签页：** 小队、基地、语录与设置，分别管理战斗命令、储物规则、对话与偏好。
+- **更易阅读：** 青绿色强调色、中性色背景、更大的文字与分组设置。
+- **自动缩放：** F8 主窗口、HUD 与箱子分类面板使用统一缩放，按屏幕高度与可用空间适配，也适用于宽屏布局。
+- **自行选择大小：** 在 **F8 → 设置 → 界面与缩放** 中选择自动或 75%、100%、125%、150%、175%、200%。实际缩放会限制在屏幕可容纳的范围内，界面显示最终百分比。
+- **无需重启：** 改变分辨率或缩放时，面板重新定位到屏幕范围内。战斗机制与真实物品搬运保持不变。
+- **储物控制更清晰：** 容器行高按名称换行调整，紧凑分类面板采用四列布局。打开 F8 时隐藏箱子面板，关闭主窗口会释放拖动与滚动捕获。
+- **已验证：** 六种分辨率、三种语言的270个图形测试；75%/200%下的点击、滚动条按钮、拖动和关闭。[测试范围与限制](docs/verification-1.8.0.md)。自动注入滚轮事件及真实双人NPC可见性仍未验证。
+
+![F8界面（游戏引擎中的隔离测试）](docs/images/ui-1.8.0-settings-zh-4k.png)
 
 ## v1.7.0 更新 — 真实走位拾取与箱间搬运（彻底移除隔空传物）
 
@@ -114,7 +126,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.7.0.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.8.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

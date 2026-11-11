@@ -1,19 +1,21 @@
 version=1
 id=3836613312
-title=ZED ZONE: Smart Companions 1.7.0
+title=ZED ZONE: Smart Companions 1.8.0
 visibility=public
-description=[h1]Smart Companions 1.7.0[/h1]
-description=Turn your recruited survivors into a smart, reliable squad: tactical combat AI, true physical item carrying & scavenging, 1,179 live chatter lines and co-op sync.
+description=[h1]Smart Companions 1.8.0[/h1]
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Enjoy the mod? Support development on Boosty.
-description=[h2]What's new in 1.7.0 (True Physical Looting & Carrying)[/h2]
-description=[list][*]Removed all instant item teleportation: companions now physically walk to every ground item, zombie corpse, and wild container using obstacle-aware A* pathfinding, pause briefly to pick up loot within arm's reach, and move to the next target.[*]Physical chest-to-chest base sorting (F7): removed the instant-sort shortcut—companions walk to each source/drop-off chest, pick up items at close range, walk to each categorized destination chest, and place them inside.[*]Safe non-teleporting combat interruption: if combat breaks out mid-carry, carried items stay in the companion's pack (or drop at their feet if full) instead of teleporting back across the map.[/list]
-description=[h2]Highlights from 1.6.0[/h2]
-description=[list][*]Fixed native human & player IDs (0 = Player, 200 = Looter, 201 = Survivor) and guarded ranged/melee equipment loading & hand IK across companions, world NPCs, and network puppets.[*]Enforced strict cease-fire in Passive / StopFire doctrine, cleared culled ghost threats, and blocked F6–F9 hotkeys while typing in chat.[/list]
+description=Turn recruited survivors into a reliable squad: tactical combat, physical scavenging and base deliveries, with 1,179 live chatter lines across English, Russian and Simplified Chinese.
+description=[h2]New: a clearer interface for your screen[/h2]
+description=[list][*]Four focused F8 tabs: Squad, Base, Chatter and Settings.[*]Refreshed styling, larger text and grouped preferences.[*]Automatic scaling for the hub, HUD and chest controls. Choose Auto or 75–200% in F8 → Settings; the size is capped to keep the window on screen.[*]Panels stay within the screen when you change resolution or UI scale. Settings apply without restarting.[/list]
 description=[h2]Your squad and base[/h2]
-description=Six combat doctrines, draggable F8 hub (Esc to close), squad cap up to 15, physical item carrying between player-marked base chests across 12 categories, autonomous scavenging, emergency field medic & ammo aid, and English / Russian / Simplified Chinese chatter. Safe for existing saves.
-description=[h2]Install & Hotkeys[/h2]
-description=Requires third-party [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (run its install.cmd once, then launch via Steam). In co-op, both players should run 1.7.0.
-description=F8: squad, base & settings · F7: physical base sort · F6 (Alt+F6 with AVO): share rations · F9: battle cry.
-description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]GitHub repository & verification reports[/url]
+description=Six combat doctrines, squad cap up to 15, emergency medic and ammo aid, autonomous scavenging, and 12 storage categories. Companions walk to loot and carry goods between your marked chests; there is no instant item transfer. Existing saves do not need resetting.
+description=[h2]Install & hotkeys[/h2]
+description=Requires third-party [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (run its install.cmd once, then launch via Steam). The loader is not a mod by druidqwerty. Both co-op players should use 1.8.0.
+description=F8: squad, base, chatter & settings · Esc: close F8 · F7: physical base sorting · F6 (Alt+F6 with AVO): share rations · F9: battle cry.
+description=[h2]Co-op limitation[/h2]
+description=Human NPC visibility in a real two-player host + client session still awaits live confirmation; this UI update does not claim to resolve that limitation.
+description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]GitHub repository, full changes & verification reports[/url]
+description=Workshop ID: 3836613312
+description=Mod ID: SmartCompanions
 description=© 2026 druidqwerty. MIT License. Free and open source; AI-assisted code, direction and testing by druid.
