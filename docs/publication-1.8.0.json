@@ -1,0 +1,16 @@
+{
+  "version": "1.8.0",
+  "status": "verified-local-installed-publication-blocked",
+  "commit": "b023494",
+  "dll_sha256": "0f1aa6c6663f53ac86116cf67b90befa33cd34377e76211a95213bd0f64b9462",
+  "zip_sha256": "e97121bb4c11ac2f34fcf7d9cf2d3d0883f839c2faac889b2056b8c718587761",
+  "zip_size": 4574927,
+  "github_pushed": false,
+  "github_release_created": false,
+  "steam_uploaded": false,
+  "boosty_queued": false,
+  "blocker": "Git HTTPS Recv failure: Connection was reset through127.0.0.1:10809; direct HTTPS EOF duringTLS. Same failing route stopped. Persistent network/OpenClaw settings unchanged.",
+  "local_install": "G:\\Steam\\steamapps\\common\\ZED ZONE\\Mods\\SmartCompanions",
+  "rollback": "backups/before-install-1.8.0",
+  "resume": "Inspect remote main and v1.8.0 release before retry; push prepared commits, createGitHubrelease with exactZIP, upload existingWorkshop3836613312, verifypublicvisibility0/dependency3834614258/locale text, queueBOOSTY1.8 and remove only supersededpending1.7. Recheck hashes, do not rebuild testedDLL."
+}
