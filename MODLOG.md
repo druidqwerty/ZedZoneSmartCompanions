@@ -282,3 +282,9 @@
 - UI matrix PASS 300/300 + ScaleAndPrivacyRegression 14/14 + SpecializationRegression 12/12 + TacticalRegression 16/16 + ProtocolRegression 13/13 (backups/ui230-20261112-161229).
 - Published to GitHub v2.3.0, Steam 3836613312 (public, both local Workshop DLL copies verified), local Mods/SmartCompanions updated to 2.3.0 (rollback backups/before-install-2.3.0), cumulative BOOSTY_2.3.0.md queued.
 - Open verification boundaries: real two-player host + client session (human NPC visibility & live co-op sync) and automated mouse-wheel injection.
+
+## 2.4.0 Camp garrison, safe gear handover & co-op telemetry published (2026-11-13)
+- Built via Antigravity /boost (DeepCoder) + coordinator verification: DLL 3259a25c463adf8893e9af393314ae82d8b67f1a160735706be6ed3109e697b5, ZIP 9c2e296f56cadcd8725b62aae4693147c322ed51acd38621d5d7b122abd577b7.
+- Live acceptance PASS (backups/live-20261113-022051): Camp Garrison hold (0.40m within anchor while player raided 12m away) + SafeDismiss physical walk (4.77m, 0 teleports) & gear handover.
+- UI matrix PASS 300/300 (backups/ui240-20261113-022229 + 023134) + GarrisonRegression 8/8.
+- Published to GitHub v2.4.0, Steam 3836613312 (public), Boosty BOOSTY_2.4.0.md queued.
