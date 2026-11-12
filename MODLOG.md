@@ -262,3 +262,9 @@
 - Boosty: cumulative BOOSTY_2.0.0 queued; pending 1.8.1/1.9.0 removed. Queue processor (agent main) idle since 2026-11-10.
 - Gotchas: GUI.tooltip setter unreliable -> TipsThisDraw registry; strip glyphs via UiSafe (Font.HasCharacter); run_live_acceptance.py restores Workshop folder (old run_live170 did not).
 - Open: real 2-player co-op test; mouse wheel injection; long soak of roles/pause.
+
+## 2.1.0 Tactical squad control published (2026-11-12)
+- DLL 0e337104c3bb14b2c30fa390dde67a9e2490b62b832f13a6d0be3ebffd640fc9, ZIP 13f9c49eaa26e79790cc3b3d0be8e869789f0ea02864d3712d2663ebe91e688d.
+- Live acceptance PASS (backups/live-20261112-152155): combat + physical carry + HoldPosition (0.00m drift) + FallBackHere (7.17m run) + CoverSector.
+- UI matrix PASS 300/300 + TacticalRegression 16/16 + ProtocolRegression 13/13 (backups/ui210-20261112-152316).
+- Published to GitHub v2.1.0, Steam 3836613312 (public), Boosty BOOSTY_2.1.0.md queued.
