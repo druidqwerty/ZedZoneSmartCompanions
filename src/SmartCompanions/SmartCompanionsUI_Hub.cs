@@ -25,6 +25,8 @@ namespace ZedZone.SmartCompanions
         {
             var lang = CompanionConfigStore.EffectiveLanguage;
             var r = _mainWinRect;
+            // Tooltips are filled by the control under the mouse during this draw; never keep a stale one.
+            try { GUI.tooltip = string.Empty; } catch { }
             GUI.Box(r, GUIContent.none, _winStyle);
 
             float x = r.x + 14f;
