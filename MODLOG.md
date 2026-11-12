@@ -247,3 +247,10 @@
 - Boosty: queued BOOSTY_1.8.0.md; removed only this project's superseded pending BOOSTY_1.7.0.md. Other projects untouched. Queue acceptance is not publication confirmation.
 - Remaining verification boundary: Steam HTML EN/RU/ZH returned HTTP429; localized page rendering, footer and Required Items sidebar not claimed verified. Do not re-upload because of a read throttle. Evidence: docs/publication-1.8.0.json and docs/steam-verification-1.8.0.json.
 - Release work complete. Only optional HTML recheck remains when Steam's rate limit clears; gameplay/co-op test boundaries are unchanged.
+
+
+## Roadmap to 2.0.0 (owner request 2026-11-12: "разрабатывай вплоть до версии 2.0.0 в соответствии с планом и в релиз")
+- 1.8.1 UI polish: DONE + published (status badges, block reasons, squad filters, hover hints). DLL e312809b..., ZIP 527c2a11..., 270/270 matrix backups/ui181-20261112-033113. Rejected first candidate (EN label wrap). Boosty 1.8.1 queued, superseded pending 1.8.0 removed.
+- 1.9.0 co-op reliability: host-authoritative NPC packets (owner check + revision, reject -> host rebroadcast), view-only cards for others' companions. Pure decision table tested in UiSmoke ProtocolRegression. Live two-player still impossible locally.
+- 2.0.0 base work board: roles (Any/Storekeeper/Scavenger/Camp/Off), global pause (keeps jobs + carried items), per-companion and global cancel, new WORK tab (index 4, display 2nd). WIP on branch v2-work.
+- Gotchas: IL2CPP GUIContent has only (string, Texture, string) -> use UiTip(). .NET IO in pwsh uses process cwd -> Resolve-Path. UI matrix can stall at a case (stop process; runner rolls back; resume with --start-case=N --dll=...). tools/package_release.py <ver> <dll>.

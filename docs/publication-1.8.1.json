@@ -1,0 +1,32 @@
+{
+  "version": "1.8.1",
+  "workshop_id": "3836613312",
+  "status": "published-github-steam-boosty-queued",
+  "github_release": "https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.8.1",
+  "github_tag_commit": "ab44352",
+  "zip": "ZedZoneSmartCompanions-1.8.1.zip",
+  "zip_size": 1723075,
+  "zip_sha256": "527c2a11db491a2f71991b4338f302100679a87ec41ae5d44e9efcebad1c5cef",
+  "github_anonymous_asset_verified": true,
+  "dll_sha256": "e312809b91618ba14b824835361b5c64969de36128ba39cb1e96ac73237916af",
+  "steam_api": {
+    "result": 1,
+    "title": "ZED ZONE: Smart Companions 1.8.1",
+    "visibility": 0,
+    "banned": 0,
+    "file_size": "770268",
+    "time_updated": 1794443962
+  },
+  "steam_locales_uploaded": [
+    "english",
+    "russian",
+    "schinese"
+  ],
+  "steam_dependency": {
+    "id": "3834614258",
+    "sdk_result": 29
+  },
+  "boosty_queue_path": "BOOSTY_1.8.1.md",
+  "boosty_superseded_pending_removed": "BOOSTY_1.8.0.md",
+  "boosty_published": false
+}
