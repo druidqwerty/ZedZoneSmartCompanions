@@ -20,9 +20,16 @@ namespace ZedZone.SmartCompanions
             if (!Il2CppSafe.IsAliveUnity(self) || !Il2CppSafe.IsAliveUnity(enemy) || enemy.deadFlag || self.deadFlag ||
                 !Il2CppSafe.IsAliveUnity(leader) || !Il2CppSafe.IsAlive(enemy.characterData) ||
                 !Il2CppSafe.IsAlive(self.characterData) || enemy.characterData.zLevel != self.characterData.zLevel) return false;
-            // Beyond vanilla's near-leader threshold keep its catch-up priorities.
-            // We only resolve the FireAtWill vs nearby FollowLeader priority tie.
-            if (Vector2.Distance(self.transform.position,leader.transform.position)>8f) return false;
+            // While actively disengaging on FallBackHere, do not stop to shoot unless cornered.
+            if (profile.ActiveOrder == TacticalOrderKind.FallBackHere && !profile.FallBackArrived &&
+                Vector2.Distance(self.transform.position, profile.OrderAnchorPos) > 1.85f &&
+                Vector2.Distance(self.transform.position, enemy.transform.position) >= 1.85f) return false;
+            // Beyond vanilla's near-leader threshold keep its catch-up priorities, unless holding a tactical anchor.
+            bool nearLeader = Vector2.Distance(self.transform.position, leader.transform.position) <=
+                Mathf.Max(8f, TacticalSquadSystem.GetFollowDistanceMeters(CompanionConfigStore.FollowDistance) + 1.5f);
+            bool nearTacticalAnchor = profile.ActiveOrder != TacticalOrderKind.Follow &&
+                Vector2.Distance(self.transform.position, profile.OrderAnchorPos) <= 8f;
+            if (!nearLeader && !nearTacticalAnchor) return false;
             float distance=Vector2.Distance(self.transform.position,enemy.transform.position);
             if (distance<2.5f || distance>ReadyRange(self)) return false;
             Vector2 muzzle=self.GetProjectileAimOrigin();

@@ -248,6 +248,8 @@ namespace ZedZone.SmartCompanions
                 {
                     score *= (1.0f + (int)st.Rank * 0.05f);
                 }
+
+                TacticalSquadSystem.AdjustSectorThreatScore(agent, st, selfPos, targetPos, ref score);
             }
             catch { }
         }
@@ -481,6 +483,9 @@ namespace ZedZone.SmartCompanions
             {
                 TrySmartWeaponSwitch(agent, st, distToTarget, now);
             }
+
+            if (TacticalSquadSystem.TryApplyCombatRetreat(agent, st, leader, target, now))
+                return;
 
             if (CompanionConfigStore.EnableKiting && st.Doctrine != TacticalDoctrine.Assault &&
                 CombatResponse.AllowsRangedResponse(st, agent.npcData.weaponPreference))

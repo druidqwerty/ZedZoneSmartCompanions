@@ -215,6 +215,50 @@ namespace ZedZone.SmartCompanions
         Off = 4
     }
 
+    // 2.1.0: tactical formations, follow distance, positional orders & retreat rules.
+    public enum SquadFormation
+    {
+        Free = 0,
+        Wedge = 1,
+        Line = 2,
+        Column = 3,
+        GuardRing = 4
+    }
+
+    public enum FollowDistanceMode
+    {
+        Close = 0,   // 2.5m
+        Normal = 1,  // 4.0m
+        Wide = 2,    // 6.5m
+        Scout = 3    // 9.0m
+    }
+
+    public enum TacticalOrderKind
+    {
+        Follow = 0,
+        HoldPosition = 1,
+        FallBackHere = 2,
+        CoverDirection = 3
+    }
+
+    public enum LowAmmoRetreatMode
+    {
+        Off = 0,
+        EmptyOnly = 1,
+        LowReserve = 2
+    }
+
+    public enum TacticalOrderBlockReason
+    {
+        None = 0,
+        PathBlockedToAnchor = 1,
+        RetreatingWounded = 2,
+        RetreatingLowAmmo = 3,
+        SuppressedPassive = 4,
+        PausedForBaseWork = 5,
+        DifferentZLevel = 6
+    }
+
     public enum CompanionBlockReason
     {
         None = 0,
@@ -272,6 +316,25 @@ namespace ZedZone.SmartCompanions
         public bool AllowAutoDropoffAtBase = true;
         public bool AllowBaseChores = true;
         public CompanionWorkRole WorkRole = CompanionWorkRole.Any;
+
+        // 2.1.0: active tactical order & execution state
+        public TacticalOrderKind ActiveOrder = TacticalOrderKind.Follow;
+        public Vector2 OrderAnchorPos;
+        public int OrderAnchorZ = 0;
+        public Vector2 OrderDirection = Vector2.right;
+        public bool FallBackArrived = false;
+        public float OrderIssuedTime = -999f;
+        public float LastOrderMoveProgressTime = -999f;
+        public Vector2 LastOrderMovePos;
+        public TacticalOrderBlockReason OrderBlockReason = TacticalOrderBlockReason.None;
+        public float OrderBlockTime = -999f;
+        public float LastTacticalRetreatTime = -999f;
+
+        public void NoteTacticalBlock(TacticalOrderBlockReason reason)
+        {
+            OrderBlockReason = reason;
+            OrderBlockTime = Time.unscaledTime;
+        }
 
         public string CurrentTaskText = "";
         public int KillsThisSession = 0;
@@ -537,6 +600,11 @@ namespace ZedZone.SmartCompanions
         public static bool EnableSmartCombat = true;
         public static bool EnableAntiFriendlyFire = true;
         public static bool EnableKiting = true;
+        public static SquadFormation ActiveFormation = SquadFormation.Free;
+        public static FollowDistanceMode FollowDistance = FollowDistanceMode.Normal;
+        public static bool EnableNarrowPassageYield = true;
+        public static int RetreatHpThresholdPercent = 30; // 0=Off, 25, 30, 50
+        public static LowAmmoRetreatMode LowAmmoRetreat = LowAmmoRetreatMode.EmptyOnly;
         public static bool EnableFieldMedic = true;
         public static bool EnableAmmoShare = true;
         public static bool AutoShareFoodOnEat = false;
@@ -774,6 +842,11 @@ namespace ZedZone.SmartCompanions
                 sb.AppendLine($"SET|EnableSmartCombat|{EnableSmartCombat}");
                 sb.AppendLine($"SET|EnableAntiFriendlyFire|{EnableAntiFriendlyFire}");
                 sb.AppendLine($"SET|EnableKiting|{EnableKiting}");
+                sb.AppendLine($"SET|ActiveFormation|{(int)ActiveFormation}");
+                sb.AppendLine($"SET|FollowDistance|{(int)FollowDistance}");
+                sb.AppendLine($"SET|EnableNarrowPassageYield|{EnableNarrowPassageYield}");
+                sb.AppendLine($"SET|RetreatHpThresholdPercent|{RetreatHpThresholdPercent}");
+                sb.AppendLine($"SET|LowAmmoRetreat|{(int)LowAmmoRetreat}");
                 sb.AppendLine($"SET|EnableFieldMedic|{EnableFieldMedic}");
                 sb.AppendLine($"SET|EnableAmmoShare|{EnableAmmoShare}");
                 sb.AppendLine($"SET|AutoShareFoodOnEat|{AutoShareFoodOnEat}");
@@ -876,6 +949,11 @@ namespace ZedZone.SmartCompanions
                         else if (key == "EnableSmartCombat" && bool.TryParse(val, out var b2)) EnableSmartCombat = b2;
                         else if (key == "EnableAntiFriendlyFire" && bool.TryParse(val, out var b3)) EnableAntiFriendlyFire = b3;
                         else if (key == "EnableKiting" && bool.TryParse(val, out var b4)) EnableKiting = b4;
+                        else if (key == "ActiveFormation" && int.TryParse(val, out var formInt)) ActiveFormation = (SquadFormation)Mathf.Clamp(formInt, 0, 4);
+                        else if (key == "FollowDistance" && int.TryParse(val, out var fdInt)) FollowDistance = (FollowDistanceMode)Mathf.Clamp(fdInt, 0, 3);
+                        else if (key == "EnableNarrowPassageYield" && bool.TryParse(val, out var bNarrow)) EnableNarrowPassageYield = bNarrow;
+                        else if (key == "RetreatHpThresholdPercent" && int.TryParse(val, out var rHp)) RetreatHpThresholdPercent = rHp <= 0 ? 0 : Mathf.Clamp(rHp, 15, 65);
+                        else if (key == "LowAmmoRetreat" && int.TryParse(val, out var rAmmo)) LowAmmoRetreat = (LowAmmoRetreatMode)Mathf.Clamp(rAmmo, 0, 2);
                         else if (key == "EnableFieldMedic" && bool.TryParse(val, out var b5)) EnableFieldMedic = b5;
                         else if (key == "EnableAmmoShare" && bool.TryParse(val, out var b6)) EnableAmmoShare = b6;
                         else if (key == "AutoShareFoodOnEat" && bool.TryParse(val, out var bShare)) AutoShareFoodOnEat = bShare;

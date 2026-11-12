@@ -258,6 +258,8 @@ namespace ZedZone.SmartCompanions
             {
                 if (PhysicalMovementHelper.TickPhysicalFrameForAgent(__instance))
                     return false;
+                if (TacticalSquadSystem.TickTacticalGoalOverride(__instance))
+                    return false;
             }
             catch { }
             return true;

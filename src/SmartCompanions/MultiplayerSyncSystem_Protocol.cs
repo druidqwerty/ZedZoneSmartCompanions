@@ -136,7 +136,11 @@ namespace ZedZone.SmartCompanions
                 if (bumpRevision) st.StateRevision++;
                 int rev = Math.Max(1, st.StateRevision);
                 string sender = (GetLocalPlayerCharacterId() ?? "").Replace("|", "/");
-                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}|{rev}|{sender}|{(int)st.WorkRole}";
+                string ax = st.OrderAnchorPos.x.ToString("F1", CultureInfo.InvariantCulture);
+                string ay = st.OrderAnchorPos.y.ToString("F1", CultureInfo.InvariantCulture);
+                string dx = st.OrderDirection.x.ToString("F2", CultureInfo.InvariantCulture);
+                string dy = st.OrderDirection.y.ToString("F2", CultureInfo.InvariantCulture);
+                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}|{rev}|{sender}|{(int)st.WorkRole}|{(int)st.ActiveOrder}|{ax}|{ay}|{st.OrderAnchorZ}|{dx}|{dy}";
                 if (IsMultiplayerHost) BroadcastPacketFromHost(body);
                 else if (IsMultiplayerClient) SendPacketToHost(body);
             }
@@ -147,6 +151,14 @@ namespace ZedZone.SmartCompanions
         {
             if (!IsMultiplayerOnline) return;
             string body = "PAUSE|" + (paused ? "1" : "0");
+            if (IsMultiplayerHost) BroadcastPacketFromHost(body);
+            else if (IsMultiplayerClient) SendPacketToHost(body);
+        }
+
+        public static void SyncSquadTacticsConfig()
+        {
+            if (!IsMultiplayerOnline) return;
+            string body = $"TACTICS|{(int)CompanionConfigStore.ActiveFormation}|{(int)CompanionConfigStore.FollowDistance}";
             if (IsMultiplayerHost) BroadcastPacketFromHost(body);
             else if (IsMultiplayerClient) SendPacketToHost(body);
         }
@@ -182,6 +194,7 @@ namespace ZedZone.SmartCompanions
                     SyncBoxRuleChange(r, null);
                 }
                 BroadcastPacketFromHost("PAUSE|" + (CompanionConfigStore.BaseWorkPaused ? "1" : "0"));
+                BroadcastPacketFromHost($"TACTICS|{(int)CompanionConfigStore.ActiveFormation}|{(int)CompanionConfigStore.FollowDistance}");
                 foreach (var kv in CompanionConfigStore.CompanionStates)
                 {
                     SyncCompanionStateChange(kv.Value, bumpRevision: false);
@@ -292,6 +305,8 @@ namespace ZedZone.SmartCompanions
                     string senderCharId = parts.Length >= 7 ? parts[6] : "";
                     int roleInt = -1;
                     if (parts.Length >= 8 && !int.TryParse(parts[7], out roleInt)) roleInt = -1;
+                    int orderInt = -1;
+                    if (parts.Length >= 9 && !int.TryParse(parts[8], out orderInt)) orderInt = -1;
 
                     var st = CompanionConfigStore.GetOrCreateCompanion(guid);
                     if (receivedOnHost)
@@ -311,6 +326,29 @@ namespace ZedZone.SmartCompanions
                     }
                     st.Doctrine = (TacticalDoctrine)Mathf.Clamp(docInt, 0, 5);
                     if (roleInt >= 0) st.WorkRole = (CompanionWorkRole)Mathf.Clamp(roleInt, 0, 4);
+                    if (orderInt >= 0)
+                    {
+                        var nextOrder = (TacticalOrderKind)Mathf.Clamp(orderInt, 0, 3);
+                        if (st.ActiveOrder != nextOrder) st.FallBackArrived = false;
+                        st.ActiveOrder = nextOrder;
+                        st.OrderIssuedTime = Time.unscaledTime;
+                        st.LastOrderMoveProgressTime = Time.unscaledTime;
+                        if (parts.Length >= 11 &&
+                            float.TryParse(parts[9], NumberStyles.Float, CultureInfo.InvariantCulture, out float ax) &&
+                            float.TryParse(parts[10], NumberStyles.Float, CultureInfo.InvariantCulture, out float ay))
+                        {
+                            st.OrderAnchorPos = new Vector2(ax, ay);
+                        }
+                        if (parts.Length >= 12 && int.TryParse(parts[11], out int az))
+                            st.OrderAnchorZ = az;
+                        if (parts.Length >= 14 &&
+                            float.TryParse(parts[12], NumberStyles.Float, CultureInfo.InvariantCulture, out float dx) &&
+                            float.TryParse(parts[13], NumberStyles.Float, CultureInfo.InvariantCulture, out float dy))
+                        {
+                            Vector2 dir = new Vector2(dx, dy);
+                            if (dir.sqrMagnitude > 0.001f) st.OrderDirection = dir.normalized;
+                        }
+                    }
                     if (!string.IsNullOrEmpty(ownerId)) st.OwnerCharacterId = ownerId;
                     if (!string.IsNullOrEmpty(ownerName)) st.OwnerPlayerName = ownerName;
 
@@ -343,6 +381,17 @@ namespace ZedZone.SmartCompanions
                 if (cmd == "PAUSE" && parts.Length >= 2)
                 {
                     BaseWorkManager.SetPaused(parts[1] == "1", fromNetwork: true);
+                    if (receivedOnHost)
+                        BroadcastPacketFromHost(body, senderPeer);
+                    return true;
+                }
+
+                if (cmd == "TACTICS" && parts.Length >= 3)
+                {
+                    if (int.TryParse(parts[1], out int formInt))
+                        CompanionConfigStore.ActiveFormation = (SquadFormation)Mathf.Clamp(formInt, 0, 4);
+                    if (int.TryParse(parts[2], out int distInt))
+                        CompanionConfigStore.FollowDistance = (FollowDistanceMode)Mathf.Clamp(distInt, 0, 3);
                     if (receivedOnHost)
                         BroadcastPacketFromHost(body, senderPeer);
                     return true;

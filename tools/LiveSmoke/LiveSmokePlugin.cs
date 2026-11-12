@@ -133,10 +133,23 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     }
                     if(CombatLiveRegression.Tick())
                     {
-                        if(!CombatLiveRegression.Succeeded || PhysicalCarryLiveRegression.Tick())
+                        if(!CombatLiveRegression.Succeeded)
                         {
                             ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
-                            enabled=false;Application.Quit();return;
+                            enabled=false;Application.Quit(1);return;
+                        }
+                        if(PhysicalCarryLiveRegression.Tick())
+                        {
+                            if(!PhysicalCarryLiveRegression.Succeeded)
+                            {
+                                ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
+                                enabled=false;Application.Quit(1);return;
+                            }
+                            if(TacticalLiveRegression.Tick())
+                            {
+                                ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
+                                enabled=false;Application.Quit(TacticalLiveRegression.Succeeded ? 0 : 1);return;
+                            }
                         }
                     }
                 }

@@ -17,11 +17,19 @@ namespace ZedZone.SmartCompanions
         public const string ShareRation   = "OneTime.ShareRationWithSquad";
         public const string UnloadVehicle = "OneTime.UnloadVehicleToBase";
         public const string BattleCry     = "OneTime.SquadBattleCry";
+        public const string HoldHere      = "Basic.HoldPositionHere";
+        public const string FallBack      = "Basic.FallBackToLeader";
+        public const string CoverSector   = "Basic.CoverAimSector";
+        public const string ResumeFollow  = "Basic.ResumeFollowFormation";
 
         public static readonly string[] AllCustomCommands = new[]
         {
             SortBase,
             SweepLoot,
+            HoldHere,
+            FallBack,
+            CoverSector,
+            ResumeFollow,
             DocAssault,
             DocBodyguard,
             DocSniper,
@@ -88,6 +96,22 @@ namespace ZedZone.SmartCompanions
                 case "SquadBattleCry":
                 case BattleCry:
                     label = CompanionConfigStore.L(lang, "Боевой клич [F9]", "Battle Cry [F9]", "战吼 [F9]");
+                    return true;
+                case "HoldPositionHere":
+                case HoldHere:
+                    label = CompanionConfigStore.L(lang, "Держать позицию", "Hold Position", "坚守位置");
+                    return true;
+                case "FallBackToLeader":
+                case FallBack:
+                    label = CompanionConfigStore.L(lang, "Отступить сюда", "Fall Back Here", "撤回到此");
+                    return true;
+                case "CoverAimSector":
+                case CoverSector:
+                    label = CompanionConfigStore.L(lang, "Прикрыть сектор", "Cover Direction", "掩护方向");
+                    return true;
+                case "ResumeFollowFormation":
+                case ResumeFollow:
+                    label = CompanionConfigStore.L(lang, "Следовать в строю", "Follow Formation", "跟随编队");
                     return true;
                 default:
                     label = null;
@@ -217,6 +241,30 @@ namespace ZedZone.SmartCompanions
             if (commandStr.EndsWith("SquadBattleCry", StringComparison.OrdinalIgnoreCase))
             {
                 SmartCombatAI.CommandSquadBattleCry(agent);
+                return true;
+            }
+
+            if (commandStr.EndsWith("HoldPositionHere", StringComparison.OrdinalIgnoreCase))
+            {
+                TacticalSquadSystem.IssueOrder(agent, TacticalOrderKind.HoldPosition);
+                return true;
+            }
+
+            if (commandStr.EndsWith("FallBackToLeader", StringComparison.OrdinalIgnoreCase))
+            {
+                TacticalSquadSystem.IssueOrder(agent, TacticalOrderKind.FallBackHere);
+                return true;
+            }
+
+            if (commandStr.EndsWith("CoverAimSector", StringComparison.OrdinalIgnoreCase))
+            {
+                TacticalSquadSystem.IssueOrder(agent, TacticalOrderKind.CoverDirection);
+                return true;
+            }
+
+            if (commandStr.EndsWith("ResumeFollowFormation", StringComparison.OrdinalIgnoreCase))
+            {
+                TacticalSquadSystem.IssueOrder(agent, TacticalOrderKind.Follow);
                 return true;
             }
 
@@ -787,10 +835,14 @@ namespace ZedZone.SmartCompanions
                 if (Il2CppSafe.IsAliveUnity(agent.mostThreateningCharacter) && !agent.mostThreateningCharacter.deadFlag)
                     return true;
 
-                if (CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID ?? "", out var st) &&
-                    st != null && st.HasAnyPhysicalTask)
+                if (CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID ?? "", out var st) && st != null)
                 {
-                    if (PhysicalMovementHelper.TickPhysicalFrameForAgent(agent))
+                    if (st.HasAnyPhysicalTask && PhysicalMovementHelper.TickPhysicalFrameForAgent(agent))
+                    {
+                        __result = true;
+                        return false;
+                    }
+                    if (!st.HasAnyPhysicalTask && TacticalSquadSystem.TryExecuteFollowFormationAndSpacing(agent))
                     {
                         __result = true;
                         return false;
@@ -810,8 +862,38 @@ namespace ZedZone.SmartCompanions
             {
                 if (!Il2CppSafe.IsAlive(agentState) || !Il2CppSafe.IsAlive(agentState.npcData)) return;
                 string cmd = agentState.basicCommand ?? agentState.npcData.basicCommand ?? "";
-                bool hasPhysicalTask = CompanionConfigStore.CompanionStates.TryGetValue(agentState.npcData.npcGUID ?? "", out var st) &&
-                                       st != null && st.HasAnyPhysicalTask;
+                CompanionConfigStore.CompanionStates.TryGetValue(agentState.npcData.npcGUID ?? "", out var st);
+                bool hasPhysicalTask = st != null && st.HasAnyPhysicalTask;
+                bool hasPositionalOrder = st != null && st.ActiveOrder != TacticalOrderKind.Follow;
+
+                if (hasPositionalOrder && !hasPhysicalTask && agentState.npcData.zLevel == st.OrderAnchorZ)
+                {
+                    var leaderForOrder = GameController.instance?.playerCharacter;
+                    float distLeader = Il2CppSafe.IsAliveUnity(leaderForOrder)
+                        ? Vector2.Distance(agentState.agentPosition, leaderForOrder.transform.position) : 0f;
+                    if (distLeader <= 65f && __result > 0.5f)
+                        __result = 0.5f;
+                    return;
+                }
+
+                float configuredFollowDist = TacticalSquadSystem.GetFollowDistanceMeters(CompanionConfigStore.FollowDistance);
+                if (!hasPhysicalTask && configuredFollowDist > 4.2f &&
+                    !cmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) &&
+                    !cmd.EndsWith("CollectSpecifiedItem", StringComparison.OrdinalIgnoreCase))
+                {
+                    var agFollow = agentState.npcData.agentCache;
+                    var leaderFollow = Il2CppSafe.IsAliveUnity(agFollow) && Il2CppSafe.IsAliveUnity(agFollow.leaderCharacter)
+                        ? agFollow.leaderCharacter
+                        : GameController.instance?.playerCharacter;
+                    if (Il2CppSafe.IsAliveUnity(leaderFollow))
+                    {
+                        float d = Vector2.Distance(agentState.agentPosition, leaderFollow.transform.position);
+                        if (d <= configuredFollowDist + 1.4f && __result > 1.8f)
+                            __result = 1.8f;
+                    }
+                    return;
+                }
+
                 if (!hasPhysicalTask &&
                     !cmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) &&
                     !cmd.EndsWith("CollectSpecifiedItem", StringComparison.OrdinalIgnoreCase))

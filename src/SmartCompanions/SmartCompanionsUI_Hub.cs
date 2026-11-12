@@ -147,8 +147,12 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.L(lang, "Первая помощь", "First Aid", "急救"), _btnStyle) && teammates.Count > 0)
                 CustomNpcCommands.ExecuteCustomCommand(teammates[0].npcData, CustomNpcCommands.EmergencyAid);
 
-            float listY = area.y + 90f;
-            float listH = area.height - 90f;
+            float listY = area.y + 88f;
+            float listH = area.height - 88f;
+
+            DrawSquadTacticalBar(new Rect(area.x, listY, area.width, 28f), lang);
+            listY += 34f;
+            listH -= 34f;
 
             if (teammates.Count == 0)
             {
@@ -181,7 +185,7 @@ namespace ZedZone.SmartCompanions
             }
             teammates = visible;
 
-            float cardH = 164f;
+            float cardH = 194f;
             var viewRect = new Rect(0, 0, area.width - 20f, teammates.Count * (cardH + 8f));
             BeginScrollArea(new Rect(area.x, listY, area.width, listH), ref _scrollSquad, viewRect, 1);
             bool baseGuiEnabled = GUI.enabled;
@@ -338,6 +342,10 @@ namespace ZedZone.SmartCompanions
 
                 if (GUI.Button(new Rect(cx + (orderW + 6f) * 3f, cy, orderW, 28f), CompanionConfigStore.L(lang, " Боевой клич [F9]", " Battle Cry [F9]", " 战吼突击 [F9]"), _btnStyle))
                     SmartCombatAI.CommandSquadBattleCry(ag);
+
+                // Row 5: Tactical Combat Order & Status (2.1.0)
+                cy += 32f;
+                DrawCompanionTacticalRow(new Rect(cx, cy, innerW, 24f), ag, st, lang);
                 }
                 catch (Exception error)
                 {
@@ -641,7 +649,7 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        private static float _settingsContentHeight = 1100f;
+        private static float _settingsContentHeight = 1220f;
 
         private static float DrawSettingsHeading(float x, float y, float width, string title)
         {
@@ -689,6 +697,7 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.Save();
             }
             ly += 36f;
+            ly = DrawTacticalSettings(lx, ly, lw, lang);
 
             ly = DrawSettingsHeading(lx, ly, lw, CompanionConfigStore.L(lang, "Поддержка отряда", "Squad support", "队伍支援"));
             if (GUI.Button(new Rect(lx, ly, lw, 30f),
