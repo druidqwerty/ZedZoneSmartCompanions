@@ -1,17 +1,17 @@
 version=1
 id=3836613312
-title=ZED ZONE: Smart Companions 1.8.0
+title=ZED ZONE: Smart Companions 1.8.1
 visibility=public
-description=[h1]Smart Companions 1.8.0[/h1]
+description=[h1]Smart Companions 1.8.1[/h1]
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Enjoy the mod? Support development on Boosty.
 description=Turn recruited survivors into a reliable squad: tactical combat, physical scavenging and base deliveries, with 1,179 live chatter lines across English, Russian and Simplified Chinese.
-description=[h2]New: a clearer interface for your screen[/h2]
-description=[list][*]Four focused F8 tabs: Squad, Base, Chatter and Settings.[*]Refreshed styling, larger text and grouped preferences.[*]Automatic scaling for the hub, HUD and chest controls. Choose Auto or 75–200% in F8 → Settings; the size is capped to keep the window on screen.[*]Panels stay within the screen when you change resolution or UI scale. Settings apply without restarting.[/list]
+description=[h2]New in 1.8.1: see what every companion is doing[/h2]
+description=[list][*]Each squad card shows a coloured state: Awaiting orders, Busy, In combat, Stopped or Needs help.[*]When work stops, the card says why: no path to a chest, no space or chest for some categories, or interrupted by combat.[*]Squad filters: All, Busy, Idle and Need help.[*]Hover hints for doctrines, toggles and counters.[*]Still included from 1.8.1: four F8 tabs and Auto or 75–200% interface scale.[/list]
 description=[h2]Your squad and base[/h2]
 description=Six combat doctrines, squad cap up to 15, emergency medic and ammo aid, autonomous scavenging, and 12 storage categories. Companions walk to loot and carry goods between your marked chests; there is no instant item transfer. Existing saves do not need resetting.
 description=[h2]Install & hotkeys[/h2]
-description=Requires third-party [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (run its install.cmd once, then launch via Steam). The loader is not a mod by druidqwerty. Both co-op players should use 1.8.0.
+description=Requires third-party [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (run its install.cmd once, then launch via Steam). The loader is not a mod by druidqwerty. Both co-op players should use 1.8.1.
 description=F8: squad, base, chatter & settings · Esc: close F8 · F7: physical base sorting · F6 (Alt+F6 with AVO): share rations · F9: battle cry.
 description=[h2]Co-op limitation[/h2]
 description=Human NPC visibility in a real two-player host + client session still awaits live confirmation; this UI update does not claim to resolve that limitation.
