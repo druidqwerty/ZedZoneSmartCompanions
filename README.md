@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.2.0"><strong>Release v2.2.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.3.0"><strong>Release v2.3.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v2.3.0 — Performance, 15-NPC scale & privacy-safe diagnostics
+
+- **Lighter item, container & target searches:** frame-cached squad queries, `O(1)` item-category memoization, spatial/time world container caching and shared hostile snapshots keep 80+ chest bases and 15-person squads responsive.
+- **Large warehouses & 15-companion squads:** verified priority-sorted routing across 80-chest / 960-item warehouses (`0.11 ms` in live engine) and non-overlapping formations & profile previews for 15 companions.
+- **Stronger AVO Expanded compatibility:** detects AVO via BepInEx IL2CPP plugin metadata and loaded assemblies, keeps AVO's squad cap intact in `Auto` mode, protects `F6` via `Alt+F6`, and shows live AVO status in Settings.
+- **One-click privacy-safe diagnostic report (`F8 → Settings`):** copies a bug-report summary to clipboard and saves `SmartCompanions_Diagnostics.txt` with **zero** save data, names, Steam IDs, OS paths or coordinates.
+- **Verified:** live combat + physical carry + tactical orders + reserves + 20-cycle live soak + transition & co-op reconnect checks + 300/300 graphical cases; all 8,386 save files unchanged. [Scope and limits](docs/verification-2.3.0.md).
+
+![Settings bottom with AVO status & privacy-safe diagnostic export (real engine, isolated test fixtures)](docs/images/ui-2.3.0-settings-diagnostics-en.png)
 
 ## New in v2.2.0 — Specializations, supply reserves & loot zones
 
@@ -220,7 +230,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.2.0.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.3.0.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 

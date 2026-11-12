@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.2.0"><strong>下载 v2.2.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.3.0"><strong>下载 v2.3.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v2.3.0 更新 — 性能优化、15人规模与无隐私诊断
+
+- **更轻量的搜索开销：** 帧级队友缓存、`O(1)` 物品分类记忆化、容器空间缓存与共享敌情快照，轻松应对 80+ 储物箱仓库与 15 人小队。
+- **大型仓库与 15 人小队验证：** 实测 80 箱 / 960 件物品优先级路由仅需 `0.11 毫秒`，并验证 15 人全阵型无重叠与专精预览。
+- **增强 AVO Expanded 兼容性：** 自动检测 AVO 插件与程序集，自动模式下保留 AVO 人数上限并启用 `Alt+F6` 避让，在设置中直观显示兼容状态。
+- **一键无隐私诊断报告（`F8 → 设置`）：** 复制并保存故障排查摘要，**绝不包含**存档内容、角色姓名、Steam ID、系统路径或基地坐标。
+- **已验证：** 游戏内实测战斗、物理搬运、战术、保底储备、20轮长稳循环、场景切换保护与联机重连恢复 + 300/300 个图形测试；8,386 个存档文件均未改变。[测试范围与限制](docs/verification-2.3.0.md)。
+
+![设置底部的 AVO 状态与诊断报告按钮（游戏引擎中的隔离测试）](docs/images/ui-2.3.0-settings-diagnostics-zh.png)
 
 ## v2.2.0 更新 — 队友专精与物资补给管理
 
@@ -175,7 +185,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.2.0.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.3.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

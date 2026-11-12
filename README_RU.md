@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.2.0"><strong>Скачать релиз v2.2.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.3.0"><strong>Скачать релиз v2.3.0 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v2.3.0 — Производительность, отряды до 15 чел. и диагностика
+
+- **Быстрый поиск предметов, ящиков и целей:** кэш отряда на кадр, `O(1)` кэширование категорий предметов, пространственный кэш контейнеров и общий срез угроз для складов на 80+ ящиков и отрядов до 15 человек.
+- **Большие склады и отряды до 15 бойцов:** проверена маршрутизация по приоритетам на складе из 80 ящиков / 960 предметов (`0.11 мс` в живом движке), а также построения и предпросмотр профилей для 15 человек.
+- **Совместимость с AVO Expanded:** определение AVO через реестр плагинов BepInEx IL2CPP и сборки, сохранение лимита AVO в режиме `Авто`, авто-защита `F6` через `Alt+F6` и индикатор статуса AVO в Настройках.
+- **Диагностический отчёт в один клик (`F8 → Настройки`):** копирует сводку в буфер обмена и сохраняет `SmartCompanions_Diagnostics.txt` **без** данных сохранения, имён, Steam ID, личных путей и координат.
+- **Проверено:** живой бой, физическая переноска, тактика, резервы, 20-цикловый прогон, переходы локаций и реконнект кооператива + 300/300 графических случаев; все 8 386 файлов сохранений без изменений. [Отчёт и границы](docs/verification-2.3.0.md).
+
+![Нижняя часть настроек со статусом AVO и кнопкой диагностики (движок игры, изолированные тестовые объекты)](docs/images/ui-2.3.0-settings-diagnostics-ru.png)
 
 ## Новое в v2.2.0 — Специализация напарников и снабжение
 
@@ -201,7 +211,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.2.0.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.3.0.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

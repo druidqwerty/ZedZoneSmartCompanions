@@ -1,0 +1,30 @@
+{
+  "dll_sha256": "1274472a79bf91cfc37cb57c5922569f088b5f7b3b1de5cad201aef7c6bd925d",
+  "version": "2.3.0",
+  "failures": 0,
+  "tactical_cases": "16/16",
+  "specialization_cases": "12/12",
+  "cases": 300,
+  "restoration": {
+    "save_files": 8386,
+    "gamedata_identical": true,
+    "original_files_restored": true,
+    "screen_preferences_restored": true,
+    "screenshots": 300
+  },
+  "evidence": "backups/ui230-20261112-161229",
+  "passed": 300,
+  "protocol_cases": "13/13",
+  "live": {
+    "returncode": 0,
+    "version_verified": "2.3.0",
+    "has_fail_in_log": false,
+    "pre_file_count": 8386,
+    "post_file_count": 8386,
+    "gamedata_identical": true,
+    "zlivesmoke_removed": true,
+    "installs_restored": true,
+    "steam_appid_removed": true
+  },
+  "scale_privacy_cases": "14/14"
+}
