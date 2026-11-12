@@ -667,25 +667,23 @@ namespace ZedZone.SmartCompanions
 
         private static bool _avoCheckDone = false;
         private static bool _avoDetected = false;
+        private static string _avoDetectSource = "none";
 
-        public static bool IsAvoExpandedLoaded()
+        public static void RefreshAvoDetection()
         {
-            if (_avoCheckDone) return _avoDetected;
-            _avoCheckDone = true;
-            try
+            _avoCheckDone = false;
+        }
+
+        public static bool IsAvoExpandedLoaded() => IsAvoExpandedLoaded(out _);
+
+        public static bool IsAvoExpandedLoaded(out string source)
+        {
+            if (!_avoCheckDone)
             {
-                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    string n = asm?.GetName()?.Name ?? "";
-                    if (n.IndexOf("AVO", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        n.IndexOf("AdvancedSquadControl", StringComparison.OrdinalIgnoreCase) >= 0)
-                    {
-                        _avoDetected = true;
-                        break;
-                    }
-                }
+                _avoCheckDone = true;
+                _avoDetected = PerformanceAndDiagnostics.DetectAvoExpanded(out _avoDetectSource);
             }
-            catch { }
+            source = _avoDetectSource;
             return _avoDetected;
         }
 

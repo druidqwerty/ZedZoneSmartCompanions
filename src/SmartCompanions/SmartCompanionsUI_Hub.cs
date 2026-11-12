@@ -649,7 +649,7 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        private static float _settingsContentHeight = 1260f;
+        private static float _settingsContentHeight = 1310f;
 
         private static float DrawSettingsHeading(float x, float y, float width, string title)
         {
@@ -796,6 +796,33 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.L(lang, "Сбросить позиции UI", "Reset UI Positions", "重置所有窗口位置"), _btnStyle))
             {
                 CompanionConfigStore.ResetUiPositions();
+            }
+            ly += 36f;
+
+            bool avoPresent = CompanionConfigStore.IsAvoExpandedLoaded();
+            string avoTag = avoPresent
+                ? CompanionConfigStore.L(lang, "AVO: активен", "AVO: active", "AVO：已激活")
+                : CompanionConfigStore.L(lang, "AVO: не найден", "AVO: standalone", "AVO：未安装");
+            if (GUI.Button(new Rect(lx, ly, lw, 30f), UiTip(
+                CompanionConfigStore.L(lang,
+                    $"Скопировать диагностический отчёт ({avoTag}, без данных сохранения)",
+                    $"Copy Privacy-Safe Diagnostic Report ({avoTag}, no save data)",
+                    $"复制无隐私存档数据的诊断报告（{avoTag}）"),
+                CompanionConfigStore.L(lang,
+                    "Копирует отчёт в буфер обмена и сохраняет SmartCompanions_Diagnostics.txt без имён, путей и предметов",
+                    "Copies the report to clipboard and writes SmartCompanions_Diagnostics.txt without names, paths or items",
+                    "复制报告至剪贴板并保存诊断文件，不含姓名、路径与存档物品")), _btnStyle))
+            {
+                bool savedOk = PerformanceAndDiagnostics.ExportDiagnosticReport(out _);
+                BaseSortingSystem.SetBanner(savedOk
+                    ? CompanionConfigStore.L(lang,
+                        "Диагностический отчёт скопирован в буфер обмена и сохранён в BepInEx/config (без данных сохранения).",
+                        "Diagnostic report copied to clipboard and saved to BepInEx/config (no save data included).",
+                        "诊断报告已复制至剪贴板并保存至 BepInEx/config（不含任何存档隐私数据）。")
+                    : CompanionConfigStore.L(lang,
+                        "Диагностический отчёт скопирован в буфер обмена.",
+                        "Diagnostic report copied to clipboard.",
+                        "诊断报告已复制至剪贴板。"), 6f);
             }
             ly += 36f;
 

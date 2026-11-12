@@ -172,6 +172,9 @@ namespace ZedZone.SmartCompanions
         {
             if (itemData == null) return StorageCategory.MiscAndValuables;
             int id = itemData.itemId;
+            if (ItemManager.instance != null && PerformanceAndDiagnostics.TryGetMemoizedCategory(id, out var cached))
+                return cached;
+
             ItemAttr attr = null;
             try
             {
@@ -180,7 +183,10 @@ namespace ZedZone.SmartCompanions
             }
             catch { }
 
-            return ClassifyItem(id, attr, itemData);
+            var resolved = ClassifyItem(id, attr, itemData);
+            if (attr != null)
+                PerformanceAndDiagnostics.StoreMemoizedCategory(id, resolved);
+            return resolved;
         }
 
         public static StorageCategory ClassifyItem(int itemId, ItemAttr attr, ItemData itemData = null)

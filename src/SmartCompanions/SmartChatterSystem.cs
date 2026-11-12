@@ -21,10 +21,34 @@ namespace ZedZone.SmartCompanions
 
         private static string _pendingBanterPartnerGuid = "";
         private static float _pendingBanterReplyAt = -1f;
+        private static int _cachedTeammatesFrame = -1;
+        private static int _cachedLocalOwnerFrame = -1;
+        private static readonly List<GOAPAgent> CachedAllTeammates = new List<GOAPAgent>(16);
+        private static readonly List<GOAPAgent> CachedLocalOwnerTeammates = new List<GOAPAgent>(16);
+
+        public static void InvalidateSquadCache()
+        {
+            _cachedTeammatesFrame = -1;
+            _cachedLocalOwnerFrame = -1;
+        }
 
         public static List<GOAPAgent> GetActiveTeammateAgents(bool onlyLocalOwner = false)
         {
-            var result = new List<GOAPAgent>();
+            int frame = Time.frameCount;
+            if (!onlyLocalOwner && frame == _cachedTeammatesFrame && frame > 0)
+            {
+                PerformanceAndDiagnostics.NoteTeammateCache(hit: true);
+                return CachedAllTeammates;
+            }
+            if (onlyLocalOwner && frame == _cachedLocalOwnerFrame && frame > 0)
+            {
+                PerformanceAndDiagnostics.NoteTeammateCache(hit: true);
+                return CachedLocalOwnerTeammates;
+            }
+            PerformanceAndDiagnostics.NoteTeammateCache(hit: false);
+
+            var result = onlyLocalOwner ? CachedLocalOwnerTeammates : CachedAllTeammates;
+            result.Clear();
             var seen = new HashSet<IntPtr>();
             try
             {
@@ -93,6 +117,8 @@ namespace ZedZone.SmartCompanions
                 }
             }
             catch { }
+            if (!onlyLocalOwner) _cachedTeammatesFrame = frame;
+            else _cachedLocalOwnerFrame = frame;
             return result;
         }
 

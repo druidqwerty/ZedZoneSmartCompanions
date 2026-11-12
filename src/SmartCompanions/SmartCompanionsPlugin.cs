@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "2.2.0";
+        public const string PluginVersion = "2.3.0";
 
         internal static ManualLogSource Logs;
 
@@ -31,6 +31,7 @@ namespace ZedZone.SmartCompanions
                 var harmony = new Harmony(PluginGuid);
                 harmony.PatchAll(typeof(SmartCompanionsPlugin).Assembly);
                 int patchCount = harmony.GetPatchedMethods().Count();
+                PerformanceAndDiagnostics.LastPatchedMethodCount = patchCount;
                 LogInfo($"Patched {patchCount} game method(s) via Harmony.");
             }
             catch (Exception e)

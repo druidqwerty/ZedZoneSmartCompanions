@@ -27,8 +27,18 @@ namespace ZedZone.SmartCompanions
         private static readonly Dictionary<string, IntPtr> KnownStableIdToInv = new Dictionary<string, IntPtr>(StringComparer.OrdinalIgnoreCase);
         private static float _lastContainerScanTime = -999f;
         private static float _lastCachePruneTime = -999f;
+        private static readonly List<TerrainObject> CachedWorldTerrainObjs = new List<TerrainObject>(128);
+        private static Vector2 _cachedTerrainCenter = new Vector2(-99999f, -99999f);
+        private static float _cachedTerrainRadius = -1f;
+        private static float _cachedTerrainAt = -999f;
         public static string LastSortStatusBanner = "";
         public static float LastSortStatusBannerUntil = -1f;
+
+        public static void InvalidateTerrainScanCache()
+        {
+            _cachedTerrainAt = -999f;
+            CachedWorldTerrainObjs.Clear();
+        }
 
         public static void RegisterExternalInventoryAnchor(InventoryData inv, Transform anchor, string label = null)
         {
@@ -289,7 +299,33 @@ namespace ZedZone.SmartCompanions
 
         public static List<TerrainObject> CollectWorldTerrainObjects(Vector2 center, float maxRadius)
         {
-            var result = new List<TerrainObject>();
+            float now = Time.unscaledTime;
+            if (now - _cachedTerrainAt < 1.75f &&
+                (center - _cachedTerrainCenter).sqrMagnitude <= 4.0f &&
+                maxRadius <= _cachedTerrainRadius &&
+                CachedWorldTerrainObjs.Count > 0)
+            {
+                PerformanceAndDiagnostics.NoteTerrainScanCache(hit: true);
+                if (Mathf.Abs(maxRadius - _cachedTerrainRadius) < 0.05f)
+                    return CachedWorldTerrainObjs;
+
+                float subSqr = maxRadius * maxRadius;
+                var subset = new List<TerrainObject>(CachedWorldTerrainObjs.Count);
+                for (int i = 0; i < CachedWorldTerrainObjs.Count; i++)
+                {
+                    var t = CachedWorldTerrainObjs[i];
+                    if (Il2CppSafe.IsAliveUnity(t) && ((Vector2)t.transform.position - center).sqrMagnitude <= subSqr)
+                        subset.Add(t);
+                }
+                return subset;
+            }
+            PerformanceAndDiagnostics.NoteTerrainScanCache(hit: false);
+
+            var result = CachedWorldTerrainObjs;
+            result.Clear();
+            _cachedTerrainCenter = center;
+            _cachedTerrainRadius = maxRadius;
+            _cachedTerrainAt = now;
             var seen = new HashSet<IntPtr>();
             float maxSqr = maxRadius * maxRadius;
 

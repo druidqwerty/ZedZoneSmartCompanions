@@ -551,16 +551,14 @@ namespace ZedZone.SmartCompanions
 
                 int friendlyCamp = player.characterData?.camp ?? 1;
                 float maxRadarDist = st.EffectiveArchetype == CompanionArchetype.ParanoidPrepper ? 8.5f : 5.8f;
-                for (int i = 0; i < gc.characterList.Count; i++)
+                var hostiles = PerformanceAndDiagnostics.GetActiveHostilesSnapshot(agent, friendlyCamp, now);
+                for (int i = 0; i < hostiles.Count; i++)
                 {
-                    var c = gc.characterList[i];
-                    if (!IsActualHostileCharacter(agent, c, friendlyCamp)) continue;
-
-                    Vector2 toEnemy = (Vector2)c.transform.position - playerPos;
+                    Vector2 toEnemy = hostiles[i].Pos - playerPos;
                     float dist = toEnemy.magnitude;
                     if (dist < 1.2f || dist > maxRadarDist) continue;
 
-                    float dot = Vector2.Dot(playerForward, toEnemy.normalized);
+                    float dot = Vector2.Dot(playerForward, toEnemy / dist);
                     if (dot < -0.30f) // Behind the player's back!
                     {
                         st.LastFlankWarnTime = now;
@@ -901,13 +899,10 @@ namespace ZedZone.SmartCompanions
             float rSqr = radius * radius;
             try
             {
-                var gc = GameController.instance;
-                if (!Il2CppSafe.IsAliveUnity(gc) || gc.characterList == null) return 0;
-                for (int i = 0; i < gc.characterList.Count; i++)
+                var hostiles = PerformanceAndDiagnostics.GetActiveHostilesSnapshot(observer, friendlyCamp, Time.unscaledTime);
+                for (int i = 0; i < hostiles.Count; i++)
                 {
-                    var c = gc.characterList[i];
-                    if (!IsActualHostileCharacter(observer, c, friendlyCamp)) continue;
-                    if (((Vector2)c.transform.position - center).sqrMagnitude <= rSqr)
+                    if ((hostiles[i].Pos - center).sqrMagnitude <= rSqr)
                         count++;
                 }
             }

@@ -70,6 +70,8 @@ namespace ZedZone.SmartCompanions
             if (!force && now - _lastContainerScanTime < 1.5f && CachedContainers.Count > 0)
                 return CachedContainers;
 
+            if (force) InvalidateTerrainScanCache();
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             _lastContainerScanTime = now;
             CachedContainers.Clear();
 
@@ -176,6 +178,11 @@ namespace ZedZone.SmartCompanions
             catch (Exception e)
             {
                 SmartCompanionsPlugin.LogWarning("ScanNearbyContainers failed: " + e.Message);
+            }
+            finally
+            {
+                sw.Stop();
+                PerformanceAndDiagnostics.LastContainerScanMs = sw.Elapsed.TotalMilliseconds;
             }
 
             return CachedContainers;

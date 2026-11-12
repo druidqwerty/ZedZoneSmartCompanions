@@ -133,6 +133,7 @@ namespace ZedZone.SmartCompanions
                     }
                 }
                 SyncCompanionDismissed(npcData.npcGUID);
+                SmartChatterSystem.InvalidateSquadCache();
                 CompanionConfigStore.Save();
             }
             catch { }
@@ -151,6 +152,7 @@ namespace ZedZone.SmartCompanions
                     st.OwnerCharacterId = lid;
                     st.OwnerPlayerName = ResolvePlayerNameByCharacterId(lid);
                 }
+                SmartChatterSystem.InvalidateSquadCache();
                 CompanionConfigStore.Save();
             }
             catch { }

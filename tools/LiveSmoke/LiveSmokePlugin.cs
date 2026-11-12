@@ -147,8 +147,16 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                             }
                             if(TacticalLiveRegression.Tick())
                             {
-                                ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
-                                enabled=false;Application.Quit(TacticalLiveRegression.Succeeded ? 0 : 1);return;
+                                if(!TacticalLiveRegression.Succeeded)
+                                {
+                                    ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
+                                    enabled=false;Application.Quit(1);return;
+                                }
+                                if(SoakAndScaleLiveRegression.Tick())
+                                {
+                                    ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
+                                    enabled=false;Application.Quit(SoakAndScaleLiveRegression.Succeeded ? 0 : 1);return;
+                                }
                             }
                         }
                     }
