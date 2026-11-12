@@ -7,12 +7,20 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.8.1"><strong>Release v1.8.1 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.9.0"><strong>Release v1.9.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v1.9.0 — Safer co-op orders
+
+- **The host checks every order:** only the owning player can change a companion's doctrine or ownership.
+- **No tug-of-war:** simultaneous changes resolve to the first one, and the host re-sends the real state so all screens agree. Quick clicks by the owner still apply in order.
+- **View-only cards** for companions owned by another player (🔒 with the owner's name).
+- **Mixed 1.8.x/1.9.0 sessions keep working**; update both players for full protection.
+- **Verified:** co-op decision table 13/13 in the real game; 270/270 graphical cases; all 8,386 save files unchanged. A real two-player network session is still untested. [Scope and limits](docs/verification-1.9.0.md).
 
 ## New in v1.8.1 — See what every companion is doing
 
@@ -181,7 +189,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.8.1.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.9.0.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 

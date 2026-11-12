@@ -7,12 +7,20 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.8.1"><strong>Скачать релиз v1.8.1 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.9.0"><strong>Скачать релиз v1.9.0 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v1.9.0 — Надёжные приказы в кооперативе
+
+- **Каждый приказ проверяет хост:** менять доктрину или владельца напарника может только его владелец.
+- **Нет перетягивания:** при одновременных изменениях побеждает первое, а хост рассылает настоящее состояние — у всех одинаковая картина. Быстрые клики владельца применяются по порядку.
+- **Только просмотр** для напарников другого игрока (🔒 и имя владельца).
+- **Смешанные сессии 1.8.x/1.9.0 работают**; для полной защиты обновитесь оба.
+- **Проверено:** таблица решений кооператива 13/13 в настоящей игре; 270/270 графических случаев; все 8 386 файлов сохранений не изменились. Настоящая сетевая сессия вдвоём пока не проверена. [Отчёт и границы](docs/verification-1.9.0.md).
 
 ## Новое в v1.8.1 — Видно, чем занят каждый напарник
 
@@ -162,7 +170,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.8.1.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.9.0.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

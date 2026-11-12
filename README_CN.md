@@ -7,12 +7,20 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.8.1"><strong>下载 v1.8.1 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.9.0"><strong>下载 v1.9.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v1.9.0 更新 — 更可靠的联机指令
+
+- **主机校验每条指令：** 只有队友的所有者才能更改其战术学说或归属。
+- **不再互相覆盖：** 同时修改时以先到者为准，主机随即广播真实状态，所有人看到一致的画面；所有者的快速连点按顺序生效。
+- **他人队友仅可查看**（🔒 并显示所有者名称）。
+- **1.8.x 与 1.9.0 混用仍可联机**；双方都更新才能获得完整保护。
+- **已验证：** 游戏内联机决策表 13/13；270/270 个图形测试；8,386 个存档文件均未改变。真实双人联网会话尚未测试。[测试范围与限制](docs/verification-1.9.0.md)。
 
 ## v1.8.1 更新 — 一眼看清每名队友在做什么
 
@@ -136,7 +144,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.8.1.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.9.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

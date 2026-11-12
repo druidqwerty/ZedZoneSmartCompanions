@@ -1,0 +1,16 @@
+{
+  "dll_sha256": "dfc491cea076134c34e435a32e76099c1f32672c77c7f955df928ee58a6286b4",
+  "cases": 270,
+  "restoration": {
+    "save_files": 8386,
+    "gamedata_identical": true,
+    "original_files_restored": true,
+    "screen_preferences_restored": true,
+    "screenshots": 270
+  },
+  "failures": 0,
+  "passed": 270,
+  "version": "1.9.0",
+  "evidence": "backups/ui190-20261112-034004",
+  "protocol_cases": "13/13"
+}
