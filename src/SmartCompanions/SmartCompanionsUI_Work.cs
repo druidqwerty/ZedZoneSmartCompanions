@@ -27,17 +27,17 @@ namespace ZedZone.SmartCompanions
             float bx = area.x + 8f, by = area.y + 6f;
             bool paused = BaseWorkManager.Paused;
             GUI.Label(new Rect(bx + 8f, by, area.width - 24f, 28f), paused
-                ? CompanionConfigStore.L(lang, $"\u23f8 \u041f\u0410\u0423\u0417\u0410  \u00b7  \u0437\u0430\u043d\u044f\u0442\u044b {busy}  \u00b7  \u043d\u0435\u0441\u0443\u0442 {carrying} \u043f\u0440\u0435\u0434\u043c.  \u00b7  \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u043b\u0438\u0441\u044c {stopped}",
-                    $"\u23f8 PAUSED  \u00b7  busy {busy}  \u00b7  carrying {carrying} items  \u00b7  stopped {stopped}",
-                    $"\u23f8 \u5df2\u6682\u505c  \u00b7  \u5fd9\u788c {busy}  \u00b7  \u643a\u5e26 {carrying} \u4ef6  \u00b7  \u5df2\u505c\u6b62 {stopped}")
+                ? CompanionConfigStore.L(lang, $"\u041f\u0410\u0423\u0417\u0410  \u00b7  \u0437\u0430\u043d\u044f\u0442\u044b {busy}  \u00b7  \u043d\u0435\u0441\u0443\u0442 {carrying} \u043f\u0440\u0435\u0434\u043c.  \u00b7  \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u043b\u0438\u0441\u044c {stopped}",
+                    $"PAUSED  \u00b7  busy {busy}  \u00b7  carrying {carrying} items  \u00b7  stopped {stopped}",
+                    $"\u5df2\u6682\u505c  \u00b7  \u5fd9\u788c {busy}  \u00b7  \u643a\u5e26 {carrying} \u4ef6  \u00b7  \u5df2\u505c\u6b62 {stopped}")
                 : CompanionConfigStore.L(lang, $"\u0420\u0430\u0431\u043e\u0442\u0430 \u0431\u0430\u0437\u044b  \u00b7  \u0437\u0430\u043d\u044f\u0442\u044b {busy}  \u00b7  \u043d\u0435\u0441\u0443\u0442 {carrying} \u043f\u0440\u0435\u0434\u043c.  \u00b7  \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u043b\u0438\u0441\u044c {stopped}",
                     $"Base work  \u00b7  busy {busy}  \u00b7  carrying {carrying} items  \u00b7  stopped {stopped}",
                     $"\u57fa\u5730\u5de5\u4f5c  \u00b7  \u5fd9\u788c {busy}  \u00b7  \u643a\u5e26 {carrying} \u4ef6  \u00b7  \u5df2\u505c\u6b62 {stopped}"), _subHeaderStyle);
             by += 34f;
             float w4 = (area.width - 16f - 18f) / 4f;
             if (GUI.Button(new Rect(bx, by, w4, 30f), UiTip(paused
-                    ? CompanionConfigStore.L(lang, "\u25b6 \u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c", "\u25b6 Resume", "\u25b6 \u7ee7\u7eed")
-                    : CompanionConfigStore.L(lang, "\u23f8 \u041f\u0430\u0443\u0437\u0430", "\u23f8 Pause", "\u23f8 \u6682\u505c"),
+                    ? CompanionConfigStore.L(lang, "\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c", "Resume", "\u7ee7\u7eed")
+                    : CompanionConfigStore.L(lang, "\u041f\u0430\u0443\u0437\u0430", "Pause", "\u6682\u505c"),
                     CompanionConfigStore.L(lang, "\u041d\u0430 \u043f\u0430\u0443\u0437\u0435 \u043d\u0430\u043f\u0430\u0440\u043d\u0438\u043a\u0438 \u043d\u0435 \u0431\u0435\u0440\u0443\u0442 \u043d\u043e\u0432\u0443\u044e \u0440\u0430\u0431\u043e\u0442\u0443, \u043d\u0435\u0441\u0443\u0442 \u0432\u0435\u0449\u0438 \u043f\u0440\u0438 \u0441\u0435\u0431\u0435 \u0438 \u0438\u0434\u0443\u0442 \u0437\u0430 \u0432\u0430\u043c\u0438",
                         "While paused, companions take no new work, keep carried items and follow you", "\u6682\u505c\u65f6\u961f\u53cb\u4e0d\u63a5\u65b0\u5de5\u4f5c\uff0c\u4fdd\u7559\u643a\u5e26\u7269\u54c1\u5e76\u8ddf\u968f\u4f60")),
                 paused ? _catOnStyle : _btnStyle))
@@ -124,7 +124,7 @@ namespace ZedZone.SmartCompanions
                 detail += CompanionConfigStore.L(lang, $"  \u00b7  \u043d\u0435\u0441\u0451\u0442 {st.CarryBuffer.Count} \u043f\u0440\u0435\u0434\u043c.", $"  \u00b7  carrying {st.CarryBuffer.Count}", $"  \u00b7  \u643a\u5e26 {st.CarryBuffer.Count} \u4ef6");
             if (st.IsLootingActive && st.LootQueue.Count > 0)
                 detail += CompanionConfigStore.L(lang, $"  \u00b7  \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c \u0442\u043e\u0447\u0435\u043a: {st.LootQueue.Count}", $"  \u00b7  stops left: {st.LootQueue.Count}", $"  \u00b7  \u5269\u4f59\u5730\u70b9\uff1a{st.LootQueue.Count}");
-            GUI.Label(new Rect(x, y, w, 26f), detail, _labelStyle);
+            GUI.Label(new Rect(x, y, w, 26f), UiSafe(detail), _labelStyle);
         }
     }
 }

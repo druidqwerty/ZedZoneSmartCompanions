@@ -40,10 +40,10 @@ namespace ZedZone.SmartCompanions
             CompanionConfigStore.BaseWorkPaused = paused;
             if (!fromNetwork) MultiplayerSyncSystem.SyncBaseWorkPause(paused);
             BaseSortingSystem.SetBanner(paused
-                ? CompanionConfigStore.L("⏸ Работа базы на паузе: напарники держат вещи при себе и ждут.",
-                    "⏸ Base work paused: companions keep what they carry and wait.",
-                    "⏸ 基地工作已暂停：队友保留携带的物品并等待。")
-                : CompanionConfigStore.L("▶ Работа базы продолжается.", "▶ Base work resumed.", "▶ 基地工作已恢复。"));
+                ? CompanionConfigStore.L("Работа базы на паузе: напарники держат вещи при себе и ждут.",
+                    "Base work paused: companions keep what they carry and wait.",
+                    "基地工作已暂停：队友保留携带的物品并等待。")
+                : CompanionConfigStore.L("Работа базы продолжается.", "Base work resumed.", "基地工作已恢复。"));
         }
 
         public static void CancelWork(GOAPAgent agent, CompanionRuntimeState st)

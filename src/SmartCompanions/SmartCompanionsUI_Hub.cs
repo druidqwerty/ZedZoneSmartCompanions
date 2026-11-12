@@ -235,7 +235,7 @@ namespace ZedZone.SmartCompanions
                 if (!canCommand)
                 {
                     GUI.Label(new Rect(cx + innerW - 360f, cy, 175f, 24f), UiTip(
-                        CompanionConfigStore.L(lang, "🔒 только просмотр", "🔒 view only", "🔒 仅查看"),
+                        CompanionConfigStore.L(lang, "только просмотр", "view only", "仅查看"),
                         CompanionConfigStore.L(lang, $"Приказы этому напарнику отдаёт {controllerName}",
                             $"Only {controllerName} can give orders to this companion", $"只有 {controllerName} 能指挥这名队友")), _labelStyle);
                     GUI.enabled = false;
@@ -264,7 +264,7 @@ namespace ZedZone.SmartCompanions
                 _labelStyle.wordWrap = wrapWas;
                 GUI.color = prevColor;
                 GUI.Label(new Rect(cx + innerW * 0.41f + statusW + 4f, cy, innerW * 0.59f - statusW - 4f, 28f),
-                    UiTip($"{statusDetail}  |  K:{st.KillsThisSession} S:{st.SortedItemsThisSession} C:{st.ChoresDoneThisSession}",
+                    UiTip(UiSafe($"{statusDetail}  |  K:{st.KillsThisSession} S:{st.SortedItemsThisSession} C:{st.ChoresDoneThisSession}"),
                         CompanionConfigStore.L(lang, "K — убийства, S — разложено предметов, C — бытовые дела за сессию",
                             "K — kills, S — items sorted, C — camp chores this session", "K—击杀，S—整理物品，C—本局完成的内务")), _labelStyle);
 

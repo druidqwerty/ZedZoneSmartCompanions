@@ -243,7 +243,7 @@ namespace ZedZone.SmartCompanions
             {
                 float bw = Mathf.Min(720f, ViewportWidth - 40f);
                 var bRect = new Rect((ViewportWidth - bw) * 0.5f, 10f, bw, 32f);
-                GUI.Box(bRect, BaseSortingSystem.LastSortStatusBanner, _bannerStyle);
+                GUI.Box(bRect, UiSafe(BaseSortingSystem.LastSortStatusBanner), _bannerStyle);
             }
 
             // 2. Mini HUD bar at top-right (unless main window is open)

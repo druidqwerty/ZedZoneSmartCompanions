@@ -136,6 +136,32 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.L(lang, $"Показано {shown}/{total}", $"Shown {shown}/{total}", $"显示 {shown}/{total}"), _labelStyle);
         }
 
+        private static readonly System.Collections.Generic.Dictionary<char, bool> GlyphCache = new System.Collections.Generic.Dictionary<char, bool>();
+
+        /// <summary>Removes glyphs the interface font cannot draw (emoji, pause/play symbols) so they never show as boxes.</summary>
+        internal static string UiSafe(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            Font font = null;
+            try { font = GetInterfaceFont(); } catch { }
+            var sb = new System.Text.StringBuilder(text.Length);
+            foreach (char c in text)
+            {
+                if (char.IsSurrogate(c) || c == '\uFE0F' || c == '\u200D') continue;
+                if (c >= '\u2000' && font != null)
+                {
+                    if (!GlyphCache.TryGetValue(c, out bool ok))
+                    {
+                        try { ok = font.HasCharacter(c); } catch { ok = true; }
+                        GlyphCache[c] = ok;
+                    }
+                    if (!ok) continue;
+                }
+                sb.Append(c);
+            }
+            return sb.ToString().Replace("  ", " ").Trim();
+        }
+
         // IL2CPP interop strips GUIContent(string, string); use the three-argument overload.
         internal static GUIContent UiTip(string text, string tip) => new GUIContent(text, (Texture)null, tip ?? "");
 
