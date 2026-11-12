@@ -205,6 +205,16 @@ namespace ZedZone.SmartCompanions
         WildContainer = 2
     }
 
+    // 2.0.0: which automatic base work a companion volunteers for. Direct orders always apply.
+    public enum CompanionWorkRole
+    {
+        Any = 0,
+        Sorter = 1,
+        Scavenger = 2,
+        Camp = 3,
+        Off = 4
+    }
+
     public enum CompanionBlockReason
     {
         None = 0,
@@ -212,7 +222,9 @@ namespace ZedZone.SmartCompanions
         NoStorageSpace = 2,
         NoMarkedBoxes = 3,
         NothingToDo = 4,
-        InterruptedByCombat = 5
+        InterruptedByCombat = 5,
+        CancelledByPlayer = 6,
+        WorkPaused = 7
     }
 
     public class PhysicalLootStop
@@ -259,6 +271,7 @@ namespace ZedZone.SmartCompanions
         public bool AllowAmmoShare = true;
         public bool AllowAutoDropoffAtBase = true;
         public bool AllowBaseChores = true;
+        public CompanionWorkRole WorkRole = CompanionWorkRole.Any;
 
         public string CurrentTaskText = "";
         public int KillsThisSession = 0;
@@ -530,6 +543,7 @@ namespace ZedZone.SmartCompanions
         public static bool EnableBaseAutoDropoff = true;
         public static bool EnableWorldNpcChatter = true;
         public static bool EnableBaseChores = true;
+        public static bool BaseWorkPaused = false;
         public static bool EnableSmartFlashlight = true;
         public static bool EnablePlayerRescue = true;
         public static bool ShowHudBadge = true;
@@ -804,7 +818,7 @@ namespace ZedZone.SmartCompanions
                     var safeName = (c.LastKnownName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
                     var safeOwnerId = (c.OwnerCharacterId ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
                     var safeOwnerName = (c.OwnerPlayerName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
-                    sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}|{(int)c.Archetype}|{c.ExperiencePoints}|{c.AllowBaseChores}|{safeOwnerId}|{safeOwnerName}");
+                    sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}|{(int)c.Archetype}|{c.ExperiencePoints}|{c.AllowBaseChores}|{safeOwnerId}|{safeOwnerName}|{(int)c.WorkRole}");
                 }
 
                 File.WriteAllText(SaveFilePath, sb.ToString(), Encoding.UTF8);
@@ -940,6 +954,8 @@ namespace ZedZone.SmartCompanions
                         if (parts.Length >= 12 && bool.TryParse(parts[11], out var chParsed)) chores = chParsed;
                         var ownerId = parts.Length >= 13 ? parts[12] : "";
                         var ownerName = parts.Length >= 14 ? parts[13] : "";
+                        var role = CompanionWorkRole.Any;
+                        if (parts.Length >= 15 && int.TryParse(parts[14], out var roleInt)) role = (CompanionWorkRole)Mathf.Clamp(roleInt, 0, 4);
 
                         CompanionStates[guid] = new CompanionRuntimeState
                         {
@@ -955,7 +971,8 @@ namespace ZedZone.SmartCompanions
                             AllowBaseChores = chores,
                             LastKnownName = name,
                             OwnerCharacterId = ownerId,
-                            OwnerPlayerName = ownerName
+                            OwnerPlayerName = ownerName,
+                            WorkRole = role
                         };
                     }
                 }

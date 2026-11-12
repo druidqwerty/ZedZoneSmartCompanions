@@ -58,20 +58,23 @@ namespace ZedZone.SmartCompanions
             }
 
             y += 36f;
+            // Tab indices stay stable (0 squad, 1 base, 2 chatter, 3 settings, 4 work); display order differs.
+            var tabOrder = new[] { 0, 4, 1, 2, 3 };
             var tabs = new[]
             {
                 CompanionConfigStore.L(lang, "01  ОТРЯД", "01  SQUAD", "01  队伍"),
-                CompanionConfigStore.L(lang, "02  БАЗА", "02  BASE", "02  基地"),
-                CompanionConfigStore.L(lang, "03  РЕПЛИКИ", "03  CHATTER", "03  对话"),
-                CompanionConfigStore.L(lang, "04  НАСТРОЙКИ", "04  SETTINGS", "04  设置")
+                CompanionConfigStore.L(lang, "02  РАБОТА", "02  WORK", "02  工作"),
+                CompanionConfigStore.L(lang, "03  БАЗА", "03  BASE", "03  基地"),
+                CompanionConfigStore.L(lang, "04  РЕПЛИКИ", "04  CHATTER", "04  对话"),
+                CompanionConfigStore.L(lang, "05  НАСТРОЙКИ", "05  SETTINGS", "05  设置")
             };
-            float tabW = (w - 24f) / tabs.Length;
+            float tabW = (w - 8f * (tabs.Length - 1)) / tabs.Length;
             for (int i = 0; i < tabs.Length; i++)
                 if (GUI.Button(new Rect(x + i * (tabW + 8f), y, tabW, 34f), tabs[i],
-                    _activeTab == i ? _catOnStyle : _btnStyle))
+                    _activeTab == tabOrder[i] ? _catOnStyle : _btnStyle))
                 {
-                    _activeTab = i;
-                    if (i == 1) BaseSortingSystem.ScanNearbyContainers(force: true);
+                    _activeTab = tabOrder[i];
+                    if (_activeTab == 1) BaseSortingSystem.ScanNearbyContainers(force: true);
                 }
             y += 44f;
             var contentRect = new Rect(x, y, w, r.height - (y - r.y) - 36f);
@@ -85,6 +88,7 @@ namespace ZedZone.SmartCompanions
                 if (_activeTab == 0) DrawTabSquad(contentRect, lang);
                 else if (_activeTab == 1) DrawTabBaseBoxes(contentRect, lang);
                 else if (_activeTab == 2) DrawTabChatter(contentRect, lang);
+                else if (_activeTab == 4) DrawTabWork(contentRect, lang);
                 else DrawTabSettings(contentRect, lang);
             }
             catch (Exception error)

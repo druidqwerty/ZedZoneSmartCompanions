@@ -132,7 +132,8 @@ namespace ZedZone.SmartCompanions
                 string basicCmd = ag.npcData.basicCommand ?? "";
                 bool isOrderedCollect = basicCmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) ||
                                         basicCmd.EndsWith("CollectSpecifiedItem", StringComparison.OrdinalIgnoreCase);
-                if (!st.AllowAutoLootNearby && !isOrderedCollect) continue;
+                if (!isOrderedCollect && (!st.AllowAutoLootNearby ||
+                    !BaseWorkManager.MayStartAutomaticWork(st, BaseWorkManager.AllowsScavenging))) continue;
                 if (now - st.LastAutoLootTickTime < (isOrderedCollect ? 3.5f : 5.5f)) continue;
 
                 st.LastAutoLootTickTime = now;

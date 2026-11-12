@@ -69,6 +69,8 @@ namespace ZedZone.SmartCompanions
             bool silentIfEmpty = false,
             Vector2? explicitSearchCenter = null)
         {
+            if (BaseWorkManager.Paused && !silentIfEmpty)
+                BaseWorkManager.SetPaused(false);
             if (MultiplayerSyncSystem.IsMultiplayerClient)
             {
                 MultiplayerSyncSystem.SendPacketToHost("LOOT|1");

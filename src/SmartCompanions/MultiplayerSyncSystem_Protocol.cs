@@ -136,11 +136,19 @@ namespace ZedZone.SmartCompanions
                 if (bumpRevision) st.StateRevision++;
                 int rev = Math.Max(1, st.StateRevision);
                 string sender = (GetLocalPlayerCharacterId() ?? "").Replace("|", "/");
-                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}|{rev}|{sender}";
+                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}|{rev}|{sender}|{(int)st.WorkRole}";
                 if (IsMultiplayerHost) BroadcastPacketFromHost(body);
                 else if (IsMultiplayerClient) SendPacketToHost(body);
             }
             catch { }
+        }
+
+        public static void SyncBaseWorkPause(bool paused)
+        {
+            if (!IsMultiplayerOnline) return;
+            string body = "PAUSE|" + (paused ? "1" : "0");
+            if (IsMultiplayerHost) BroadcastPacketFromHost(body);
+            else if (IsMultiplayerClient) SendPacketToHost(body);
         }
 
         public static void SendCrossPlayerHeal(HumanCharacterController targetPlayer, float healHp, bool clearWounds, string healerName)
@@ -173,6 +181,7 @@ namespace ZedZone.SmartCompanions
                     if (r.Categories == StorageCategory.None && !r.IsDropoffSource) continue;
                     SyncBoxRuleChange(r, null);
                 }
+                BroadcastPacketFromHost("PAUSE|" + (CompanionConfigStore.BaseWorkPaused ? "1" : "0"));
                 foreach (var kv in CompanionConfigStore.CompanionStates)
                 {
                     SyncCompanionStateChange(kv.Value, bumpRevision: false);
@@ -281,6 +290,8 @@ namespace ZedZone.SmartCompanions
                     int packetRev = 0;
                     if (parts.Length >= 6) int.TryParse(parts[5], out packetRev);
                     string senderCharId = parts.Length >= 7 ? parts[6] : "";
+                    int roleInt = -1;
+                    if (parts.Length >= 8 && !int.TryParse(parts[7], out roleInt)) roleInt = -1;
 
                     var st = CompanionConfigStore.GetOrCreateCompanion(guid);
                     if (receivedOnHost)
@@ -299,6 +310,7 @@ namespace ZedZone.SmartCompanions
                         st.StateRevision = Math.Max(st.StateRevision, packetRev);
                     }
                     st.Doctrine = (TacticalDoctrine)Mathf.Clamp(docInt, 0, 5);
+                    if (roleInt >= 0) st.WorkRole = (CompanionWorkRole)Mathf.Clamp(roleInt, 0, 4);
                     if (!string.IsNullOrEmpty(ownerId)) st.OwnerCharacterId = ownerId;
                     if (!string.IsNullOrEmpty(ownerName)) st.OwnerPlayerName = ownerName;
 
@@ -323,6 +335,14 @@ namespace ZedZone.SmartCompanions
                     string healerName = parts[4];
 
                     ApplyReceivedCrossPlayerHeal(targetCharId, hpGain, clearWoundsInt != 0, healerName);
+                    if (receivedOnHost)
+                        BroadcastPacketFromHost(body, senderPeer);
+                    return true;
+                }
+
+                if (cmd == "PAUSE" && parts.Length >= 2)
+                {
+                    BaseWorkManager.SetPaused(parts[1] == "1", fromNetwork: true);
                     if (receivedOnHost)
                         BroadcastPacketFromHost(body, senderPeer);
                     return true;

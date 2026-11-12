@@ -8,6 +8,9 @@ namespace ZedZone.SmartCompanions
     {
         public static void CommandSortBase(GOAPAgent specificAgent = null, InventoryData extraSourceContainer = null, bool instant = false)
         {
+            // A direct whole-squad order ends a base-work pause.
+            if (BaseWorkManager.Paused && specificAgent == null && extraSourceContainer == null)
+                BaseWorkManager.SetPaused(false);
             if (MultiplayerSyncSystem.IsMultiplayerClient)
             {
                 MultiplayerSyncSystem.SendPacketToHost("SORT|1");
@@ -38,7 +41,14 @@ namespace ZedZone.SmartCompanions
             if (Il2CppSafe.IsAliveUnity(specificAgent))
                 workers.Add(specificAgent);
             else
-                workers.AddRange(SmartChatterSystem.GetActiveTeammateAgents());
+            {
+                foreach (var candidate in SmartChatterSystem.GetActiveTeammateAgents())
+                {
+                    if (!Il2CppSafe.IsAliveUnity(candidate) || !Il2CppSafe.IsAlive(candidate.npcData)) continue;
+                    var candidateState = CompanionConfigStore.GetOrCreateCompanion(candidate.npcData.npcGUID, candidate.npcData.characterData?.characterName);
+                    if (BaseWorkManager.AllowsSorting(candidateState)) workers.Add(candidate);
+                }
+            }
 
             if (workers.Count == 0)
             {
@@ -167,6 +177,7 @@ namespace ZedZone.SmartCompanions
 
                 // Automatic Base Drop-off when returning near marked base chests out of combat (walks to each chest!)
                 if (!st.HasAnyPhysicalTask && CompanionConfigStore.EnableBaseAutoDropoff && st.AllowAutoDropoffAtBase &&
+                    BaseWorkManager.MayStartAutomaticWork(st, BaseWorkManager.AllowsAutoDropoff) &&
                     !Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && now - st.LastAutoDropoffTime > 20f)
                 {
                     TryAutoDropoffAtBase(ag, st, now);

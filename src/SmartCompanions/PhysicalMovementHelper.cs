@@ -219,6 +219,13 @@ namespace ZedZone.SmartCompanions
                 return false;
             }
 
+            if (BaseWorkManager.Paused)
+            {
+                // Paused: keep the job and carried items, follow the player natively, resume later.
+                BaseWorkManager.HoldJobWhilePaused(agent, st);
+                return false;
+            }
+
             if (st.IsSortingActive)
             {
                 BaseSortingSystem.StepSortingJobForAgent(agent, st);

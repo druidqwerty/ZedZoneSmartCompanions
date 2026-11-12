@@ -96,7 +96,8 @@ namespace ZedZone.SmartCompanions
                     continue;
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
-                if (!st.AllowBaseChores || st.HasAnyPhysicalTask) continue;
+                if (!st.AllowBaseChores || st.HasAnyPhysicalTask ||
+                    !BaseWorkManager.MayStartAutomaticWork(st, BaseWorkManager.AllowsChores)) continue;
                 if (now - st.LastChoreTime < 22f) continue;
 
                 if (TryPerformCampfireChore(ag, st, gc, now)) continue;
@@ -292,6 +293,7 @@ namespace ZedZone.SmartCompanions
             try
             {
                 if (!CompanionConfigStore.EnableBaseAutoDropoff || !st.AllowAutoDropoffAtBase) return false;
+                if (!BaseWorkManager.MayStartAutomaticWork(st, BaseWorkManager.AllowsChores)) return false;
                 if (player.isDriving) return false;
 
                 int started = CommandUnloadVehiclesToBase(ag, silentIfEmpty: true);
