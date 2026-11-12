@@ -7,12 +7,23 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.9.0"><strong>下载 v1.9.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.0.0"><strong>下载 v2.0.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v2.0.0 更新 — 基地工作面板
+
+- **新的“工作”标签页（F8 第二页）：** 每名队友的状态、当前工作、携带物品、剩余搜刮点及停工原因一目了然。
+- **工作角色：** 任意工作、仓管、拾荒者、营地或不干活。角色只限制自动工作和全队指令；对单个队友的直接命令始终执行。
+- **暂停 / 继续：** 队友保留当前工作和携带物品并跟随你；继续后完成剩余工作。直接下达整理或搜刮命令会结束暂停。
+- **取消** 单个或全部工作；物品留在背包里，不会丢弃或瞬移。
+- **联机：** 角色和暂停经主机校验的指令系统同步；他人队友仅可查看。
+- **已验证：** 游戏内实测战斗、走位拾取与箱间搬运（搬运途中暂停4秒后继续，0次瞬移）；含新标签页的300/300个图形测试；8,386 个存档文件均未改变。[测试范围与限制](docs/verification-2.0.0.md)。
+
+![工作面板（游戏引擎中的隔离测试）](docs/images/ui-2.0.0-work-zh.png)
 
 ## v1.9.0 更新 — 更可靠的联机指令
 
@@ -144,7 +155,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-1.9.0.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.0.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

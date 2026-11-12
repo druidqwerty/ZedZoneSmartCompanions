@@ -7,12 +7,23 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.9.0"><strong>Скачать релиз v1.9.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.0.0"><strong>Скачать релиз v2.0.0 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v2.0.0 — Доска работ базы
+
+- **Новая вкладка «РАБОТА» (F8, вторая):** состояние каждого напарника, текущее дело, вещи в руках, оставшиеся точки лута и причина остановки — на одной доске.
+- **Роли:** Любая работа, Кладовщик, Сборщик, Лагерь или Без работы. Роль ограничивает автоматическую работу и приказы всему отряду; прямой приказ конкретному напарнику выполняется всегда.
+- **Пауза / продолжить:** напарники сохраняют дело и вещи и идут за вами; после продолжения доделывают. Прямой приказ сортировки или сбора лута снимает паузу.
+- **Отмена** одного дела или всех; вещи остаются в рюкзаке. Ничего не выбрасывается и не телепортируется.
+- **Кооператив:** роли и пауза проходят через систему приказов с проверкой хостом; чужие напарники — только просмотр.
+- **Проверено:** живой бой, физический лут и переноска между ящиками с паузой на 4 секунды посреди переноски (0 телепортаций) в настоящей игре; 300/300 графических случаев с новой вкладкой; все 8 386 файлов сохранений не изменились. [Отчёт и границы](docs/verification-2.0.0.md).
+
+![Доска работ (движок игры, изолированные тестовые объекты)](docs/images/ui-2.0.0-work-ru.png)
 
 ## Новое в v1.9.0 — Надёжные приказы в кооперативе
 
@@ -170,7 +181,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.9.0.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.0.0.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 
