@@ -163,12 +163,22 @@ namespace ZedZone.SmartCompanions
         }
 
         // IL2CPP interop strips GUIContent(string, string); use the three-argument overload.
-        internal static GUIContent UiTip(string text, string tip) => new GUIContent(text, (Texture)null, tip ?? "");
+        // Tooltips registered by controls drawn in the current hub draw. GUI.tooltip can keep a value from
+        // another tab (its setter is not reliable in this IL2CPP build), so only these may be shown.
+        private static readonly System.Collections.Generic.HashSet<string> TipsThisDraw = new System.Collections.Generic.HashSet<string>();
+
+        internal static void BeginTooltipFrame() => TipsThisDraw.Clear();
+
+        internal static GUIContent UiTip(string text, string tip)
+        {
+            if (!string.IsNullOrEmpty(tip)) TipsThisDraw.Add(tip);
+            return new GUIContent(text, (Texture)null, tip ?? "");
+        }
 
         private static void DrawHoverTooltip(Rect window)
         {
             string tip = GUI.tooltip;
-            if (string.IsNullOrEmpty(tip) || Event.current == null || Event.current.type != EventType.Repaint) return;
+            if (string.IsNullOrEmpty(tip) || !TipsThisDraw.Contains(tip) || Event.current == null || Event.current.type != EventType.Repaint) return;
             EnsureStyles();
             var content = new GUIContent(tip);
             float maxW = Mathf.Min(420f, window.width - 24f);
