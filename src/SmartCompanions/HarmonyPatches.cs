@@ -900,7 +900,13 @@ namespace ZedZone.SmartCompanions
                     return;
 
                 var ag = agentState.npcData.agentCache;
-                if (Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && !ag.mostThreateningCharacter.deadFlag)
+                bool activeCombatThreat = Il2CppSafe.IsAliveUnity(ag) &&
+                    Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) &&
+                    !ag.mostThreateningCharacter.deadFlag &&
+                    CombatResponse.NormalizeCommand(agentState.combatCommand ?? agentState.npcData.combatCommand) != "StopFire" &&
+                    (st == null || st.Doctrine != TacticalDoctrine.Passive) &&
+                    !ag.IsTeammateCombatSuppressed();
+                if (activeCombatThreat)
                     return;
 
                 var leader = Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAliveUnity(ag.leaderCharacter)
