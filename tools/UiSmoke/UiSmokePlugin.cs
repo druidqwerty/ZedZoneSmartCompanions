@@ -80,6 +80,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     if (startArg != null && (!int.TryParse(startArg.Split('=')[1], out _startCase) || _startCase < 0 || _startCase >= Cases))
                         throw new Exception("Invalid matrix start case.");
                     _case = _startCase - 1;
+                    ProtocolRegression.Run();
                     if (Environment.GetCommandLineArgs().Contains("--sc-native-menu-only"))
                     {
                         NativeMenuRegression.VerifyAllLanguages();

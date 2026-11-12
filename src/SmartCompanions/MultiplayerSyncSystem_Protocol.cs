@@ -123,7 +123,7 @@ namespace ZedZone.SmartCompanions
             catch { }
         }
 
-        public static void SyncCompanionStateChange(CompanionRuntimeState st)
+        public static void SyncCompanionStateChange(CompanionRuntimeState st, bool bumpRevision = true)
         {
             if (st == null || string.IsNullOrEmpty(st.NpcGuid) || !IsMultiplayerOnline) return;
             try
@@ -131,7 +131,12 @@ namespace ZedZone.SmartCompanions
                 string ownerId = (st.OwnerCharacterId ?? "").Replace("|", "/");
                 string ownerName = (st.OwnerPlayerName ?? "").Replace("|", "/");
                 if (ownerName.Length > 20) ownerName = ownerName.Substring(0, 20);
-                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}";
+                // Local changes bump the revision (host: authoritative; client: optimistic proposal).
+                // Echoes, rejections and full re-syncs repeat the current revision unchanged.
+                if (bumpRevision) st.StateRevision++;
+                int rev = Math.Max(1, st.StateRevision);
+                string sender = (GetLocalPlayerCharacterId() ?? "").Replace("|", "/");
+                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}|{rev}|{sender}";
                 if (IsMultiplayerHost) BroadcastPacketFromHost(body);
                 else if (IsMultiplayerClient) SendPacketToHost(body);
             }
@@ -170,7 +175,7 @@ namespace ZedZone.SmartCompanions
                 }
                 foreach (var kv in CompanionConfigStore.CompanionStates)
                 {
-                    SyncCompanionStateChange(kv.Value);
+                    SyncCompanionStateChange(kv.Value, bumpRevision: false);
                 }
             }
             catch { }
@@ -273,8 +278,26 @@ namespace ZedZone.SmartCompanions
                     int.TryParse(parts[2], out int docInt);
                     string ownerId = parts[3];
                     string ownerName = parts.Length >= 5 ? parts[4] : "";
+                    int packetRev = 0;
+                    if (parts.Length >= 6) int.TryParse(parts[5], out packetRev);
+                    string senderCharId = parts.Length >= 7 ? parts[6] : "";
 
                     var st = CompanionConfigStore.GetOrCreateCompanion(guid);
+                    if (receivedOnHost)
+                    {
+                        var decision = DecideCompanionChange(st.OwnerCharacterId, senderCharId, ownerId, st.StateRevision, packetRev);
+                        if (decision != CompanionChangeDecision.Accept)
+                        {
+                            NoteRejectedChange(st, decision);
+                            return true;
+                        }
+                        st.StateRevision = Math.Max(st.StateRevision + 1, packetRev);
+                    }
+                    else if (packetRev > 0)
+                    {
+                        // The host is authoritative; never step back below our own optimistic proposal.
+                        st.StateRevision = Math.Max(st.StateRevision, packetRev);
+                    }
                     st.Doctrine = (TacticalDoctrine)Mathf.Clamp(docInt, 0, 5);
                     if (!string.IsNullOrEmpty(ownerId)) st.OwnerCharacterId = ownerId;
                     if (!string.IsNullOrEmpty(ownerName)) st.OwnerPlayerName = ownerName;
@@ -288,7 +311,7 @@ namespace ZedZone.SmartCompanions
                     }
                     CompanionConfigStore.Save();
                     if (receivedOnHost)
-                        BroadcastPacketFromHost(body, senderPeer);
+                        SyncCompanionStateChange(st, bumpRevision: false); // echo the host-stamped revision to everyone, including the sender
                     return true;
                 }
 

@@ -247,6 +247,8 @@ namespace ZedZone.SmartCompanions
         public string LastKnownName = "";
         public string OwnerCharacterId = "";
         public string OwnerPlayerName = "";
+        // Host-authoritative order revision for co-op conflict resolution (1.9.0+, not persisted).
+        public int StateRevision = 0;
         public TacticalDoctrine Doctrine = TacticalDoctrine.Balanced;
         public CompanionArchetype Archetype = CompanionArchetype.Auto;
         public int ExperiencePoints = 0;

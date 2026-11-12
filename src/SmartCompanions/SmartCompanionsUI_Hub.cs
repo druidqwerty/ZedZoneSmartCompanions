@@ -177,11 +177,13 @@ namespace ZedZone.SmartCompanions
             float cardH = 164f;
             var viewRect = new Rect(0, 0, area.width - 20f, teammates.Count * (cardH + 8f));
             BeginScrollArea(new Rect(area.x, listY, area.width, listH), ref _scrollSquad, viewRect, 1);
+            bool baseGuiEnabled = GUI.enabled;
             try
             {
 
             for (int i = 0; i < teammates.Count; i++)
             {
+                GUI.enabled = baseGuiEnabled;
                 try
                 {
                 var ag = teammates[i];
@@ -208,6 +210,8 @@ namespace ZedZone.SmartCompanions
                 int nextXp = CompanionConfigStore.GetNextRankXpThreshold(st.Rank);
                 string archTitle = CompanionConfigStore.GetArchetypeDisplayName(st.EffectiveArchetype, lang);
                 string ownerBadge = "";
+                bool canCommand = true;
+                string controllerName = "";
                 if (MultiplayerSyncSystem.IsMultiplayerOnline)
                 {
                     bool isMine = MultiplayerSyncSystem.IsCompanionOwnedByLocalPlayer(ag.npcData);
@@ -217,11 +221,21 @@ namespace ZedZone.SmartCompanions
                     ownerBadge = isMine
                         ? CompanionConfigStore.L(lang, " [Ваш]", " [Yours]", " [你的]")
                         : $" [{ownerLabel}]";
+                    canCommand = isMine;
+                    controllerName = ownerLabel;
                 }
 
                 float innerW = viewRect.width - 20f;
                 GUI.Label(new Rect(cx, cy, innerW - 190f, 24f),
                     $"{name}{ownerBadge}  ·  {rankTitle}  ·  {st.ExperiencePoints}/{nextXp} XP", _subHeaderStyle);
+                if (!canCommand)
+                {
+                    GUI.Label(new Rect(cx + innerW - 360f, cy, 175f, 24f), UiTip(
+                        CompanionConfigStore.L(lang, "🔒 только просмотр", "🔒 view only", "🔒 仅查看"),
+                        CompanionConfigStore.L(lang, $"Приказы этому напарнику отдаёт {controllerName}",
+                            $"Only {controllerName} can give orders to this companion", $"只有 {controllerName} 能指挥这名队友")), _labelStyle);
+                    GUI.enabled = false;
+                }
                 if (GUI.Button(new Rect(cx + innerW - 180f, cy, 180f, 24f), archTitle, _btnStyle))
                 {
                     st.Archetype = (CompanionArchetype)(((int)st.Archetype + 1) % 6);
@@ -328,7 +342,7 @@ namespace ZedZone.SmartCompanions
             }
 
             }
-            finally { EndScrollArea(); }
+            finally { GUI.enabled = baseGuiEnabled; EndScrollArea(); }
         }
 
         private static void DrawDoctrineButtons(Rect area, GOAPAgent agent, CompanionRuntimeState st, ModLanguage lang)
