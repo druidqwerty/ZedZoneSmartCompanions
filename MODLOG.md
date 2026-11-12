@@ -275,3 +275,10 @@
 - Live acceptance PASS (backups/live-20261112-154729): combat + physical carry + tactical + live ItemData backpack reserve protection + rare-steak ration guard.
 - UI matrix PASS 300/300 + SpecializationRegression 12/12 + TacticalRegression 16/16 + ProtocolRegression 13/13 (backups/ui220-20261112-155349).
 - Published to GitHub v2.2.0, Steam 3836613312 (public), Boosty BOOSTY_2.2.0.md queued.
+
+## 2.3.0 Performance, 15-NPC scale, AVO & diagnostics published (2026-11-12) — FULL ROADMAP COMPLETE
+- DLL 1274472a79bf91cfc37cb57c5922569f088b5f7b3b1de5cad201aef7c6bd925d, ZIP 477f2a3d7fd08eca8c10cfe5dd255800986f100bfb33a5c527df96091ed2e05d.
+- Live acceptance & soak PASS (backups/live-20261112-161122): 80-chest/960-item warehouse routed in 0.11ms (2,897 memo hits), 20-cycle live soak, area-transition CarryBuffer safety flush, co-op reconnect sync, live zero-PII diagnostic audit.
+- UI matrix PASS 300/300 + ScaleAndPrivacyRegression 14/14 + SpecializationRegression 12/12 + TacticalRegression 16/16 + ProtocolRegression 13/13 (backups/ui230-20261112-161229).
+- Published to GitHub v2.3.0, Steam 3836613312 (public, both local Workshop DLL copies verified), local Mods/SmartCompanions updated to 2.3.0 (rollback backups/before-install-2.3.0), cumulative BOOSTY_2.3.0.md queued.
+- Open verification boundaries: real two-player host + client session (human NPC visibility & live co-op sync) and automated mouse-wheel injection.
