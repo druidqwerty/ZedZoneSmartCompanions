@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.3.0"><strong>Скачать релиз v2.3.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.4.0"><strong>Скачать релиз v2.4.0 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v2.4.0 — Гарнизон базы, безопасный отпуск и телеметрия кооператива
+
+- **Режим «Гарнизон базы» (`F8 → Отряд` и радиальное меню):** оставляйте выбранных бойцов охранять периметр лагеря и работать на складе и огороде, не уводя их в дальние рейды.
+- **Безопасный двухшаговый отпуск (`0` телепортаций):** подтверждение перед увольнением с опцией физического подхода к ящику базы или к игроку (`<= 2.45 м`) для аккуратной сдачи оружия, брони и рюкзака.
+- **Индикатор синхронизации кооператива (`F8 → Настройки` и Диагностика):** режим сети, пакеты `SC14`, отклонённые чужие правки и число синхронизированных NPC без личных данных и координат.
+- **Проверено:** живой бой, переноска, тактика, склад на 80 ящиков, удержание гарнизона при уходе игрока на 12 м и физическая сдача снаряжения при отпуске + 300/300 графических случаев; все 8 386 файлов сохранений без изменений. [Отчёт и границы](docs/verification-2.4.0.md).
+
+![Гарнизон базы и двухшаговое подтверждение отпуска (движок игры, изолированные тестовые объекты)](docs/images/ui-2.4.0-garrison-dismiss-ru.png)
 
 ## Новое в v2.3.0 — Производительность, отряды до 15 чел. и диагностика
 
@@ -211,7 +220,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.3.0.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.4.0.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

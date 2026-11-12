@@ -1,0 +1,54 @@
+[Info   :ZED ZONE Smart Companions] Patched 57 game method(s) via Harmony.
+[Info   :ZED ZONE Smart Companions] [SelfVerify] PASS v2.4.0: 60 chatter topics (565 unique RU lines [Rude=349, Clean=216], 290 unique EN lines [Rude=194, Clean=134], 324 unique ZH lines [Rude=190, Clean=134]), 12 storage categories (RU/EN/ZH), 17 custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, MP Sync (Looter=200/Survivor=201) & Hostile Human Combat AI, ModLanguage Auto/RU/EN/ZH verified.
+[Info   :Smart Companions Live Lab] [CombatLive] Prep orlov: equipped=True loaded=5 reserve=32 range=24.
+[Info   :Smart Companions Live Lab] [CombatLive] Isolated one-hostile copied-world arena; temporarily parked 129 other enemies.
+[Info   :Smart Companions Live Lab] [CombatLive] Native LOS clear: tries=1, origin=(-2270.95, 843.84), target=(-2262.95, 843.84), muzzle=(-2270.26, 844.36, 0.00), aim=(-2262.85, 844.65, 0.00).
+[Info   :Smart Companions Live Lab] [CombatLive] Begin phase=0 distance=8m rounds=5 weaponId=406 range=24,00 command=FireAtWill.
+[Info   :Smart Companions Live Lab] [CombatLive] DIAG phase=0 paused=False timeScale=1 enabled(agent/human/target)=True/True/True active(agent/target)=True/True suppressed=False sight=28 inSight=True camp(self/target)=2/1 hostile=True z(self/target)=0/0 downed=False sleeping=False goal=null basic=FollowPlayer teammate=True stateCombat=FireAtWill threats=0 actions=
+[Info   :Smart Companions Live Lab] [CombatLive] Acquired phase=0 target=Zombie_BigHead(Clone) after=0,38s distance=7,43m sight=28,00.
+[Info   :Smart Companions Live Lab] [CombatLive] Weapon changed phase=0: weaponId=406 range=24,00 loaded=5 target=Zombie_BigHead(Clone)#-111308 at 7,22m (testTarget=True); resetting shot baseline (NOT a discharge).
+[Info   :Smart Companions Live Lab] [CombatLive] Same-weapon discharge evidence phase=0 weaponId=406 range=24,00 ammo=5->4 fireFrame=-10->1120 reloading=False.
+[Info   :Smart Companions Live Lab] [CombatLive] PASS native AI discharge phase=0 target=Zombie_BigHead(Clone) distance=7,24m after=1,53s.
+[Info   :Smart Companions Live Lab] [CombatLive] Native LOS clear: tries=11, origin=(-2252.56, 837.84), target=(-2262.95, 843.84), muzzle=(-2253.55, 839.09, 0.00), aim=(-2262.97, 844.74, 0.00).
+[Info   :Smart Companions Live Lab] [CombatLive] Begin phase=1 distance=12m rounds=4 weaponId=406 range=24,00 command=FireAtWill.
+[Info   :Smart Companions Live Lab] [CombatLive] Acquired phase=1 target=Zombie_BigHead(Clone) after=0,02s distance=12,00m sight=28,00.
+[Info   :Smart Companions Live Lab] [CombatLive] DIAG phase=1 paused=False timeScale=1 enabled(agent/human/target)=True/True/True active(agent/target)=True/True suppressed=False sight=28 inSight=True camp(self/target)=2/1 hostile=True z(self/target)=0/0 downed=False sleeping=False goal=EliminateThreat basic=FollowPlayer teammate=True stateCombat=FireAtWill threats=1 actions=RangeAttack,
+[Info   :Smart Companions Live Lab] [CombatLive] Same-weapon discharge evidence phase=1 weaponId=406 range=24,00 ammo=4->3 fireFrame=1120->1164 reloading=False.
+[Info   :Smart Companions Live Lab] [CombatLive] PASS native AI discharge phase=1 target=Zombie_BigHead(Clone) distance=12,00m after=0,81s.
+[Info   :Smart Companions Live Lab] [CombatLive] Native LOS clear: tries=1, origin=(-2270.95, 843.84), target=(-2262.95, 843.84), muzzle=(-2270.27, 845.88, 0.00), aim=(-2263.11, 844.48, 0.00).
+[Info   :Smart Companions Live Lab] [CombatLive] Begin phase=2 distance=8m rounds=3 weaponId=406 range=24,00 command=StopFire.
+[Info   :Smart Companions Live Lab] [CombatLive] Acquired phase=2 target=Zombie_BigHead(Clone) after=0,05s distance=7,76m sight=28,00.
+[Info   :Smart Companions Live Lab] [CombatLive] DIAG phase=2 paused=False timeScale=1 enabled(agent/human/target)=True/True/True active(agent/target)=True/True suppressed=False sight=28 inSight=False camp(self/target)=2/1 hostile=True z(self/target)=0/0 downed=False sleeping=False goal=FollowLeader basic=FollowPlayer teammate=True stateCombat=StopFire threats=1 actions=FollowLeader,
+[Info   :Smart Companions Live Lab] [CombatLive] PASS v1.6.0 Player/Looter(200)/Survivor(201) Guard, Legacy 202 Repair, Wild Leader Guard, EquipmentGuard, QuitTeam Dismissal, Draggable UI, MaxTeamSize=12, CollectResource & Base Chest Protection, Real ItemAttr Categorizer, Filtered UI (filtered=57/68), & Invisible CarryBuffer checks.
+[Info   :Smart Companions Live Lab] [CombatLive] Native LOS clear: tries=3, origin=(-2269.88, 839.84), target=(-2262.95, 843.84), muzzle=(-2270.49, 840.63, 0.00), aim=(-2263.11, 844.43, 0.00).
+[Info   :Smart Companions Live Lab] [CombatLive] Begin phase=3 distance=8m rounds=3 weaponId=406 range=24,00 command=FireAtWill.
+[Info   :Smart Companions Live Lab] [CombatLive] Acquired phase=3 target=Survivor(Clone) after=0,18s distance=7,98m sight=28,00.
+[Info   :Smart Companions Live Lab] [CombatLive] DIAG phase=3 paused=False timeScale=1 enabled(agent/human/target)=True/True/True active(agent/target)=True/False suppressed=False sight=28 inSight=False camp(self/target)=2/1 hostile=True z(self/target)=0/0 downed=False sleeping=False goal=EliminateThreat basic=FollowPlayer teammate=True stateCombat=FireAtWill threats=1 actions=
+[Info   :Smart Companions Live Lab] [CombatLive] Weapon changed phase=3: weaponId=406 range=24,00 loaded=3 target=Survivor(Clone)#-81344 at 7,92m (testTarget=True); resetting shot baseline (NOT a discharge).
+[Info   :Smart Companions Live Lab] [CombatLive] Weapon changed phase=3: weaponId=406 range=24,00 loaded=3 target=Survivor(Clone)#-81344 at 8,73m (testTarget=True); resetting shot baseline (NOT a discharge).
+[Info   :Smart Companions Live Lab] [CombatLive] DIAG phase=3 paused=False timeScale=1 enabled(agent/human/target)=True/True/True active(agent/target)=True/False suppressed=False sight=28 inSight=False camp(self/target)=2/1 hostile=True z(self/target)=0/0 downed=False sleeping=False goal=EliminateThreat basic=FollowPlayer teammate=True stateCombat=FireAtWill threats=1 actions=RangeAttack,
+[Info   :Smart Companions Live Lab] [CombatLive] DIAG phase=3 paused=False timeScale=1 enabled(agent/human/target)=True/True/True active(agent/target)=True/False suppressed=False sight=28 inSight=True camp(self/target)=2/1 hostile=True z(self/target)=0/0 downed=False sleeping=False goal=EliminateThreat basic=FollowPlayer teammate=True stateCombat=FireAtWill threats=1 actions=RangeAttack,
+[Info   :Smart Companions Live Lab] [CombatLive] Same-weapon discharge evidence phase=3 weaponId=406 range=24,00 ammo=3->2 fireFrame=-10->1679 reloading=False.
+[Info   :Smart Companions Live Lab] [CombatLive] PASS native AI discharge phase=3 target=Survivor(Clone) distance=10,34m after=6,09s.
+[Info   :Smart Companions Live Lab] [CombatLive] PASS ranged acquisition/discharge at 8m & 12m (Zombie), StopFire negative case, v1.4.0 MP Sync & 8m Hostile Human NPC ranged discharge.
+[Info   :Smart Companions Live Lab] [PhysicalLive] Started Phase A (Ground Loot): start=(-2262.95, 839.84), target=(-2262.95, 847.84), initialDist=8,00m, itemId=620.
+[Info   :Smart Companions Live Lab] [PhysicalLive] PASS Phase A (Ground Loot Walk): walked=6,99m, arrivalDist=1,09m, after=7,02s, 0 teleports.
+[Info   :Smart Companions Live Lab] [PhysicalLive] Started Phase B (Chest Sort): agentStart=(-2274.95, 843.84), src='supermarket shelf'@(-2275.50, 844.75) (dist=0,56m), dest='supermarket shelf'@(-2274.50, 841.50) (sep=3,40m), cat=MiscAndValuables.
+[Info   :Smart Companions Live Lab] [PhysicalLive] Phase B Pickup verified: walked=0,00m to source chest 'supermarket shelf' (surfaceDist=0,56m), CarryBuffer=1.
+[Info   :Smart Companions Live Lab] [PhysicalLive] Phase B pause started with CarryBuffer=1.
+[Info   :Smart Companions Live Lab] [PhysicalLive] PASS Phase B pause: 4s held, job kept, CarryBuffer=1, nothing deposited; resumed.
+[Info   :Smart Companions Live Lab] [PhysicalLive] PASS Phase B (Chest-to-Chest Carry Walk): totalWalked=1,79m, minSrcDist=0,55m, minDestDist=1,25m, after=2,28s, 0 teleports.
+[Info   :Smart Companions Live Lab] [PhysicalLive] PASS Physical Ground Loot Sweep & Physical Chest-to-Chest Carry Sort with mid-carry pause/resume (0 teleports, walked A+B verified, resumed after 1,03s).
+[Info   :Smart Companions Live Lab] [TacticalLive] Started Phase 0 (Hold Position): hold=(-2267.45, 843.84), playerAt=(-2258.45, 843.84) (dist=9.0m).
+[Info   :Smart Companions Live Lab] [TacticalLive] PASS Phase 0 (Hold Position): held within 0,00m for 2.5s while player was 9m away.
+[Info   :Smart Companions Live Lab] [TacticalLive] Started Phase 1 (Fall Back Here): from=(-2267.45, 843.84) -> to=(-2258.45, 843.84).
+[Info   :Smart Companions Live Lab] [TacticalLive] PASS Phase 1 (Fall Back Here): ran 7,17m to fallback point (finalDist=1,83m) in 1,16s.
+[Info   :Smart Companions Live Lab] [TacticalLive] PASS v2.2.0 live ItemData backpack reserve protection & rare-steak ration guard.
+[Info   :Smart Companions Live Lab] [TacticalLive] PASS Hold Position (0m chase drift), Fall Back Here run, Cover Sector priority, Formation restore & v2.2.0 Live Supply/Reserve guards.
+[Info   :Smart Companions Live Lab] [Soak230] PASS 80-chest / 960-item warehouse benchmark in 0,10ms (memoSize=284).
+[Info   :Smart Companions Live Lab] [Soak230] PASS area-transition CarryBuffer safety flush, cache invalidation & co-op reconnect restoration.
+[Info   :Smart Companions Live Lab] [Soak230] PASS 80-chest/960-item warehouse (<35ms, 2897 memo hits), 15-NPC scale, AVO guard, 20-cycle live soak, transition safety flush, co-op reconnect sync & privacy audit.
+[Info   :Smart Companions Live Lab] [GarrisonLive] Started Phase 0 (Camp Garrison Hold): camp=(-2268.95, 843.84), playerRaid=(-2256.95, 843.84) (12m).
+[Info   :Smart Companions Live Lab] [GarrisonLive] PASS Phase 0 (Camp Garrison): held within 0,40m for 2.5s while player raided 12m away.
+[Info   :Smart Companions Live Lab] [GarrisonLive] Started Phase 1 (SafeDismiss Physical Handover): from=(-2268.95, 843.84) -> to=(-2262.45, 843.84) (6.5m).
+[Info   :Smart Companions Live Lab] [GarrisonLive] PASS Camp Garrison perimeter hold (0m raid chase) & SafeDismiss physical gear handover (walked=4,77m, 0 teleports).

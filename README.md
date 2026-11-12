@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.3.0"><strong>Release v2.3.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.4.0"><strong>Release v2.4.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v2.4.0 — Camp garrison, safe gear handover & co-op telemetry
+
+- **Camp Garrison mode (`F8 → Squad` & radial menu):** leave chosen companions guarding your base perimeter and running storage/crop duties instead of chasing you on distant raids; base sorting continues discovering chests near garrisoned companions while you are away.
+- **Safe two-step dismissal (`0` item teleportation):** confirm before dismissing a companion and optionally have them physically walk over (`<= 2.45 m`) to deposit weapons, armor and backpack items into a marked base chest or your inventory before leaving.
+- **Co-op sync health bar (`F8 → Settings` & Diagnostics):** live network status, `SC14` packets sent/received, rejected unauthorized edits and synced human NPC counts without exposing names, paths or coordinates.
+- **Verified:** live combat + physical carry + tactical orders + 80-chest soak + Camp Garrison hold (12 m raid separation) + SafeDismiss physical walk & handover; 300/300 graphical cases; all 8,386 save files unchanged. [Scope and limits](docs/verification-2.4.0.md).
+
+![Camp Garrison & two-step Safe Dismiss confirmation (real engine, isolated test fixtures)](docs/images/ui-2.4.0-garrison-dismiss-en.png)
 
 ## New in v2.3.0 — Performance, 15-NPC scale & privacy-safe diagnostics
 
@@ -230,7 +239,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.3.0.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.4.0.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 
