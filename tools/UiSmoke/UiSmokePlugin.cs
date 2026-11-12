@@ -47,7 +47,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
         private bool _nativeOnly;
         private float _menuSceneAt = -1f;
         private float _closingAt = -1f;
-        private const int Variants = 9;
+        private const int Variants = 10; // 2.0.0: variant 9 = Work tab
         private int Cases => _profiles.Length * _languages.Length * Variants;
 
         private void Update()
@@ -138,7 +138,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 PrepareResolution(_case / (Variants * _languages.Length));
                 CompanionConfigStore.LanguageMode = _languages[language];
                 SmartCompanionsUI.InvalidateStyles();
-                Tab.SetValue(null, variant == 8 ? 3 : variant >= 4 ? 0 : variant);
+                Tab.SetValue(null, variant == 9 ? 4 : variant == 8 ? 3 : variant >= 4 ? 0 : variant);
+                CompanionConfigStore.BaseWorkPaused = variant == 9 && language == 1; // English work case shows the paused header
                 SquadScroll.SetValue(null, new Vector2(0f, variant == 5 ? 100000f : 0f));
                 SettingsScroll.SetValue(null, new Vector2(0f, variant == 8 ? 100000f : 0f));
                 Centered.SetValue(null, false);

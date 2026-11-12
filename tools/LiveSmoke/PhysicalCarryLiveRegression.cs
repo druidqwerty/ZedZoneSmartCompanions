@@ -17,6 +17,10 @@ namespace ZedZone.SmartCompanions.LiveSmoke
         internal static bool Succeeded;
 
         private static int _phase = -1;
+        // 2.0.0 Phase B pause check: pause base work mid-carry, verify the job and carried items are kept, then resume.
+        private static float _pauseStart = -1f, _pauseDone = -1f;
+        private static int _pausedCarry;
+        private static bool _pauseVerified;
         private static float _phaseStart;
         private static GOAPAgent _agent;
         private static CompanionRuntimeState _state;
@@ -120,11 +124,36 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         {
                             _sawCarryBufferPickup = true;
                             LiveSmokePlugin.Logger.LogInfo($"[PhysicalLive] Phase B Pickup verified: walked={_walkedMeters:F2}m to source chest '{_srcChest.DisplayName}' (surfaceDist={_minSrcDist:F2}m), CarryBuffer={_state.CarryBuffer.Count}.");
+                            if (_pauseStart < 0f)
+                            {
+                                _pauseStart = now;
+                                _pausedCarry = _state.CarryBuffer.Count;
+                                BaseWorkManager.SetPaused(true);
+                                LiveSmokePlugin.Logger.LogInfo($"[PhysicalLive] Phase B pause started with CarryBuffer={_pausedCarry}.");
+                            }
+                        }
+                    }
+
+                    if (_pauseStart >= 0f && !_pauseVerified)
+                    {
+                        if (curDestUnits > _destInitialTotalUnits)
+                            return End(false, "FAIL [Phase B Pause]: item was deposited while base work was paused.");
+                        if (!_state.IsSortingActive || _state.CarryBuffer.Count != _pausedCarry)
+                            return End(false, $"FAIL [Phase B Pause]: job or carried items lost during pause (active={_state.IsSortingActive}, carry={_state.CarryBuffer.Count}/{_pausedCarry}).");
+                        if (now - _pauseStart >= 4f)
+                        {
+                            _pauseVerified = true;
+                            _pauseDone = now;
+                            BaseWorkManager.SetPaused(false);
+                            _phaseStart += now - _pauseStart; // do not count the pause against the timeout
+                            LiveSmokePlugin.Logger.LogInfo($"[PhysicalLive] PASS Phase B pause: 4s held, job kept, CarryBuffer={_state.CarryBuffer.Count}, nothing deposited; resumed.");
                         }
                     }
 
                     if (curDestUnits > _destInitialTotalUnits)
                     {
+                        if (!_pauseVerified)
+                            return End(false, "FAIL [Phase B Pause]: deposit happened before the pause check finished.");
                         if (!_sawCarryBufferPickup)
                             return End(false, "FAIL [TELEPORT DETECTED in Phase B]: item appeared in destination chest without ever entering CarryBuffer!");
                         if (_minDestDist > PhysicalMovementHelper.MaxReachableInteractRadius)
@@ -133,7 +162,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                             return End(false, $"FAIL [Phase B]: sort completed without physical walk (walked={_walkedMeters:F2}m).");
 
                         LiveSmokePlugin.Logger.LogInfo($"[PhysicalLive] PASS Phase B (Chest-to-Chest Carry Walk): totalWalked={_walkedMeters:F2}m, minSrcDist={_minSrcDist:F2}m, minDestDist={_minDestDist:F2}m, after={now - _phaseStart:F2}s, 0 teleports.");
-                        return End(true, $"PASS Physical Ground Loot Sweep & Physical Chest-to-Chest Carry Sort (0 teleports, walked A+B verified).");
+                        return End(true, $"PASS Physical Ground Loot Sweep & Physical Chest-to-Chest Carry Sort with mid-carry pause/resume (0 teleports, walked A+B verified, resumed after {now - _pauseDone:F2}s).");
                     }
 
                     if (now - _phaseStart > 34f)
@@ -425,6 +454,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
         private static bool End(bool ok, string msg)
         {
             ArenaActive = false;
+            CompanionConfigStore.BaseWorkPaused = false;
             Succeeded = ok;
             Finished = true;
             if (ok) LiveSmokePlugin.Logger.LogInfo("[PhysicalLive] " + msg);
