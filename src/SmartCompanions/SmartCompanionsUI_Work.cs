@@ -122,7 +122,7 @@ namespace ZedZone.SmartCompanions
                 return;
             }
 
-            const float rowH = 66f;
+            const float rowH = 68f;
             var view = new Rect(0, 0, area.width - 20f, teammates.Count * (rowH + 6f));
             bool baseEnabled = GUI.enabled;
             BeginScrollArea(new Rect(area.x, listY, area.width, listH), ref _scrollWork, view, 5);
@@ -184,22 +184,22 @@ namespace ZedZone.SmartCompanions
             float x = r.x + 10f, y = r.y + 5f, w = r.width - 20f;
 
             var kind = GetStatusKind(ag, st);
-            GUI.Label(new Rect(x, y, w * 0.22f, 24f), name, _subHeaderStyle);
+            GUI.Label(new Rect(x, y, w * 0.20f, 26f), name, _subHeaderStyle);
             var prev = GUI.color;
             GUI.color = GetStatusColor(kind);
             bool wrap = _labelStyle.wordWrap;
             _labelStyle.wordWrap = false;
-            GUI.Label(new Rect(x + w * 0.22f, y, w * 0.16f, 24f), "● " + GetStatusLabel(kind, lang), _labelStyle);
+            GUI.Label(new Rect(x + w * 0.20f, y, w * 0.14f, 26f), "● " + GetStatusLabel(kind, lang), _labelStyle);
             _labelStyle.wordWrap = wrap;
             GUI.color = prev;
 
             GUI.enabled = baseEnabled && canCommand;
-            float rx = x + w * 0.38f;
-            float rw = w * 0.62f;
-            float gap = 4f;
+            float rx = x + w * 0.34f;
+            float rw = w * 0.66f;
+            float gap = 5f;
             float cw = (rw - gap * 4f) / 5f;
 
-            if (GUI.Button(new Rect(rx, y, cw, 24f), UiTip(
+            if (GUI.Button(new Rect(rx, y, cw, 26f), UiTip(
                 CompanionProfileSystem.GetSpecializationLabel(st.Specialization, lang),
                 CompanionConfigStore.L(lang, "Специализация: Боец / Медик / Снабженец / Сборщик",
                     "Specialization: Fighter / Medic / Supplier / Scavenger", "专精：战斗员/医疗兵/军需官/拾荒者")),
@@ -207,13 +207,13 @@ namespace ZedZone.SmartCompanions
             {
                 CompanionProfileSystem.CycleCompanionSpecialization(ag, st);
             }
-            if (GUI.Button(new Rect(rx + (cw + gap) * 1f, y, cw, 24f),
-                UiTip(BaseWorkManager.GetRoleLabel(st.WorkRole, lang), BaseWorkManager.GetRoleTip(st.WorkRole, lang)), _btnStyle))
+            if (GUI.Button(new Rect(rx + (cw + gap) * 1f, y, cw, 26f),
+                UiTip(CompanionProfileSystem.GetRoleShortLabel(st.WorkRole, lang), BaseWorkManager.GetRoleTip(st.WorkRole, lang)), _btnStyle))
             {
                 st.Specialization = CompanionSpecialization.Custom;
                 BaseWorkManager.CycleRole(st);
             }
-            if (GUI.Button(new Rect(rx + (cw + gap) * 2f, y, cw, 24f), UiTip(
+            if (GUI.Button(new Rect(rx + (cw + gap) * 2f, y, cw, 26f), UiTip(
                 CompanionProfileSystem.GetLoadoutLabel(st.Loadout, lang),
                 CompanionConfigStore.L(lang, "Предпочтительное вооружение (Авто / Стрелок / Ближний бой)",
                     "Preferred weapon loadout (Auto / Ranged / Melee)", "偏好武器配置（自动/远程/近战）")),
@@ -221,7 +221,7 @@ namespace ZedZone.SmartCompanions
             {
                 CompanionProfileSystem.CycleCompanionLoadout(ag, st);
             }
-            if (GUI.Button(new Rect(rx + (cw + gap) * 3f, y, cw, 24f), UiTip(
+            if (GUI.Button(new Rect(rx + (cw + gap) * 3f, y, cw, 26f), UiTip(
                 $"{st.ReserveAmmoMin}/{st.ReserveFoodMin}/{st.ReserveMedMin}",
                 CompanionConfigStore.L(lang, "Неснижаемый резерв в рюкзаке: Патроны / Еда / Медицина (не выгружается при сортировке)",
                     "Non-reducible backpack reserve: Ammo / Food / Medicine (kept during base sorting)",
@@ -230,7 +230,7 @@ namespace ZedZone.SmartCompanions
             {
                 CompanionProfileSystem.CycleCompanionReserves(st);
             }
-            if (GUI.Button(new Rect(rx + (cw + gap) * 4f, y, cw, 24f), UiTip(
+            if (GUI.Button(new Rect(rx + (cw + gap) * 4f, y, cw, 26f), UiTip(
                 CompanionConfigStore.L(lang, "Отменить", "Cancel", "取消"),
                 CompanionConfigStore.L(lang, "Бросить текущую работу; вещи останутся в рюкзаке",
                     "Drop the current job; items stay in the backpack", "放弃当前工作，物品留在背包里")),
@@ -240,7 +240,7 @@ namespace ZedZone.SmartCompanions
             }
             GUI.enabled = baseEnabled;
 
-            y += 30f;
+            y += 32f;
             string detail;
             if (kind == CompanionStatusKind.Blocked) detail = DescribeBlockReason(st, lang);
             else if (st.HasAnyPhysicalTask && BaseWorkManager.Paused)

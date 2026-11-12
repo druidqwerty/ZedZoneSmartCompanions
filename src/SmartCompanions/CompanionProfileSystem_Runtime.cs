@@ -235,5 +235,17 @@ namespace ZedZone.SmartCompanions
                 default: return CompanionConfigStore.L(lang, "Склад -> Лут", "Sort -> Loot", "整理优先");
             }
         }
+
+        public static string GetRoleShortLabel(CompanionWorkRole role, ModLanguage lang)
+        {
+            switch (role)
+            {
+                case CompanionWorkRole.Sorter: return CompanionConfigStore.L(lang, "Склад", "Sorter", "仓管");
+                case CompanionWorkRole.Scavenger: return CompanionConfigStore.L(lang, "Сборщик", "Scavenger", "拾荒");
+                case CompanionWorkRole.Camp: return CompanionConfigStore.L(lang, "Лагерь", "Camp", "营地");
+                case CompanionWorkRole.Off: return CompanionConfigStore.L(lang, "Выкл", "No work", "不干活");
+                default: return CompanionConfigStore.L(lang, "Любая", "Any work", "任意");
+            }
+        }
     }
 }
