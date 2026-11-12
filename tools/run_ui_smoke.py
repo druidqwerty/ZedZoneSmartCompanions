@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import time
+import re
 import winreg
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,7 +15,8 @@ GAME = Path(r"G:\Steam\steamapps\common\ZED ZONE")
 WORKSHOP = Path(r"G:\Steam\steamapps\workshop\content\1211600\3836613312")
 SAVES = Path.home() / "AppData/LocalLow/LevenLiu/ZEDZONE"
 STAMP = time.strftime("%Y%m%d-%H%M%S")
-BACKUP = ROOT / "backups" / ("ui180-" + STAMP)
+VERSION = re.search(r'PluginVersion = "([^"]+)"', (ROOT / "src/SmartCompanions/SmartCompanionsPlugin.cs").read_text(encoding="utf-8-sig")).group(1)
+BACKUP = ROOT / "backups" / ("ui" + VERSION.replace(".", "") + "-" + STAMP)
 OUTPUT = BACKUP / "screenshots"
 REG_PATH = r"Software\LevenLiu\ZEDZONE"
 
@@ -71,7 +73,7 @@ def main():
                 shutil.copy2(ROOT / "src/SmartCompanions/bin/SmartCompanions.dll", path)
             elif path.name == "mod.json":
                 meta = json.loads(path.read_text(encoding="utf-8-sig"))
-                meta["version"] = "1.8.0"
+                meta["version"] = VERSION
                 path.write_text(json.dumps(meta), encoding="utf-8")
         harness_dir.mkdir()
         shutil.copy2(ROOT / "tools/UiSmoke/bin/SmartCompanions.UiSmoke.dll", harness_dir)

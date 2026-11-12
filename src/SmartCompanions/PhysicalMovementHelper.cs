@@ -166,12 +166,18 @@ namespace ZedZone.SmartCompanions
             {
                 hc.movementInput = Vector2.zero;
                 unreachable = true;
+                st.NoteBlocked(CompanionBlockReason.PathBlocked,
+                    !string.IsNullOrEmpty(st.TargetContainerName) && st.SortingPhase == 2 ? st.TargetContainerName :
+                    !string.IsNullOrEmpty(st.SourceContainerName) && st.SortingPhase == 1 ? st.SourceContainerName :
+                    st.ChoreDisplayText);
             }
         }
 
         public static void CancelAllPhysicalTasksOnCombat(GOAPAgent agent, CompanionRuntimeState st)
         {
             if (st == null) return;
+            if (st.HasAnyPhysicalTask)
+                st.NoteBlocked(CompanionBlockReason.InterruptedByCombat);
             if (st.IsSortingActive || st.CarryBuffer.Count > 0)
             {
                 BaseSortingSystem.ReturnCarryBufferWithoutTeleport(agent, st);

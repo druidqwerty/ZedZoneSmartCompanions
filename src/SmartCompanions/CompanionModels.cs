@@ -205,6 +205,16 @@ namespace ZedZone.SmartCompanions
         WildContainer = 2
     }
 
+    public enum CompanionBlockReason
+    {
+        None = 0,
+        PathBlocked = 1,
+        NoStorageSpace = 2,
+        NoMarkedBoxes = 3,
+        NothingToDo = 4,
+        InterruptedByCombat = 5
+    }
+
     public class PhysicalLootStop
     {
         public PhysicalLootKind Kind;
@@ -317,6 +327,18 @@ namespace ZedZone.SmartCompanions
         public bool NavResetDone = false;
         public bool ArrivalInteractStarted = false;
         public float ArrivalInteractUntil = 0f;
+
+        // Why the last physical job stopped; shown in the F8 squad card (1.8.1+).
+        public CompanionBlockReason LastBlockReason = CompanionBlockReason.None;
+        public string LastBlockTarget = "";
+        public float LastBlockTime = -999f;
+
+        public void NoteBlocked(CompanionBlockReason reason, string target = "")
+        {
+            LastBlockReason = reason;
+            LastBlockTarget = target ?? "";
+            LastBlockTime = Time.time;
+        }
 
         public bool HasAnyPhysicalTask => IsSortingActive || IsLootingActive || IsChoreWalkActive;
 

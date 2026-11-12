@@ -23,6 +23,10 @@ namespace ZedZone.SmartCompanions
 
             if (destBoxes.Count == 0)
             {
+                foreach (var idle in SmartChatterSystem.GetActiveTeammateAgents())
+                    if (Il2CppSafe.IsAliveUnity(idle) && Il2CppSafe.IsAlive(idle.npcData))
+                        CompanionConfigStore.GetOrCreateCompanion(idle.npcData.npcGUID, idle.npcData.characterData?.characterName)
+                            .NoteBlocked(CompanionBlockReason.NoMarkedBoxes);
                 SetBanner(CompanionConfigStore.L(
                     "Нет отмеченных ящиков категорий! Откройте нужные ящики на базе (или в F8) и отметьте их категории.",
                     "No marked category chests found! Open your base chests (or press F8) and select their categories first.",
@@ -73,6 +77,11 @@ namespace ZedZone.SmartCompanions
             else
             {
                 int remDrop = InspectRemainingDropoffItems(containers, out var remMask);
+                string remCatsForNote = remDrop > 0 ? ItemCategorizer.FormatCategoriesSummary(remMask, false) : "";
+                foreach (var ag in workers)
+                    if (Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAlive(ag.npcData))
+                        CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName)
+                            .NoteBlocked(remDrop > 0 ? CompanionBlockReason.NoStorageSpace : CompanionBlockReason.NothingToDo, remCatsForNote);
                 if (remDrop > 0)
                 {
                     string remCats = ItemCategorizer.FormatCategoriesSummary(remMask, false);

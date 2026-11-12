@@ -93,6 +93,8 @@ namespace ZedZone.SmartCompanions
                 DrawUiFailure(contentRect, lang);
             }
 
+            DrawHoverTooltip(r);
+
             if (Event.current != null && (Event.current.type == EventType.MouseDown || Event.current.type == EventType.MouseUp) &&
                 r.Contains(Event.current.mousePosition))
             {
@@ -153,6 +155,25 @@ namespace ZedZone.SmartCompanions
                 return;
             }
 
+            var visible = new System.Collections.Generic.List<GOAPAgent>();
+            foreach (var candidate in teammates)
+            {
+                if (!Il2CppSafe.IsAliveUnity(candidate) || !Il2CppSafe.IsAlive(candidate.npcData)) continue;
+                CompanionConfigStore.CompanionStates.TryGetValue(candidate.npcData.npcGUID ?? "", out var candidateState);
+                if (PassesSquadFilter(candidate, candidateState)) visible.Add(candidate);
+            }
+            DrawSquadFilterRow(new Rect(area.x, listY, area.width, 28f), lang, teammates.Count, visible.Count);
+            listY += 34f;
+            listH -= 34f;
+            if (visible.Count == 0)
+            {
+                GUI.Box(new Rect(area.x, listY, area.width, 60f), GUIContent.none, _boxStyle);
+                GUI.Label(new Rect(area.x + 16f, listY + 16f, area.width - 32f, 30f), CompanionConfigStore.L(lang,
+                    "Под этот фильтр сейчас никто не подходит.", "Nobody matches this filter right now.", "当前没有符合此筛选的队友。"), _labelStyle);
+                return;
+            }
+            teammates = visible;
+
             float cardH = 164f;
             var viewRect = new Rect(0, 0, area.width - 20f, teammates.Count * (cardH + 8f));
             BeginScrollArea(new Rect(area.x, listY, area.width, listH), ref _scrollSquad, viewRect, 1);
@@ -207,10 +228,22 @@ namespace ZedZone.SmartCompanions
                     CompanionConfigStore.Save();
                 }
                 cy += 26f;
-                GUI.Label(new Rect(cx, cy, innerW * 0.53f, 28f),
+                GUI.Label(new Rect(cx, cy, innerW * 0.40f, 28f),
                     $"HP {hp:F0}/{maxHp:F0}  ·  {wepName}", _labelStyle);
-                GUI.Label(new Rect(cx + innerW * 0.54f, cy, innerW * 0.46f, 28f),
-                    $"{st.CurrentTaskText}  |  K:{st.KillsThisSession} S:{st.SortedItemsThisSession} C:{st.ChoresDoneThisSession}", _labelStyle);
+                var statusKind = GetStatusKind(ag, st);
+                string statusDetail = statusKind == CompanionStatusKind.Blocked ? DescribeBlockReason(st, lang)
+                    : statusKind == CompanionStatusKind.Combat ? CompanionConfigStore.L(lang, "Работа на паузе до конца боя", "Work paused until the fight ends", "工作暂停至战斗结束")
+                    : statusKind == CompanionStatusKind.Wounded ? CompanionConfigStore.L(lang, $"Голод {hunger:F0} · Жажда {thirst:F0}", $"Food {hunger:F0} · Water {thirst:F0}", $"饱食 {hunger:F0} · 水分 {thirst:F0}")
+                    : st.CurrentTaskText;
+                var prevColor = GUI.color;
+                GUI.color = GetStatusColor(statusKind);
+                GUI.Label(new Rect(cx + innerW * 0.41f, cy, 130f, 28f), UiTip("● " + GetStatusLabel(statusKind, lang),
+                    CompanionConfigStore.L(lang, "Текущее состояние напарника", "Current companion state", "队友当前状态")), _labelStyle);
+                GUI.color = prevColor;
+                GUI.Label(new Rect(cx + innerW * 0.41f + 134f, cy, innerW * 0.59f - 134f, 28f),
+                    UiTip($"{statusDetail}  |  K:{st.KillsThisSession} S:{st.SortedItemsThisSession} C:{st.ChoresDoneThisSession}",
+                        CompanionConfigStore.L(lang, "K — убийства, S — разложено предметов, C — бытовые дела за сессию",
+                            "K — kills, S — items sorted, C — camp chores this session", "K—击杀，S—整理物品，C—本局完成的内务")), _labelStyle);
 
                 // Row 2: Doctrines
                 cy += 26f;
@@ -221,7 +254,8 @@ namespace ZedZone.SmartCompanions
                 cy += 30f;
                 float tw = (viewRect.width - 20f - 20f) / 5f;
                 if (GUI.Button(new Rect(cx, cy, tw, 24f),
-                    (st.AllowFieldMedic ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Медик", "Field Medic", "战地医疗"),
+                    UiTip((st.AllowFieldMedic ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Медик", "Field Medic", "战地医疗"),
+                        CompanionConfigStore.L(lang, "Лечит раненых союзников своими аптечками", "Heals wounded allies with own medkits", "用自己的医疗包治疗受伤队友")),
                     st.AllowFieldMedic ? _catOnStyle : _catOffStyle))
                 {
                     st.AllowFieldMedic = !st.AllowFieldMedic;
@@ -229,7 +263,8 @@ namespace ZedZone.SmartCompanions
                 }
 
                 if (GUI.Button(new Rect(cx + (tw + 5f) * 1f, cy, tw, 24f),
-                    (st.AllowAmmoShare ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Патроны", "Ammo Share", "弹药补给"),
+                    UiTip((st.AllowAmmoShare ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Патроны", "Ammo Share", "弹药补给"),
+                        CompanionConfigStore.L(lang, "Делится лишними патронами с отрядом", "Shares spare ammo with the squad", "与队伍分享多余弹药")),
                     st.AllowAmmoShare ? _catOnStyle : _catOffStyle))
                 {
                     st.AllowAmmoShare = !st.AllowAmmoShare;
@@ -237,7 +272,8 @@ namespace ZedZone.SmartCompanions
                 }
 
                 if (GUI.Button(new Rect(cx + (tw + 5f) * 2f, cy, tw, 24f),
-                    (st.AllowAutoLootNearby ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Авто-лут", "Auto-Loot", "自动拾取"),
+                    UiTip((st.AllowAutoLootNearby ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Авто-лут", "Auto-Loot", "自动拾取"),
+                        CompanionConfigStore.L(lang, "Сам подходит и подбирает ценные вещи рядом вне боя", "Walks over and picks up valuables nearby outside combat", "非战斗时自动走过去拾取附近物资")),
                     st.AllowAutoLootNearby ? _catOnStyle : _catOffStyle))
                 {
                     st.AllowAutoLootNearby = !st.AllowAutoLootNearby;
@@ -245,7 +281,8 @@ namespace ZedZone.SmartCompanions
                 }
 
                 if (GUI.Button(new Rect(cx + (tw + 5f) * 3f, cy, tw, 24f),
-                    (st.AllowAutoDropoffAtBase ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Выгрузка", "Auto-Dropoff", "回城卸货"),
+                    UiTip((st.AllowAutoDropoffAtBase ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Выгрузка", "Auto-Dropoff", "回城卸货"),
+                        CompanionConfigStore.L(lang, "На базе относит собранное в подходящие ящики", "At base, carries collected items into matching chests", "回到基地后把收集的物品搬进对应箱子")),
                     st.AllowAutoDropoffAtBase ? _catOnStyle : _catOffStyle))
                 {
                     st.AllowAutoDropoffAtBase = !st.AllowAutoDropoffAtBase;
@@ -253,7 +290,8 @@ namespace ZedZone.SmartCompanions
                 }
 
                 if (GUI.Button(new Rect(cx + (tw + 5f) * 4f, cy, tw, 24f),
-                    (st.AllowBaseChores ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Быт/Костёр", "Camp Chores", "营地内务"),
+                    UiTip((st.AllowBaseChores ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang, "Быт/Костёр", "Camp Chores", "营地内务"),
+                        CompanionConfigStore.L(lang, "Разжигает костёр, ухаживает за грядками и разгружает багажник", "Lights the fire, tends crops and unloads the trunk", "点火、照料作物并卸下后备箱")),
                     st.AllowBaseChores ? _catOnStyle : _catOffStyle))
                 {
                     st.AllowBaseChores = !st.AllowBaseChores;
@@ -305,13 +343,26 @@ namespace ZedZone.SmartCompanions
             {
                 var d = docs[i];
                 bool active = st.Doctrine == d.Item1;
-                if (GUI.Button(new Rect(area.x + i * (bw + 5f), area.y, bw, area.height), d.Item2, active ? _catOnStyle : _catOffStyle))
+                if (GUI.Button(new Rect(area.x + i * (bw + 5f), area.y, bw, area.height), UiTip(d.Item2, GetDoctrineTip(d.Item1, lang)), active ? _catOnStyle : _catOffStyle))
                 {
                     st.Doctrine = d.Item1;
                     SmartCombatAI.ApplyDoctrineToNpcData(agent, st);
                     MultiplayerSyncSystem.SyncCompanionStateChange(st);
                     CompanionConfigStore.Save();
                 }
+            }
+        }
+
+        private static string GetDoctrineTip(TacticalDoctrine doctrine, ModLanguage lang)
+        {
+            switch (doctrine)
+            {
+                case TacticalDoctrine.Assault: return CompanionConfigStore.L(lang, "Идёт на сближение и давит на ближайшую цель", "Closes in and pressures the nearest target", "主动接近并压制最近的目标");
+                case TacticalDoctrine.Bodyguard: return CompanionConfigStore.L(lang, "Держится рядом и атакует тех, кто угрожает вам", "Stays close and attacks whoever threatens you", "紧跟在旁，攻击威胁你的敌人");
+                case TacticalDoctrine.SniperKite: return CompanionConfigStore.L(lang, "Держит дистанцию и отступает, стреляя издалека", "Keeps distance and backs off while shooting", "保持距离，边退边射击");
+                case TacticalDoctrine.StealthMelee: return CompanionConfigStore.L(lang, "Бережёт патроны и дерётся тихо в ближнем бою", "Saves ammo and fights quietly in melee", "节省弹药，安静地近战");
+                case TacticalDoctrine.Passive: return CompanionConfigStore.L(lang, "Не открывает огонь сам — удобно для скрытности", "Never opens fire on its own — good for stealth", "不会主动开火——适合潜行");
+                default: return CompanionConfigStore.L(lang, "Сам выбирает дистанцию и оружие по ситуации", "Picks range and weapon to suit the fight", "根据战况自动选择距离和武器");
             }
         }
 

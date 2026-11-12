@@ -418,6 +418,7 @@ namespace ZedZone.SmartCompanions
             if (remDrop > 0)
             {
                 string remCats = ItemCategorizer.FormatCategoriesSummary(remMask, false);
+                st.NoteBlocked(CompanionBlockReason.NoStorageSpace, remCats);
                 SetBanner(CompanionConfigStore.L(
                     $"{st.LastKnownName}: перенос завершён. В приёмнике осталось {remDrop} шт. (нет места/ящика для: {remCats})",
                     $"{st.LastKnownName}: carry finished. {remDrop} items remain in Drop-off (need space/chest for: {remCats})",
