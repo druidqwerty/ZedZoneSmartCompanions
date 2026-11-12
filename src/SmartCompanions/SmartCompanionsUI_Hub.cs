@@ -237,10 +237,15 @@ namespace ZedZone.SmartCompanions
                     : st.CurrentTaskText;
                 var prevColor = GUI.color;
                 GUI.color = GetStatusColor(statusKind);
-                GUI.Label(new Rect(cx + innerW * 0.41f, cy, 130f, 28f), UiTip("● " + GetStatusLabel(statusKind, lang),
-                    CompanionConfigStore.L(lang, "Текущее состояние напарника", "Current companion state", "队友当前状态")), _labelStyle);
+                var statusContent = UiTip("● " + GetStatusLabel(statusKind, lang),
+                    CompanionConfigStore.L(lang, "Текущее состояние напарника", "Current companion state", "队友当前状态"));
+                float statusW = Mathf.Clamp(_labelStyle.CalcSize(statusContent).x + 8f, 90f, innerW * 0.30f);
+                bool wrapWas = _labelStyle.wordWrap;
+                _labelStyle.wordWrap = false;
+                GUI.Label(new Rect(cx + innerW * 0.41f, cy, statusW, 28f), statusContent, _labelStyle);
+                _labelStyle.wordWrap = wrapWas;
                 GUI.color = prevColor;
-                GUI.Label(new Rect(cx + innerW * 0.41f + 134f, cy, innerW * 0.59f - 134f, 28f),
+                GUI.Label(new Rect(cx + innerW * 0.41f + statusW + 4f, cy, innerW * 0.59f - statusW - 4f, 28f),
                     UiTip($"{statusDetail}  |  K:{st.KillsThisSession} S:{st.SortedItemsThisSession} C:{st.ChoresDoneThisSession}",
                         CompanionConfigStore.L(lang, "K — убийства, S — разложено предметов, C — бытовые дела за сессию",
                             "K — kills, S — items sorted, C — camp chores this session", "K—击杀，S—整理物品，C—本局完成的内务")), _labelStyle);
