@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.0.0"><strong>Скачать релиз v2.0.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.1.0"><strong>Скачать релиз v2.1.0 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v2.1.0 — Тактическое управление отрядом
+
+- **Построения и дистанция следования:** выбирайте Свободно, Клин, Шеренгу, Колонну или Круг и дистанцию 2.5, 4, 6.5 или 9 м прямо во вкладке **F8 → Отряд** (или в Настройках).
+- **Держать позицию, Ко мне! и Прикрывать сектор:** закрепляйте бойцов на точке, бегом отзывайте их к своей позиции или назначайте приоритетный сектор огня — всему отряду, одному напарнику или через радиальное меню NPC.
+- **Узкие проходы и интервал союзников:** идущие сзади уступают узкие двери в колонну по одному и не сбиваются в кучу.
+- **Пороги отхода при ранении и без БК:** настраивайте порог здоровья (`Выкл / <25% / <30% / <50%`) и патронов (`Выкл / 0 патр. / <=5 патр.`) с наглядной причиной на карточке каждого напарника.
+- **Проверено:** живой бой, физическая переноска, удержание позиции (0 м смещения), пробежка «Ко мне!» и приоритет сектора в настоящей игре; 300/300 графических случаев; все 8 386 файлов сохранений без изменений. [Отчёт и границы](docs/verification-2.1.0.md).
+
+![Тактическая панель и приказы напарников (движок игры, изолированные тестовые объекты)](docs/images/ui-2.1.0-squad-tactics-ru.png)
 
 ## Новое в v2.0.0 — Доска работ базы
 
@@ -181,7 +191,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.0.0.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.1.0.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

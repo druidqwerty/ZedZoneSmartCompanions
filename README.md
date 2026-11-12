@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.0.0"><strong>Release v2.0.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.1.0"><strong>Release v2.1.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v2.1.0 — Tactical squad control
+
+- **Formations & follow distance:** choose Free, Wedge, Line, Column or Guard Ring and 2.5 m, 4 m, 6.5 m or 9 m follow distance right in **F8 → Squad** (or Settings), keeping your aim line clear.
+- **Hold Position, Fall Back Here & Cover Direction:** anchor companions on a defensive line, recall them to your position at a run, or prioritize enemies in your aim sector — for the whole squad, per companion, or via the radial NPC menu.
+- **Narrow-passage yield & ally spacing:** trailing companions yield single-file in tight doorways and avoid stacking on teammates.
+- **Wounded & low-ammo retreat rules:** configure HP (`Off / <25% / <30% / <50%`) and ammo (`Off / 0 ammo / <=5 ammo`) retreat thresholds, with clear order and block/retreat status on every card.
+- **Verified:** live combat + physical carry + Hold Position (0 m drift) + Fall Back Here run + Cover Sector priority in the real game; 300/300 graphical cases; all 8,386 save files unchanged. [Scope and limits](docs/verification-2.1.0.md).
+
+![Tactical squad bar and per-companion orders (real engine, isolated test fixtures)](docs/images/ui-2.1.0-squad-tactics-en.png)
 
 ## New in v2.0.0 — Base work board
 
@@ -200,7 +210,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.0.0.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.1.0.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 

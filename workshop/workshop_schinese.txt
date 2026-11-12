@@ -1,15 +1,15 @@
-title=ZED ZONE: Smart Companions 2.0.0 — 智能队友
+title=ZED ZONE: Smart Companions 2.1.0 — 智能队友
 visibility=public
-description=[h1]智能队友 2.0.0[/h1]
+description=[h1]智能队友 2.1.0[/h1]
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=喜欢这个模组吗？欢迎在 Boosty 支持开发。
 description=打造可靠的幸存者小队：智能战术战斗、真实走位搜刮与基地搬运，以及中英俄三语共 1,179 条实时台词。
-description=[h2]2.0.0 更新：基地工作面板[/h2]
-description=[list][*]F8 新增“工作”标签页：谁在做什么、携带什么、为何停工。[*]工作角色：任意工作、仓管、拾荒者、营地或不干活。直接命令始终执行。[*]暂停基地工作：队友保留工作与物品并跟随你，继续后接着完成。[*]取消单个或全部工作，物品留在背包里。[*]同时包含：彩色状态与筛选（1.8.1）和主机校验的联机指令（1.9.0）。[/list]
+description=[h2]2.1.0 更新：小队战术指挥[/h2]
+description=[list][*]编队阵型（自由、楔形、横队、纵队、环形）与 2.5–9 米跟随距离。[*]直接战斗指令：原地坚守、撤回到我、掩护方向——支持全队、单人及原生 NPC 菜单。[*]窄门单列礼让通行与队友防拥挤间距。[*]可调节受伤与缺弹撤退阈值，并在卡片上清晰显示指令与受阻/撤退原因。[*]同时包含 2.0.0 工作面板与 1.9.0 主机校验联机指令。[/list]
 description=[h2]小队与基地[/h2]
 description=六种战术学说、最高 15 人队伍、战地急救与弹药支援、自主物资搜刮及 12 类储物规则。队友亲自走到物品旁拾取，并在玩家标记的箱子间搬运，绝不瞬间隔空传物。兼容现有存档，无需重开。
 description=[h2]安装与快捷键[/h2]
-description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次其 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 2.0.0。
+description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次其 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 2.1.0。
 description=F8：小队/工作/基地/语录/设置 · Esc：关闭 F8 · F7：走位整理基地 · F6（与 AVO 共用时 Alt+F6）：分享口粮 · F9：战吼。
 description=[h2]联机限制[/h2]
 description=1.9.0 由主机校验并协调每条队友指令，规则已在游戏内通过 13 项决策测试。真实双人主机 + 客户端会话（包括人类 NPC 可见性）仍待实测确认。联机问题请在讨论区反馈。

@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.0.0"><strong>下载 v2.0.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.1.0"><strong>下载 v2.1.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v2.1.0 更新 — 小队战术指挥
+
+- **编队阵型与跟随距离：** 在 **F8 → 队伍**（或设置）中选择自由、楔形、横队、纵队或环形护卫，以及 2.5、4、6.5 或 9 米跟随距离，自动让开你的射界。
+- **原地坚守、撤回到我与掩护方向：** 固定防线、跑步召回全队或优先迎击瞄准方向——支持全队、单人及原生 NPC 轮盘菜单。
+- **窄门礼让与队友间距：** 后方队友在狭窄门口单列礼让，避免重叠拥挤。
+- **受伤与缺弹撤退阈值：** 可设置生命值（关闭 / <25% / <30% / <50%）与弹药（关闭 / 弹尽 / <=5发）撤退规则，卡片实时显示当前指令与撤退/受阻原因。
+- **已验证：** 游戏内实测战斗、物理搬运、原地坚守（0米偏移）、跑步撤回与方向掩护优先级；300/300 个图形测试；8,386 个存档文件均未改变。[测试范围与限制](docs/verification-2.1.0.md)。
+
+![小队战术栏与单人指令（游戏引擎中的隔离测试）](docs/images/ui-2.1.0-squad-tactics-zh.png)
 
 ## v2.0.0 更新 — 基地工作面板
 
@@ -155,7 +165,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.0.0.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.1.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。
