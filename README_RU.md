@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.1.0"><strong>Скачать релиз v2.1.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.2.0"><strong>Скачать релиз v2.2.0 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v2.2.0 — Специализация напарников и снабжение
+
+- **Профили напарников (`F8 → Работа`):** Боец, Медик, Снабженец и Сборщик для каждого бойца, а также **предпросмотр изменений** перед применением профиля сразу ко всему отряду.
+- **Предпочтительное оружие и неснижаемый резерв:** выбор Авто-оруж. / Стрелок / Ближний и неснижаемый запас в рюкзаке (`24/2/1`, `45/3/2`, `60/4/4` — патроны / еда / медицина), который не выгружается при сортировке базы.
+- **Разрешения на редкие припасы (`F8 → Настройки`):** отдельные переключатели для защиты стейков, редких сывороток/доз и редких калибров БК при раздаче пайка и лечении.
+- **Зоны лута и приоритеты базы (`F8 → Работа`):** очередь задач (Склад / Лут / Лагерь), радиус поиска (`14–48 м`) и закрепление точки сбора без риска для ящиков базы.
+- **Проверено:** живой бой, физическая переноска, тактика, защита резерва на настоящих `ItemData` и защита редких стейков в игре; 300/300 графических случаев; все 8 386 файлов сохранений без изменений. [Отчёт и границы](docs/verification-2.2.0.md).
+
+![Специализации, предпросмотр отряда и резервы (движок игры, изолированные тестовые объекты)](docs/images/ui-2.2.0-work-specializations-ru.png)
 
 ## Новое в v2.1.0 — Тактическое управление отрядом
 
@@ -191,7 +201,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.1.0.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.2.0.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

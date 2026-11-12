@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.1.0"><strong>下载 v2.1.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.2.0"><strong>下载 v2.2.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v2.2.0 更新 — 队友专精与物资补给管理
+
+- **队友专精（`F8 → 工作`）：** 战斗员、医疗兵、军需官、拾荒者预设，支持在应用至全队前打开**全队专精预览**查看变更统计。
+- **武器偏好与背包保底储备：** 可选自动/远程/近战武器偏好及弹药/食物/医疗保底数量（`24/2/1`、`45/3/2`、`60/4/4`），整理基地时绝不清空保底物资。
+- **稀有物资消耗权限（`F8 → 设置`）：** 独立控制是否允许消耗高级料理（如牛排）、稀有血清/血袋与稀有大口径弹药。
+- **搜刮区域与基地优先级（`F8 → 工作`）：** 可调自动工作优先顺序（整理/搜刮/内务）、搜刮半径（`14–48米`）并固定搜刮区域（基地储物箱始终受保护）。
+- **已验证：** 游戏内实测战斗、物理搬运、战术指令、真实 `ItemData` 保底储备与牛排保护；300/300 个图形测试；8,386 个存档文件均未改变。[测试范围与限制](docs/verification-2.2.0.md)。
+
+![专精方案与保底储备（游戏引擎中的隔离测试）](docs/images/ui-2.2.0-work-specializations-zh.png)
 
 ## v2.1.0 更新 — 小队战术指挥
 
@@ -165,7 +175,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.1.0.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.2.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。
