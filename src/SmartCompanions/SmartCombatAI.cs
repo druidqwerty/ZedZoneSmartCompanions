@@ -656,8 +656,11 @@ namespace ZedZone.SmartCompanions
                     int loaded = BasicRangedWeapon.GetLoadedAmmo(hc.rangedWeapon.weaponData);
                     bool jammed = hc.rangedWeapon.isMalfunction;
                     bool reloading = hc.reloadingMagazineFlag;
+                    bool preferMelee = st.Doctrine == TacticalDoctrine.StealthMelee ||
+                        (st.Loadout == PreferredLoadout.MeleeFirst && distToTarget < 6.2f) ||
+                        (distToTarget < 1.95f && (loaded == 0 || jammed || reloading));
 
-                    if (st.Doctrine == TacticalDoctrine.StealthMelee || (distToTarget < 1.95f && (loaded == 0 || jammed || reloading)))
+                    if (preferMelee)
                     {
                         var bestMelee = agent.FindBestMeleeWeapon(out float bestVal);
                         if (Il2CppSafe.IsAlive(bestMelee))
@@ -793,11 +796,23 @@ namespace ZedZone.SmartCompanions
                     try
                     {
                         var heals = agent.GetHealingItems();
-                        if (heals != null && heals.Count > 0 && agent.npcData?.characterData?.inventoryData != null)
+                        if (heals != null && heals.Count > st.ReserveMedMin && agent.npcData?.characterData?.inventoryData != null)
                         {
-                            var medItem = heals[0];
-                            if (Il2CppSafe.IsAlive(medItem))
-                                CharacterActionManager.ConsumeOneFood(agent.npcData.characterData, agent.npcData.characterData.inventoryData, medItem);
+                            ItemData chosenMed = null;
+                            for (int hIdx = 0; hIdx < heals.Count; hIdx++)
+                            {
+                                var cand = heals[hIdx];
+                                if (!Il2CppSafe.IsAlive(cand)) continue;
+                                if (!CompanionProfileSystem.IsRareMedItem(cand.itemId))
+                                {
+                                    chosenMed = cand;
+                                    break;
+                                }
+                                if (CompanionConfigStore.AllowSpendRareMeds && chosenMed == null)
+                                    chosenMed = cand;
+                            }
+                            if (Il2CppSafe.IsAlive(chosenMed))
+                                CharacterActionManager.ConsumeOneFood(agent.npcData.characterData, agent.npcData.characterData.inventoryData, chosenMed);
                         }
                     }
                     catch { }
@@ -821,7 +836,8 @@ namespace ZedZone.SmartCompanions
                         {
                             int ammoId = wAttr.ammoId;
                             var ammoAttr = ItemManager.instance.GetItemAttrById(ammoId);
-                            if (Il2CppSafe.IsAliveUnity(ammoAttr))
+                            if (Il2CppSafe.IsAliveUnity(ammoAttr) &&
+                                (CompanionConfigStore.AllowSpendRareAmmo || !CompanionProfileSystem.IsRareAmmoStackSize(ammoAttr.stackNumber)))
                             {
                                 var ammoPack = ItemManager.instance.GetRandomDataByAttr(ammoAttr, false, false);
                                 if (Il2CppSafe.IsAlive(ammoPack))

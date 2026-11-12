@@ -649,7 +649,7 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        private static float _settingsContentHeight = 1220f;
+        private static float _settingsContentHeight = 1260f;
 
         private static float DrawSettingsHeading(float x, float y, float width, string title)
         {
@@ -720,6 +720,7 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.Save();
             }
             ly += 36f;
+            ly = DrawRareSupplySettings(lx, ly, lw, lang);
 
             ly = DrawSettingsHeading(lx, ly, lw, CompanionConfigStore.L(lang, "База и походный быт", "Base & camp life", "基地与营地生活"));
             if (GUI.Button(new Rect(lx, ly, lw, 30f),

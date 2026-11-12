@@ -137,7 +137,12 @@ namespace ZedZone.SmartCompanions
                 if (now - st.LastAutoLootTickTime < (isOrderedCollect ? 3.5f : 5.5f)) continue;
 
                 st.LastAutoLootTickTime = now;
-                float sweepRadius = isOrderedCollect ? 22.0f : (st.EffectiveArchetype == CompanionArchetype.JollyScavenger ? 13.0f : 9.5f);
+                float configuredRadius = CompanionConfigStore.LootSweepRadius;
+                float sweepRadius = isOrderedCollect
+                    ? configuredRadius
+                    : (CompanionConfigStore.LootZonePinned
+                        ? configuredRadius
+                        : Mathf.Min(configuredRadius, st.EffectiveArchetype == CompanionArchetype.JollyScavenger ? 15.0f : 11.5f));
                 CommandSweepNearbyLoot(ag, sweepRadius, silentIfEmpty: true);
             }
         }

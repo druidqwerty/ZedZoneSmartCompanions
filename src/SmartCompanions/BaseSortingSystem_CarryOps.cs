@@ -73,7 +73,10 @@ namespace ZedZone.SmartCompanions
                 var cand = candidates[i];
                 if (claimedSources != null && claimedSources.Contains(cand.inv.Pointer))
                     continue;
-                if (!HasMovableItemInSource(cand.inv, cand.stayMask, destBoxes))
+                HashSet<IntPtr> protectedPtrs = cand.ownBackpack
+                    ? CompanionProfileSystem.BuildProtectedBackpackPointers(ag, st, cand.inv)
+                    : null;
+                if (!HasMovableItemInSource(cand.inv, cand.stayMask, destBoxes, protectedPtrs))
                     continue;
 
                 if (claimedSources != null)
@@ -104,13 +107,15 @@ namespace ZedZone.SmartCompanions
             return false;
         }
 
-        private static bool HasMovableItemInSource(InventoryData srcInv, StorageCategory stayMask, List<DiscoveredContainer> destBoxes)
+        private static bool HasMovableItemInSource(
+            InventoryData srcInv, StorageCategory stayMask, List<DiscoveredContainer> destBoxes, HashSet<IntPtr> protectedPtrs = null)
         {
             if (!Il2CppSafe.IsAlive(srcInv) || srcInv.itemList == null) return false;
             for (int i = 0; i < srcInv.itemList.Count; i++)
             {
                 var item = srcInv.itemList[i];
                 if (!Il2CppSafe.IsAlive(item)) continue;
+                if (protectedPtrs != null && protectedPtrs.Contains(item.Pointer)) continue;
                 var cat = ItemCategorizer.ClassifyItem(item);
                 if (stayMask != StorageCategory.None && (stayMask & cat) != 0)
                     continue;
@@ -155,11 +160,16 @@ namespace ZedZone.SmartCompanions
                     if (Il2CppSafe.IsAlive(it)) snapshot.Add(it);
                 }
 
+                HashSet<IntPtr> protectedPtrs = st.SourceIsOwnBackpack
+                    ? CompanionProfileSystem.BuildProtectedBackpackPointers(ag, st, srcInv)
+                    : null;
+
                 foreach (var item in snapshot)
                 {
                     if (st.CarryBuffer.Count >= MaxCarryBatchPerTrip)
                         break;
                     if (!Il2CppSafe.IsAlive(item)) continue;
+                    if (protectedPtrs != null && protectedPtrs.Contains(item.Pointer)) continue;
 
                     var cat = ItemCategorizer.ClassifyItem(item);
                     if (st.SourceAllowedStayMask != StorageCategory.None && (st.SourceAllowedStayMask & cat) != 0)

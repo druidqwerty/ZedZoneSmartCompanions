@@ -112,12 +112,23 @@ namespace ZedZone.SmartCompanions
 
                 if (workers.Count == 0) return 0;
 
-                Vector2 center = explicitSearchCenter ?? (Il2CppSafe.IsAliveUnity(specificAgent) && Il2CppSafe.IsAliveUnity(specificAgent.humanCharacter)
-                    ? (Vector2)specificAgent.humanCharacter.transform.position
-                    : (Vector2)gc.playerCharacter.transform.position);
-                sbyte floor = Il2CppSafe.IsAliveUnity(specificAgent) && Il2CppSafe.IsAlive(specificAgent.npcData)
-                    ? specificAgent.npcData.zLevel
-                    : (gc.playerCharacter.characterData != null ? gc.playerCharacter.characterData.zLevel : (sbyte)0);
+                Vector2 playerPos = gc.playerCharacter.transform.position;
+                sbyte playerFloor = gc.playerCharacter.characterData != null ? gc.playerCharacter.characterData.zLevel : (sbyte)0;
+                bool usePinnedZone = !explicitSearchCenter.HasValue &&
+                    CompanionConfigStore.LootZonePinned &&
+                    CompanionConfigStore.LootZoneFloor == playerFloor &&
+                    Vector2.Distance(playerPos, CompanionConfigStore.LootZoneCenter) <= 75f;
+
+                Vector2 center = explicitSearchCenter ?? (usePinnedZone
+                    ? CompanionConfigStore.LootZoneCenter
+                    : (Il2CppSafe.IsAliveUnity(specificAgent) && Il2CppSafe.IsAliveUnity(specificAgent.humanCharacter)
+                        ? (Vector2)specificAgent.humanCharacter.transform.position
+                        : playerPos));
+                sbyte floor = usePinnedZone
+                    ? CompanionConfigStore.LootZoneFloor
+                    : (Il2CppSafe.IsAliveUnity(specificAgent) && Il2CppSafe.IsAlive(specificAgent.npcData)
+                        ? specificAgent.npcData.zLevel
+                        : playerFloor);
 
                 var alreadyClaimedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var kv in CompanionConfigStore.CompanionStates)

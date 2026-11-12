@@ -38,6 +38,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
         private static readonly FieldInfo Centered = Ui.GetField("_mainWinCentered", Flags);
         private static readonly FieldInfo SquadScroll = Ui.GetField("_scrollSquad", Flags);
         private static readonly FieldInfo SettingsScroll = Ui.GetField("_scrollSettings", Flags);
+        private static readonly FieldInfo ProfilePreviewOpen = Ui.GetField("ShowSquadProfilePreview", Flags);
         private readonly ModLanguage[] _languages = { ModLanguage.Russian, ModLanguage.English, ModLanguage.Chinese };
         private ModLanguage _originalLanguage;
         private string _output;
@@ -82,6 +83,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     _case = _startCase - 1;
                     ProtocolRegression.Run();
                     TacticalRegression.Run();
+                    SpecializationRegression.Run();
                     if (Environment.GetCommandLineArgs().Contains("--sc-native-menu-only"))
                     {
                         NativeMenuRegression.VerifyAllLanguages();
@@ -141,6 +143,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 SmartCompanionsUI.InvalidateStyles();
                 Tab.SetValue(null, variant == 9 ? 4 : variant == 8 ? 3 : variant >= 4 ? 0 : variant);
                 CompanionConfigStore.BaseWorkPaused = variant == 9 && language == 1; // English work case shows the paused header
+                ProfilePreviewOpen?.SetValue(null, variant == 9 && language == 0); // Russian work case shows the squad profile diff preview
                 SquadScroll.SetValue(null, new Vector2(0f, variant == 5 ? 100000f : 0f));
                 SettingsScroll.SetValue(null, new Vector2(0f, variant == 8 ? 100000f : 0f));
                 Centered.SetValue(null, false);

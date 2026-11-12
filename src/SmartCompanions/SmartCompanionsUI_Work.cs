@@ -4,68 +4,125 @@ using UnityEngine;
 
 namespace ZedZone.SmartCompanions
 {
-    // 2.0.0: the "Work" tab - one board for who does what, roles, pause and cancel.
+    // 2.0.0–2.2.0: the "Work" tab - base work board, priorities, loot zones, squad profile preview & reserves.
     public static partial class SmartCompanionsUI
     {
         private static Vector2 _scrollWork;
+        internal static CompanionSpecialization PreviewSpec = CompanionSpecialization.Fighter;
+        internal static bool ShowSquadProfilePreview = false;
 
         private static void DrawTabWork(Rect area, ModLanguage lang)
         {
             var teammates = SmartChatterSystem.GetActiveTeammateAgents();
             int busy = 0, carrying = 0, stopped = 0;
+            var previewStates = new List<CompanionRuntimeState>(teammates.Count);
             foreach (var ag in teammates)
             {
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData)) continue;
-                CompanionConfigStore.CompanionStates.TryGetValue(ag.npcData.npcGUID ?? "", out var s);
+                var s = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
                 var kind = GetStatusKind(ag, s);
                 if (kind == CompanionStatusKind.Busy) busy++;
                 if (kind == CompanionStatusKind.Blocked) stopped++;
-                if (s != null) carrying += s.CarryBuffer.Count;
+                if (s != null)
+                {
+                    carrying += s.CarryBuffer.Count;
+                    if (!MultiplayerSyncSystem.IsMultiplayerOnline || MultiplayerSyncSystem.CanLocalPlayerCommand(ag.npcData))
+                        previewStates.Add(s);
+                }
             }
 
-            GUI.Box(new Rect(area.x, area.y, area.width, 80f), GUIContent.none, _boxStyle);
+            GUI.Box(new Rect(area.x, area.y, area.width, 114f), GUIContent.none, _boxStyle);
             float bx = area.x + 8f, by = area.y + 6f;
             bool paused = BaseWorkManager.Paused;
-            GUI.Label(new Rect(bx + 8f, by, area.width - 24f, 28f), paused
-                ? CompanionConfigStore.L(lang, $"\u041f\u0410\u0423\u0417\u0410  \u00b7  \u0437\u0430\u043d\u044f\u0442\u044b {busy}  \u00b7  \u043d\u0435\u0441\u0443\u0442 {carrying} \u043f\u0440\u0435\u0434\u043c.  \u00b7  \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u043b\u0438\u0441\u044c {stopped}",
-                    $"PAUSED  \u00b7  busy {busy}  \u00b7  carrying {carrying} items  \u00b7  stopped {stopped}",
-                    $"\u5df2\u6682\u505c  \u00b7  \u5fd9\u788c {busy}  \u00b7  \u643a\u5e26 {carrying} \u4ef6  \u00b7  \u5df2\u505c\u6b62 {stopped}")
-                : CompanionConfigStore.L(lang, $"\u0420\u0430\u0431\u043e\u0442\u0430 \u0431\u0430\u0437\u044b  \u00b7  \u0437\u0430\u043d\u044f\u0442\u044b {busy}  \u00b7  \u043d\u0435\u0441\u0443\u0442 {carrying} \u043f\u0440\u0435\u0434\u043c.  \u00b7  \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u043b\u0438\u0441\u044c {stopped}",
-                    $"Base work  \u00b7  busy {busy}  \u00b7  carrying {carrying} items  \u00b7  stopped {stopped}",
-                    $"\u57fa\u5730\u5de5\u4f5c  \u00b7  \u5fd9\u788c {busy}  \u00b7  \u643a\u5e26 {carrying} \u4ef6  \u00b7  \u5df2\u505c\u6b62 {stopped}"), _subHeaderStyle);
-            by += 34f;
+            GUI.Label(new Rect(bx + 8f, by, area.width - 24f, 26f), paused
+                ? CompanionConfigStore.L(lang, $"ПАУЗА  ·  заняты {busy}  ·  несут {carrying} предм.  ·  остановились {stopped}",
+                    $"PAUSED  ·  busy {busy}  ·  carrying {carrying} items  ·  stopped {stopped}",
+                    $"已暂停  ·  忙碌 {busy}  ·  携带 {carrying} 件  ·  已停止 {stopped}")
+                : CompanionConfigStore.L(lang, $"Работа и снабжение  ·  заняты {busy}  ·  несут {carrying} предм.  ·  остановились {stopped}",
+                    $"Work & supply  ·  busy {busy}  ·  carrying {carrying} items  ·  stopped {stopped}",
+                    $"基地与补给  ·  忙碌 {busy}  ·  携带 {carrying} 件  ·  已停止 {stopped}"), _subHeaderStyle);
+
+            by += 30f;
             float w4 = (area.width - 16f - 18f) / 4f;
-            if (GUI.Button(new Rect(bx, by, w4, 30f), UiTip(paused
-                    ? CompanionConfigStore.L(lang, "\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c", "Resume", "\u7ee7\u7eed")
-                    : CompanionConfigStore.L(lang, "\u041f\u0430\u0443\u0437\u0430", "Pause", "\u6682\u505c"),
-                    CompanionConfigStore.L(lang, "\u041d\u0430 \u043f\u0430\u0443\u0437\u0435 \u043d\u0430\u043f\u0430\u0440\u043d\u0438\u043a\u0438 \u043d\u0435 \u0431\u0435\u0440\u0443\u0442 \u043d\u043e\u0432\u0443\u044e \u0440\u0430\u0431\u043e\u0442\u0443, \u043d\u0435\u0441\u0443\u0442 \u0432\u0435\u0449\u0438 \u043f\u0440\u0438 \u0441\u0435\u0431\u0435 \u0438 \u0438\u0434\u0443\u0442 \u0437\u0430 \u0432\u0430\u043c\u0438",
-                        "While paused, companions take no new work, keep carried items and follow you", "\u6682\u505c\u65f6\u961f\u53cb\u4e0d\u63a5\u65b0\u5de5\u4f5c\uff0c\u4fdd\u7559\u643a\u5e26\u7269\u54c1\u5e76\u8ddf\u968f\u4f60")),
+            if (GUI.Button(new Rect(bx, by, w4, 28f), UiTip(paused
+                    ? CompanionConfigStore.L(lang, "Продолжить", "Resume", "继续")
+                    : CompanionConfigStore.L(lang, "Пауза", "Pause", "暂停"),
+                    CompanionConfigStore.L(lang, "На паузе напарники не берут новую работу, несут вещи при себе и идут за вами",
+                        "While paused, companions take no new work, keep carried items and follow you", "暂停时队友不接新工作，保留携带物品并跟随你")),
                 paused ? _catOnStyle : _btnStyle))
                 BaseWorkManager.SetPaused(!paused);
-            if (GUI.Button(new Rect(bx + (w4 + 6f), by, w4, 30f), UiTip(
-                    CompanionConfigStore.L(lang, "\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c \u0432\u0441\u0451", "Cancel all", "\u5168\u90e8\u53d6\u6d88"),
-                    CompanionConfigStore.L(lang, "\u0412\u0441\u0435 \u0432\u0430\u0448\u0438 \u043d\u0430\u043f\u0430\u0440\u043d\u0438\u043a\u0438 \u0431\u0440\u043e\u0441\u0430\u044e\u0442 \u0442\u0435\u043a\u0443\u0449\u0443\u044e \u0440\u0430\u0431\u043e\u0442\u0443; \u0432\u0435\u0449\u0438 \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u0443 \u043d\u0438\u0445 \u0432 \u0440\u044e\u043a\u0437\u0430\u043a\u0435",
-                        "All your companions drop their current job; items stay in their backpacks", "\u4f60\u7684\u961f\u53cb\u653e\u5f03\u5f53\u524d\u5de5\u4f5c\uff0c\u7269\u54c1\u7559\u5728\u4ed6\u4eec\u80cc\u5305\u91cc")), _btnStyle))
+            if (GUI.Button(new Rect(bx + (w4 + 6f), by, w4, 28f), UiTip(
+                    CompanionConfigStore.L(lang, "Отменить всё", "Cancel all", "全部取消"),
+                    CompanionConfigStore.L(lang, "Все ваши напарники бросают текущую работу; вещи остаются у них в рюкзаке",
+                        "All your companions drop their current job; items stay in their backpacks", "你的队友放弃当前工作，物品留在他们背包里")), _btnStyle))
                 BaseWorkManager.CancelAll();
-            if (GUI.Button(new Rect(bx + (w4 + 6f) * 2f, by, w4, 30f),
-                CompanionConfigStore.L(lang, "\u0421\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c [F7]", "Sort Base [F7]", "\u6574\u7406\u57fa\u5730 [F7]"), _catOnStyle))
+            if (GUI.Button(new Rect(bx + (w4 + 6f) * 2f, by, w4, 28f),
+                CompanionConfigStore.L(lang, "Сортировать [F7]", "Sort Base [F7]", "整理基地 [F7]"), _catOnStyle))
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
-            if (GUI.Button(new Rect(bx + (w4 + 6f) * 3f, by, w4, 30f),
-                CompanionConfigStore.L(lang, "\u0421\u043e\u0431\u0440\u0430\u0442\u044c \u043b\u0443\u0442", "Sweep Loot", "\u641c\u522e\u7269\u8d44"), _btnStyle))
-                AutoLootSystem.CommandSweepNearbyLoot(null, 24f);
+            if (GUI.Button(new Rect(bx + (w4 + 6f) * 3f, by, w4, 28f),
+                CompanionConfigStore.L(lang, $"Собрать лут ({CompanionConfigStore.LootSweepRadius:F0}м)",
+                    $"Sweep Loot ({CompanionConfigStore.LootSweepRadius:F0}m)",
+                    $"搜刮物资 ({CompanionConfigStore.LootSweepRadius:F0}米)"), _btnStyle))
+                AutoLootSystem.CommandSweepNearbyLoot(null, CompanionConfigStore.LootSweepRadius);
 
-            float listY = area.y + 90f, listH = area.height - 90f;
+            by += 34f;
+            string prioLbl = CompanionProfileSystem.GetBasePriorityLabel(CompanionConfigStore.BasePriorityMode, lang);
+            string zoneLbl = CompanionConfigStore.LootZonePinned
+                ? CompanionConfigStore.L(lang, "Зона: точка", "Zone: Pinned", "区域：已固定")
+                : CompanionConfigStore.L(lang, "Зона: за вами", "Zone: Player", "区域：跟随你");
+            if (GUI.Button(new Rect(bx, by, w4, 28f), UiTip(
+                CompanionConfigStore.L(lang, $"Очередь: {prioLbl}", $"Order: {prioLbl}", $"优先：{prioLbl}"),
+                CompanionConfigStore.L(lang, "Порядок автоматических задач базы (Склад / Лут / Лагерь)",
+                    "Priority order for automatic base jobs (Sort / Loot / Camp)", "自动基地工作的优先顺序")),
+                CompanionConfigStore.BasePriorityMode != BaseWorkPriority.SortFirst ? _catOnStyle : _btnStyle))
+            {
+                CompanionProfileSystem.CycleBaseWorkPriority();
+            }
+            if (GUI.Button(new Rect(bx + (w4 + 6f), by, w4, 28f), UiTip(
+                CompanionConfigStore.L(lang, $"Радиус лута: {CompanionConfigStore.LootSweepRadius:F0}м",
+                    $"Loot radius: {CompanionConfigStore.LootSweepRadius:F0}m",
+                    $"搜刮半径：{CompanionConfigStore.LootSweepRadius:F0}米"),
+                CompanionConfigStore.L(lang, "Дальность поиска трофеев (14м / 24м / 36м / 48м)",
+                    "Loot search radius (14m / 24m / 36m / 48m)", "物资搜刮半径（14/24/36/48米）")), _btnStyle))
+            {
+                CompanionProfileSystem.CycleLootSweepRadius();
+            }
+            if (GUI.Button(new Rect(bx + (w4 + 6f) * 2f, by, w4, 28f), UiTip(zoneLbl,
+                CompanionConfigStore.L(lang, "Закрепить зону сбора в вашей текущей точке или вернуть привязку к игроку (ящики базы всегда защищены)",
+                    "Pin the scavenging zone at your feet or follow the player (marked base chests stay protected)",
+                    "在当前位置固定搜刮区或恢复跟随玩家（基地箱子始终受保护）")),
+                CompanionConfigStore.LootZonePinned ? _catOnStyle : _btnStyle))
+            {
+                CompanionProfileSystem.TogglePinnedLootZone();
+            }
+            if (GUI.Button(new Rect(bx + (w4 + 6f) * 3f, by, w4, 28f), UiTip(
+                CompanionConfigStore.L(lang, "Профиль отряда", "Squad Profile", "全队专精预览"),
+                CompanionConfigStore.L(lang, "Открыть предпросмотр специализации перед применением ко всему отряду",
+                    "Preview specialization changes before applying to the whole squad", "在应用至全队前预览专精变更")),
+                ShowSquadProfilePreview ? _catOnStyle : _btnStyle))
+            {
+                ShowSquadProfilePreview = !ShowSquadProfilePreview;
+            }
+
+            float listY = area.y + 122f;
+            if (ShowSquadProfilePreview)
+            {
+                DrawSquadProfilePreviewBox(new Rect(area.x, listY, area.width, 64f), previewStates, lang);
+                listY += 72f;
+            }
+            float listH = area.yMax - listY;
+
             if (teammates.Count == 0)
             {
                 GUI.Box(new Rect(area.x, listY, area.width, 70f), GUIContent.none, _boxStyle);
                 GUI.Label(new Rect(area.x + 16f, listY + 14f, area.width - 32f, 44f), CompanionConfigStore.L(lang,
-                    "\u0420\u044f\u0434\u043e\u043c \u043d\u0435\u0442 \u043d\u0430\u043f\u0430\u0440\u043d\u0438\u043a\u043e\u0432. \u0417\u0434\u0435\u0441\u044c \u0431\u0443\u0434\u0435\u0442 \u0432\u0438\u0434\u043d\u043e, \u043a\u0442\u043e \u0447\u0442\u043e \u0434\u0435\u043b\u0430\u0435\u0442, \u043d\u0435\u0441\u0451\u0442 \u0438 \u043f\u043e\u0447\u0435\u043c\u0443 \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u043b\u0441\u044f.",
-                    "No companions nearby. This board shows who does what, what they carry and why they stopped.",
-                    "\u9644\u8fd1\u6ca1\u6709\u961f\u53cb\u3002\u8fd9\u91cc\u4f1a\u663e\u793a\u8c01\u5728\u505a\u4ec0\u4e48\u3001\u643a\u5e26\u4ec0\u4e48\u4ee5\u53ca\u4e3a\u4f55\u505c\u6b62\u3002"), _labelStyle);
+                    "Рядом нет напарников. Здесь настраиваются их специализации, неснижаемый резерв и очередь работ базы.",
+                    "No companions nearby. Manage specializations, supply reserves and base work here.",
+                    "附近没有队友。可在此管理专精职责、保底物资储备与基地工作。"), _labelStyle);
                 return;
             }
 
-            const float rowH = 62f;
+            const float rowH = 66f;
             var view = new Rect(0, 0, area.width - 20f, teammates.Count * (rowH + 6f));
             bool baseEnabled = GUI.enabled;
             BeginScrollArea(new Rect(area.x, listY, area.width, listH), ref _scrollWork, view, 5);
@@ -83,6 +140,41 @@ namespace ZedZone.SmartCompanions
             finally { GUI.enabled = baseEnabled; EndScrollArea(); }
         }
 
+        private static void DrawSquadProfilePreviewBox(Rect box, List<CompanionRuntimeState> states, ModLanguage lang)
+        {
+            GUI.Box(box, GUIContent.none, _boxStyle);
+            float x = box.x + 8f, y = box.y + 6f, w = box.width - 16f;
+            var specs = new[]
+            {
+                CompanionSpecialization.Fighter,
+                CompanionSpecialization.Medic,
+                CompanionSpecialization.Quartermaster,
+                CompanionSpecialization.Scavenger
+            };
+            float btnW = (w - 5f * 5f) / 6f;
+            for (int i = 0; i < specs.Length; i++)
+            {
+                var sp = specs[i];
+                if (GUI.Button(new Rect(x + i * (btnW + 5f), y, btnW, 24f),
+                    CompanionProfileSystem.GetSpecializationLabel(sp, lang),
+                    PreviewSpec == sp ? _catOnStyle : _btnStyle))
+                {
+                    PreviewSpec = sp;
+                }
+            }
+            if (GUI.Button(new Rect(x + 4f * (btnW + 5f), y, btnW * 2f + 5f, 24f),
+                CompanionConfigStore.L(lang, "Применить отряду", "Apply to Squad", "应用至全队"), _catOnStyle))
+            {
+                CompanionProfileSystem.ApplyPresetToSquad(PreviewSpec);
+            }
+
+            var preview = CompanionProfileSystem.BuildSquadPreview(PreviewSpec, states, lang);
+            bool wrap = _labelStyle.wordWrap;
+            _labelStyle.wordWrap = false;
+            GUI.Label(new Rect(x + 2f, y + 30f, w - 4f, 24f), UiSafe(preview.SummaryText), _labelStyle);
+            _labelStyle.wordWrap = wrap;
+        }
+
         private static void DrawWorkRow(Rect r, GOAPAgent ag, ModLanguage lang, bool baseEnabled)
         {
             string name = ag.npcData.characterData?.characterName ?? "NPC";
@@ -92,39 +184,113 @@ namespace ZedZone.SmartCompanions
             float x = r.x + 10f, y = r.y + 5f, w = r.width - 20f;
 
             var kind = GetStatusKind(ag, st);
-            GUI.Label(new Rect(x, y, w * 0.34f, 24f), name, _subHeaderStyle);
+            GUI.Label(new Rect(x, y, w * 0.22f, 24f), name, _subHeaderStyle);
             var prev = GUI.color;
             GUI.color = GetStatusColor(kind);
             bool wrap = _labelStyle.wordWrap;
             _labelStyle.wordWrap = false;
-            GUI.Label(new Rect(x + w * 0.34f, y, w * 0.24f, 24f), "\u25cf " + GetStatusLabel(kind, lang), _labelStyle);
+            GUI.Label(new Rect(x + w * 0.22f, y, w * 0.16f, 24f), "● " + GetStatusLabel(kind, lang), _labelStyle);
             _labelStyle.wordWrap = wrap;
             GUI.color = prev;
 
             GUI.enabled = baseEnabled && canCommand;
-            if (GUI.Button(new Rect(x + w * 0.58f, y, w * 0.24f, 24f),
-                UiTip(BaseWorkManager.GetRoleLabel(st.WorkRole, lang), BaseWorkManager.GetRoleTip(st.WorkRole, lang) +
-                    CompanionConfigStore.L(lang, " (\u043d\u0430\u0436\u043c\u0438\u0442\u0435, \u0447\u0442\u043e\u0431\u044b \u0441\u043c\u0435\u043d\u0438\u0442\u044c)", " (click to change)", "\uff08\u70b9\u51fb\u5207\u6362\uff09")), _btnStyle))
+            float rx = x + w * 0.38f;
+            float rw = w * 0.62f;
+            float gap = 4f;
+            float cw = (rw - gap * 4f) / 5f;
+
+            if (GUI.Button(new Rect(rx, y, cw, 24f), UiTip(
+                CompanionProfileSystem.GetSpecializationLabel(st.Specialization, lang),
+                CompanionConfigStore.L(lang, "Специализация: Боец / Медик / Снабженец / Сборщик",
+                    "Specialization: Fighter / Medic / Supplier / Scavenger", "专精：战斗员/医疗兵/军需官/拾荒者")),
+                st.Specialization != CompanionSpecialization.Custom ? _catOnStyle : _btnStyle))
+            {
+                CompanionProfileSystem.CycleCompanionSpecialization(ag, st);
+            }
+            if (GUI.Button(new Rect(rx + (cw + gap) * 1f, y, cw, 24f),
+                UiTip(BaseWorkManager.GetRoleLabel(st.WorkRole, lang), BaseWorkManager.GetRoleTip(st.WorkRole, lang)), _btnStyle))
+            {
+                st.Specialization = CompanionSpecialization.Custom;
                 BaseWorkManager.CycleRole(st);
-            if (GUI.Button(new Rect(x + w * 0.83f, y, w * 0.17f, 24f), UiTip(
-                    CompanionConfigStore.L(lang, "\u041e\u0442\u043c\u0435\u043d\u0438\u0442\u044c", "Cancel", "\u53d6\u6d88"),
-                    CompanionConfigStore.L(lang, "\u0411\u0440\u043e\u0441\u0438\u0442\u044c \u0442\u0435\u043a\u0443\u0449\u0443\u044e \u0440\u0430\u0431\u043e\u0442\u0443; \u0432\u0435\u0449\u0438 \u043e\u0441\u0442\u0430\u043d\u0443\u0442\u0441\u044f \u0432 \u0440\u044e\u043a\u0437\u0430\u043a\u0435", "Drop the current job; items stay in the backpack", "\u653e\u5f03\u5f53\u524d\u5de5\u4f5c\uff0c\u7269\u54c1\u7559\u5728\u80cc\u5305\u91cc")),
+            }
+            if (GUI.Button(new Rect(rx + (cw + gap) * 2f, y, cw, 24f), UiTip(
+                CompanionProfileSystem.GetLoadoutLabel(st.Loadout, lang),
+                CompanionConfigStore.L(lang, "Предпочтительное вооружение (Авто / Стрелок / Ближний бой)",
+                    "Preferred weapon loadout (Auto / Ranged / Melee)", "偏好武器配置（自动/远程/近战）")),
+                st.Loadout != PreferredLoadout.Auto ? _catOnStyle : _btnStyle))
+            {
+                CompanionProfileSystem.CycleCompanionLoadout(ag, st);
+            }
+            if (GUI.Button(new Rect(rx + (cw + gap) * 3f, y, cw, 24f), UiTip(
+                $"{st.ReserveAmmoMin}/{st.ReserveFoodMin}/{st.ReserveMedMin}",
+                CompanionConfigStore.L(lang, "Неснижаемый резерв в рюкзаке: Патроны / Еда / Медицина (не выгружается при сортировке)",
+                    "Non-reducible backpack reserve: Ammo / Food / Medicine (kept during base sorting)",
+                    "背包保底储备：弹药/食物/医疗（整理基地时不会卸出）")),
+                st.ReserveAmmoMin > 0 ? _catOnStyle : _catOffStyle))
+            {
+                CompanionProfileSystem.CycleCompanionReserves(st);
+            }
+            if (GUI.Button(new Rect(rx + (cw + gap) * 4f, y, cw, 24f), UiTip(
+                CompanionConfigStore.L(lang, "Отменить", "Cancel", "取消"),
+                CompanionConfigStore.L(lang, "Бросить текущую работу; вещи останутся в рюкзаке",
+                    "Drop the current job; items stay in the backpack", "放弃当前工作，物品留在背包里")),
                 st.HasAnyPhysicalTask ? _catOnStyle : _btnStyle) && st.HasAnyPhysicalTask)
+            {
                 BaseWorkManager.CancelWork(ag, st);
+            }
             GUI.enabled = baseEnabled;
 
-            y += 28f;
+            y += 30f;
             string detail;
             if (kind == CompanionStatusKind.Blocked) detail = DescribeBlockReason(st, lang);
             else if (st.HasAnyPhysicalTask && BaseWorkManager.Paused)
-                detail = CompanionConfigStore.L(lang, "\u0416\u0434\u0451\u0442 \u043a\u043e\u043d\u0446\u0430 \u043f\u0430\u0443\u0437\u044b: ", "Waiting for resume: ", "\u7b49\u5f85\u7ee7\u7eed\uff1a") + st.CurrentTaskText;
+                detail = CompanionConfigStore.L(lang, "Ждёт конца паузы: ", "Waiting for resume: ", "等待继续：") + st.CurrentTaskText;
             else if (st.HasAnyPhysicalTask) detail = st.CurrentTaskText;
-            else detail = CompanionConfigStore.L(lang, "\u0421\u0432\u043e\u0431\u043e\u0434\u0435\u043d", "Free", "\u7a7a\u95f2");
+            else detail = CompanionConfigStore.L(lang,
+                $"Свободен  ·  резерв БК {st.ReserveAmmoMin} · еда {st.ReserveFoodMin} · мед. {st.ReserveMedMin}",
+                $"Free  ·  reserve ammo {st.ReserveAmmoMin} · food {st.ReserveFoodMin} · med {st.ReserveMedMin}",
+                $"空闲  ·  保底弹药 {st.ReserveAmmoMin} · 食物 {st.ReserveFoodMin} · 医疗 {st.ReserveMedMin}");
             if (st.CarryBuffer.Count > 0)
-                detail += CompanionConfigStore.L(lang, $"  \u00b7  \u043d\u0435\u0441\u0451\u0442 {st.CarryBuffer.Count} \u043f\u0440\u0435\u0434\u043c.", $"  \u00b7  carrying {st.CarryBuffer.Count}", $"  \u00b7  \u643a\u5e26 {st.CarryBuffer.Count} \u4ef6");
+                detail += CompanionConfigStore.L(lang, $"  ·  несёт {st.CarryBuffer.Count} предм.", $"  ·  carrying {st.CarryBuffer.Count}", $"  ·  携带 {st.CarryBuffer.Count} 件");
             if (st.IsLootingActive && st.LootQueue.Count > 0)
-                detail += CompanionConfigStore.L(lang, $"  \u00b7  \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c \u0442\u043e\u0447\u0435\u043a: {st.LootQueue.Count}", $"  \u00b7  stops left: {st.LootQueue.Count}", $"  \u00b7  \u5269\u4f59\u5730\u70b9\uff1a{st.LootQueue.Count}");
+                detail += CompanionConfigStore.L(lang, $"  ·  осталось точек: {st.LootQueue.Count}", $"  ·  stops left: {st.LootQueue.Count}", $"  ·  剩余地点：{st.LootQueue.Count}");
             GUI.Label(new Rect(x, y, w, 26f), UiSafe(detail), _labelStyle);
+        }
+
+        private static float DrawRareSupplySettings(float x, float y, float width, ModLanguage lang)
+        {
+            float w3 = (width - 12f) / 3f;
+            if (GUI.Button(new Rect(x, y, w3, 30f), UiTip(
+                (CompanionConfigStore.AllowSpendRareFood ? "[x] " : "[ ] ") +
+                CompanionConfigStore.L(lang, "Тратить редкие блюда", "Spend rare dishes", "允许消耗高级料理"),
+                CompanionConfigStore.L(lang, "Разрешить тратить стейки и редкую кулинарию при раздаче пайка (если обычной еды нет)",
+                    "Allow sharing gourmet steaks & dishes when ordinary rations run out", "普通口粮耗尽时允许分享牛排等高级料理")),
+                CompanionConfigStore.AllowSpendRareFood ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.AllowSpendRareFood = !CompanionConfigStore.AllowSpendRareFood;
+                CompanionConfigStore.Save();
+            }
+            if (GUI.Button(new Rect(x + w3 + 6f, y, w3, 30f), UiTip(
+                (CompanionConfigStore.AllowSpendRareMeds ? "[x] " : "[ ] ") +
+                CompanionConfigStore.L(lang, "Тратить сыворотки/дозы", "Spend rare serums", "允许消耗稀有药剂"),
+                CompanionConfigStore.L(lang, "Разрешить полевому медику тратить редкие сыворотки и пакеты крови на обычное лечение",
+                    "Allow field medics to use rare serums & blood bags for routine healing", "允许医疗兵在常规治疗中使用血清与血袋")),
+                CompanionConfigStore.AllowSpendRareMeds ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.AllowSpendRareMeds = !CompanionConfigStore.AllowSpendRareMeds;
+                CompanionConfigStore.Save();
+            }
+            if (GUI.Button(new Rect(x + (w3 + 6f) * 2f, y, w3, 30f), UiTip(
+                (CompanionConfigStore.AllowSpendRareAmmo ? "[x] " : "[ ] ") +
+                CompanionConfigStore.L(lang, "Делиться редким БК", "Share rare calibers", "允许分享稀有弹药"),
+                CompanionConfigStore.L(lang, "Разрешить экстренную подачу редких крупнокалиберных патронов в бою",
+                    "Allow emergency ammo supply for rare small-stack calibers", "允许在战斗中紧急支援小堆叠大口径弹药")),
+                CompanionConfigStore.AllowSpendRareAmmo ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.AllowSpendRareAmmo = !CompanionConfigStore.AllowSpendRareAmmo;
+                CompanionConfigStore.Save();
+            }
+            return y + 36f;
         }
     }
 }

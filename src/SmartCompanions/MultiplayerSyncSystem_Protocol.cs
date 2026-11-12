@@ -140,7 +140,7 @@ namespace ZedZone.SmartCompanions
                 string ay = st.OrderAnchorPos.y.ToString("F1", CultureInfo.InvariantCulture);
                 string dx = st.OrderDirection.x.ToString("F2", CultureInfo.InvariantCulture);
                 string dy = st.OrderDirection.y.ToString("F2", CultureInfo.InvariantCulture);
-                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}|{rev}|{sender}|{(int)st.WorkRole}|{(int)st.ActiveOrder}|{ax}|{ay}|{st.OrderAnchorZ}|{dx}|{dy}";
+                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}|{rev}|{sender}|{(int)st.WorkRole}|{(int)st.ActiveOrder}|{ax}|{ay}|{st.OrderAnchorZ}|{dx}|{dy}|{(int)st.Specialization}|{(int)st.Loadout}|{st.ReserveAmmoMin}|{st.ReserveFoodMin}|{st.ReserveMedMin}";
                 if (IsMultiplayerHost) BroadcastPacketFromHost(body);
                 else if (IsMultiplayerClient) SendPacketToHost(body);
             }
@@ -349,6 +349,19 @@ namespace ZedZone.SmartCompanions
                             if (dir.sqrMagnitude > 0.001f) st.OrderDirection = dir.normalized;
                         }
                     }
+                    if (parts.Length >= 15 && int.TryParse(parts[14], out int specInt))
+                        st.Specialization = (CompanionSpecialization)Mathf.Clamp(specInt, 0, 4);
+                    if (parts.Length >= 16 && int.TryParse(parts[15], out int loadInt))
+                        st.Loadout = (PreferredLoadout)Mathf.Clamp(loadInt, 0, 2);
+                    if (parts.Length >= 19 &&
+                        int.TryParse(parts[16], out int rAmmo) &&
+                        int.TryParse(parts[17], out int rFood) &&
+                        int.TryParse(parts[18], out int rMed))
+                    {
+                        st.ReserveAmmoMin = Mathf.Clamp(rAmmo, 0, 200);
+                        st.ReserveFoodMin = Mathf.Clamp(rFood, 0, 20);
+                        st.ReserveMedMin = Mathf.Clamp(rMed, 0, 20);
+                    }
                     if (!string.IsNullOrEmpty(ownerId)) st.OwnerCharacterId = ownerId;
                     if (!string.IsNullOrEmpty(ownerName)) st.OwnerPlayerName = ownerName;
 
@@ -357,7 +370,7 @@ namespace ZedZone.SmartCompanions
                     {
                         if (!string.IsNullOrEmpty(ownerId) && Il2CppSafe.IsAlive(ag.npcData))
                             ag.npcData.leaderCharacterGUID = ownerId;
-                        SmartCombatAI.ApplyDoctrineToNpcData(ag, st);
+                        CompanionProfileSystem.ApplyPreferredLoadoutAndDoctrine(ag, st);
                     }
                     CompanionConfigStore.Save();
                     if (receivedOnHost)

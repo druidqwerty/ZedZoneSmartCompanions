@@ -116,7 +116,10 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         CompanionConfigStore.FollowDistance = FollowDistanceMode.Close;
                         TacticalSquadSystem.IssueOrder(_agent, TacticalOrderKind.Follow, quiet: true);
 
-                        return End(true, "PASS Hold Position (0m chase drift), Fall Back Here run, Cover Sector priority & Formation restore.");
+                        // v2.2.0 Live Supply Verification: real ItemData backpack reserve protection + rare-steak ration guard
+                        VerifyV220SupplyAndReservesInEngine();
+
+                        return End(true, "PASS Hold Position (0m chase drift), Fall Back Here run, Cover Sector priority, Formation restore & v2.2.0 Live Supply/Reserve guards.");
                     }
 
                     if (now - _phaseStart > 18f)
@@ -128,6 +131,48 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 return End(false, "FAIL [TacticalLive Exception]: " + ex);
             }
             return false;
+        }
+
+        private static void VerifyV220SupplyAndReservesInEngine()
+        {
+            // 1. Live InventoryData + real ItemData reserve protection
+            var testPack = new InventoryData { inventorySize = new Vector2Int(6, 6), inventoryId = "test_v220_pack" };
+            var med1 = ItemManager.instance.GetRandomDataByAttr(ItemManager.instance.GetItemAttrById(220), false, false);
+            var med2 = ItemManager.instance.GetRandomDataByAttr(ItemManager.instance.GetItemAttrById(220), false, false);
+            var medSurplus = ItemManager.instance.GetRandomDataByAttr(ItemManager.instance.GetItemAttrById(220), false, false);
+            med1.itemNumberFloat = 1f; med2.itemNumberFloat = 1f; medSurplus.itemNumberFloat = 1f;
+            InventoryTransfers.TryAddWholeCopy(testPack, med1, out var p1);
+            InventoryTransfers.TryAddWholeCopy(testPack, med2, out var p2);
+            InventoryTransfers.TryAddWholeCopy(testPack, medSurplus, out var p3);
+
+            var testState = new CompanionRuntimeState { ReserveAmmoMin = 24, ReserveFoodMin = 2, ReserveMedMin = 2 };
+            var keptPtrs = CompanionProfileSystem.BuildProtectedBackpackPointers(_agent, testState, testPack);
+            if (!keptPtrs.Contains(p1.Pointer) || !keptPtrs.Contains(p2.Pointer) || keptPtrs.Contains(p3.Pointer))
+                throw new Exception("v2.2.0 live BuildProtectedBackpackPointers failed to protect exact 2-medkit reserve while releasing 3rd surplus!");
+
+            // 2. Rare gourmet steak (248) protected when AllowSpendRareFood=false; ordinary canned food (210) consumed first
+            bool prevRareFood = CompanionConfigStore.AllowSpendRareFood;
+            try
+            {
+                CompanionConfigStore.AllowSpendRareFood = false;
+                var steakOnlyInv = new InventoryData { inventorySize = new Vector2Int(6, 6), inventoryId = "test_v220_steak" };
+                var steak = ItemManager.instance.GetRandomDataByAttr(ItemManager.instance.GetItemAttrById(248), false, false);
+                steak.itemNumberFloat = 1f;
+                InventoryTransfers.TryAddWholeCopy(steakOnlyInv, steak, out _);
+                if (RationSharing.TryConsumePortion(steakOnlyInv) || steakOnlyInv.itemList.Count != 1)
+                    throw new Exception("v2.2.0 AllowSpendRareFood=false failed to protect Spicy Meat Steak (248)!");
+
+                var can = ItemManager.instance.GetRandomDataByAttr(ItemManager.instance.GetItemAttrById(210), false, false);
+                can.itemNumberFloat = 1f;
+                InventoryTransfers.TryAddWholeCopy(steakOnlyInv, can, out _);
+                if (!RationSharing.TryConsumePortion(steakOnlyInv) || steakOnlyInv.itemList.Count != 1 || steakOnlyInv.itemList[0].itemId != 248)
+                    throw new Exception("v2.2.0 RationSharing did not consume ordinary canned ration (210) while preserving rare steak (248)!");
+            }
+            finally
+            {
+                CompanionConfigStore.AllowSpendRareFood = prevRareFood;
+            }
+            LiveSmokePlugin.Logger.LogInfo("[TacticalLive] PASS v2.2.0 live ItemData backpack reserve protection & rare-steak ration guard.");
         }
 
         private static bool TryFindOpenLine(float dist, out Vector2 origin, out Vector2 target)

@@ -259,6 +259,30 @@ namespace ZedZone.SmartCompanions
         DifferentZLevel = 6
     }
 
+    // 2.2.0: companion specialization profiles, preferred loadout, supply reserves & work priorities.
+    public enum CompanionSpecialization
+    {
+        Custom = 0,
+        Fighter = 1,
+        Medic = 2,
+        Quartermaster = 3,
+        Scavenger = 4
+    }
+
+    public enum PreferredLoadout
+    {
+        Auto = 0,
+        RangedFirst = 1,
+        MeleeFirst = 2
+    }
+
+    public enum BaseWorkPriority
+    {
+        SortFirst = 0,
+        LootFirst = 1,
+        CampFirst = 2
+    }
+
     public enum CompanionBlockReason
     {
         None = 0,
@@ -316,6 +340,11 @@ namespace ZedZone.SmartCompanions
         public bool AllowAutoDropoffAtBase = true;
         public bool AllowBaseChores = true;
         public CompanionWorkRole WorkRole = CompanionWorkRole.Any;
+        public CompanionSpecialization Specialization = CompanionSpecialization.Custom;
+        public PreferredLoadout Loadout = PreferredLoadout.Auto;
+        public int ReserveAmmoMin = 24;
+        public int ReserveFoodMin = 2;
+        public int ReserveMedMin = 1;
 
         // 2.1.0: active tactical order & execution state
         public TacticalOrderKind ActiveOrder = TacticalOrderKind.Follow;
@@ -612,6 +641,14 @@ namespace ZedZone.SmartCompanions
         public static bool EnableWorldNpcChatter = true;
         public static bool EnableBaseChores = true;
         public static bool BaseWorkPaused = false;
+        public static BaseWorkPriority BasePriorityMode = BaseWorkPriority.SortFirst;
+        public static float LootSweepRadius = 24f;
+        public static bool LootZonePinned = false;
+        public static Vector2 LootZoneCenter = Vector2.zero;
+        public static sbyte LootZoneFloor = 0;
+        public static bool AllowSpendRareFood = false;
+        public static bool AllowSpendRareMeds = false;
+        public static bool AllowSpendRareAmmo = true;
         public static bool EnableSmartFlashlight = true;
         public static bool EnablePlayerRescue = true;
         public static bool ShowHudBadge = true;
@@ -853,6 +890,11 @@ namespace ZedZone.SmartCompanions
                 sb.AppendLine($"SET|EnableBaseAutoDropoff|{EnableBaseAutoDropoff}");
                 sb.AppendLine($"SET|EnableWorldNpcChatter|{EnableWorldNpcChatter}");
                 sb.AppendLine($"SET|EnableBaseChores|{EnableBaseChores}");
+                sb.AppendLine($"SET|BasePriorityMode|{(int)BasePriorityMode}");
+                sb.AppendLine($"SET|LootSweepRadius|{LootSweepRadius.ToString("F1", CultureInfo.InvariantCulture)}");
+                sb.AppendLine($"SET|AllowSpendRareFood|{AllowSpendRareFood}");
+                sb.AppendLine($"SET|AllowSpendRareMeds|{AllowSpendRareMeds}");
+                sb.AppendLine($"SET|AllowSpendRareAmmo|{AllowSpendRareAmmo}");
                 sb.AppendLine($"SET|EnableSmartFlashlight|{EnableSmartFlashlight}");
                 sb.AppendLine($"SET|EnablePlayerRescue|{EnablePlayerRescue}");
                 sb.AppendLine($"SET|ShowHudBadge|{ShowHudBadge}");
@@ -891,7 +933,7 @@ namespace ZedZone.SmartCompanions
                     var safeName = (c.LastKnownName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
                     var safeOwnerId = (c.OwnerCharacterId ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
                     var safeOwnerName = (c.OwnerPlayerName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
-                    sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}|{(int)c.Archetype}|{c.ExperiencePoints}|{c.AllowBaseChores}|{safeOwnerId}|{safeOwnerName}|{(int)c.WorkRole}");
+                    sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}|{(int)c.Archetype}|{c.ExperiencePoints}|{c.AllowBaseChores}|{safeOwnerId}|{safeOwnerName}|{(int)c.WorkRole}|{(int)c.Specialization}|{(int)c.Loadout}|{c.ReserveAmmoMin}|{c.ReserveFoodMin}|{c.ReserveMedMin}");
                 }
 
                 File.WriteAllText(SaveFilePath, sb.ToString(), Encoding.UTF8);
@@ -960,6 +1002,11 @@ namespace ZedZone.SmartCompanions
                         else if (key == "EnableBaseAutoDropoff" && bool.TryParse(val, out var bDrop)) EnableBaseAutoDropoff = bDrop;
                         else if (key == "EnableWorldNpcChatter" && bool.TryParse(val, out var bWorld)) EnableWorldNpcChatter = bWorld;
                         else if (key == "EnableBaseChores" && bool.TryParse(val, out var bChores)) EnableBaseChores = bChores;
+                        else if (key == "BasePriorityMode" && int.TryParse(val, out var bpInt)) BasePriorityMode = (BaseWorkPriority)Mathf.Clamp(bpInt, 0, 2);
+                        else if (key == "LootSweepRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var lsr)) LootSweepRadius = Mathf.Clamp(lsr, 10f, 60f);
+                        else if (key == "AllowSpendRareFood" && bool.TryParse(val, out var bRareF)) AllowSpendRareFood = bRareF;
+                        else if (key == "AllowSpendRareMeds" && bool.TryParse(val, out var bRareM)) AllowSpendRareMeds = bRareM;
+                        else if (key == "AllowSpendRareAmmo" && bool.TryParse(val, out var bRareA)) AllowSpendRareAmmo = bRareA;
                         else if (key == "EnableSmartFlashlight" && bool.TryParse(val, out var bFlash)) EnableSmartFlashlight = bFlash;
                         else if (key == "EnablePlayerRescue" && bool.TryParse(val, out var bRescue)) EnablePlayerRescue = bRescue;
                         else if (key == "ShowHudBadge" && bool.TryParse(val, out var b7)) ShowHudBadge = b7;
@@ -1034,6 +1081,14 @@ namespace ZedZone.SmartCompanions
                         var ownerName = parts.Length >= 14 ? parts[13] : "";
                         var role = CompanionWorkRole.Any;
                         if (parts.Length >= 15 && int.TryParse(parts[14], out var roleInt)) role = (CompanionWorkRole)Mathf.Clamp(roleInt, 0, 4);
+                        var spec = CompanionSpecialization.Custom;
+                        if (parts.Length >= 16 && int.TryParse(parts[15], out var specInt)) spec = (CompanionSpecialization)Mathf.Clamp(specInt, 0, 4);
+                        var loadout = PreferredLoadout.Auto;
+                        if (parts.Length >= 17 && int.TryParse(parts[16], out var loadInt)) loadout = (PreferredLoadout)Mathf.Clamp(loadInt, 0, 2);
+                        int resAmmo = 24, resFood = 2, resMed = 1;
+                        if (parts.Length >= 18 && int.TryParse(parts[17], out var ra)) resAmmo = Mathf.Clamp(ra, 0, 200);
+                        if (parts.Length >= 19 && int.TryParse(parts[18], out var rf)) resFood = Mathf.Clamp(rf, 0, 20);
+                        if (parts.Length >= 20 && int.TryParse(parts[19], out var rm)) resMed = Mathf.Clamp(rm, 0, 20);
 
                         CompanionStates[guid] = new CompanionRuntimeState
                         {
@@ -1050,7 +1105,12 @@ namespace ZedZone.SmartCompanions
                             LastKnownName = name,
                             OwnerCharacterId = ownerId,
                             OwnerPlayerName = ownerName,
-                            WorkRole = role
+                            WorkRole = role,
+                            Specialization = spec,
+                            Loadout = loadout,
+                            ReserveAmmoMin = resAmmo,
+                            ReserveFoodMin = resFood,
+                            ReserveMedMin = resMed
                         };
                     }
                 }
