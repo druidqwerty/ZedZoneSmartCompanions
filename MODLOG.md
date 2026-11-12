@@ -254,3 +254,11 @@
 - 1.9.0 co-op reliability: host-authoritative NPC packets (owner check + revision, reject -> host rebroadcast), view-only cards for others' companions. Pure decision table tested in UiSmoke ProtocolRegression. Live two-player still impossible locally.
 - 2.0.0 base work board: roles (Any/Storekeeper/Scavenger/Camp/Off), global pause (keeps jobs + carried items), per-companion and global cancel, new WORK tab (index 4, display 2nd). WIP on branch v2-work.
 - Gotchas: IL2CPP GUIContent has only (string, Texture, string) -> use UiTip(). .NET IO in pwsh uses process cwd -> Resolve-Path. UI matrix can stall at a case (stop process; runner rolls back; resume with --start-case=N --dll=...). tools/package_release.py <ver> <dll>.
+
+## 2.0.0 published (2026-11-12) — roadmap 1.8.1 -> 2.0.0 COMPLETE
+- 1.9.0 published: DLL dfc491ce..., ZIP a04a1cf6..., 270/270 + protocol 13/13 (backups/ui190-20261112-034004).
+- 2.0.0 published: DLL 255b1941..., ZIP 7f772521..., live acceptance with mid-carry pause (backups/live-20261112-035652), 300/300 matrix (backups/ui200-20261112-035736). Rejected 3 candidates: tofu glyphs (U+23F8/25B6, lock), stale tooltip x2.
+- Steam API: 2.0.0 public, workshop cache synced; local Mods install = 2.0.0 (rollback backups/before-install-2.0.0).
+- Boosty: cumulative BOOSTY_2.0.0 queued; pending 1.8.1/1.9.0 removed. Queue processor (agent main) idle since 2026-11-10.
+- Gotchas: GUI.tooltip setter unreliable -> TipsThisDraw registry; strip glyphs via UiSafe (Font.HasCharacter); run_live_acceptance.py restores Workshop folder (old run_live170 did not).
+- Open: real 2-player co-op test; mouse wheel injection; long soak of roles/pause.
