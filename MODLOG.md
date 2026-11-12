@@ -268,3 +268,10 @@
 - Live acceptance PASS (backups/live-20261112-152155): combat + physical carry + HoldPosition (0.00m drift) + FallBackHere (7.17m run) + CoverSector.
 - UI matrix PASS 300/300 + TacticalRegression 16/16 + ProtocolRegression 13/13 (backups/ui210-20261112-152316).
 - Published to GitHub v2.1.0, Steam 3836613312 (public), Boosty BOOSTY_2.1.0.md queued.
+
+## 2.2.0 Specializations, reserves & loot zones published (2026-11-12)
+- DLL e1e33e40094c84b4a9b56c994124faa670a20b784e229b5e3f5ed140b57a549c, ZIP 444ca049f7038675c63305ec0d16c13883cca7f1e517bd4202a79ee3352bf75c.
+- Rejected 5db1e54c... after screenshot inspection caught RU role button wrap; fixed with concise Work-row labels & 26px buttons.
+- Live acceptance PASS (backups/live-20261112-154729): combat + physical carry + tactical + live ItemData backpack reserve protection + rare-steak ration guard.
+- UI matrix PASS 300/300 + SpecializationRegression 12/12 + TacticalRegression 16/16 + ProtocolRegression 13/13 (backups/ui220-20261112-155349).
+- Published to GitHub v2.2.0, Steam 3836613312 (public), Boosty BOOSTY_2.2.0.md queued.
