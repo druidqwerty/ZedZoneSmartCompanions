@@ -1,15 +1,15 @@
-title=ZED ZONE: Smart Companions 1.8.0 — 智能队友
+title=ZED ZONE: Smart Companions 1.8.1 — 智能队友
 visibility=public
-description=[h1]智能队友 1.8.0[/h1]
+description=[h1]智能队友 1.8.1[/h1]
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=喜欢这个模组吗？欢迎在 Boosty 支持开发。
 description=打造可靠的幸存者小队：智能战术战斗、真实走位搜刮与基地搬运，以及中英俄三语共 1,179 条实时台词。
-description=[h2]更新：更清晰、适应屏幕的界面[/h2]
-description=[list][*]四个独立 F8 标签页：小队、基地、语录与设置。[*]全新外观、更大的文字与分组设置。[*]主窗口、HUD 与箱子分类面板统一自动缩放。可在 F8 → 设置中选择自动或 75–200%；实际大小限制在屏幕可容纳的范围内。[*]改变分辨率或缩放时，面板保持在屏幕内，设置无需重启即可生效。[/list]
+description=[h2]1.8.1 更新：一眼看清每名队友在做什么[/h2]
+description=[list][*]队友卡片以颜色显示状态：待命、忙碌、战斗中、已停止或需要帮助。[*]停工时显示原因：无法到达箱子、缺少空位或分类箱，或因战斗中断。[*]队伍筛选：全部、忙碌、空闲、需要帮助。[*]战术学说、开关和计数的悬停提示。[*]保留 1.8.1 的四个 F8 标签页与自动或 75–200% 界面缩放。[/list]
 description=[h2]小队与基地[/h2]
 description=六种战术学说、最高 15 人队伍、战地急救与弹药支援、自主物资搜刮及 12 类储物规则。队友亲自走到物品旁拾取，并在玩家标记的箱子间搬运，绝不瞬间隔空传物。兼容现有存档，无需重开。
 description=[h2]安装与快捷键[/h2]
-description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次其 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 1.8.0。
+description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次其 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 1.8.1。
 description=F8：小队/基地/语录/设置 · Esc：关闭 F8 · F7：走位整理基地 · F6（与 AVO 共用时 Alt+F6）：分享口粮 · F9：战吼。
 description=[h2]联机限制[/h2]
 description=真实双人主机 + 客户端的人类 NPC 可见性仍待实测确认，本次界面更新不宣称解决此问题。

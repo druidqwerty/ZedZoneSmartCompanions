@@ -43,6 +43,9 @@ def screen_prefs():
 
 
 def main():
+    global CANDIDATE_DLL
+    CANDIDATE_DLL = Path(next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--dll=")), ROOT / "src/SmartCompanions/bin/SmartCompanions.dll"))
+    print("candidate_dll_sha256=" + digest(CANDIDATE_DLL), flush=True)
     probe_scale = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--os-probe=")), None)
     running = subprocess.run(["tasklist", "/FI", "IMAGENAME eq ZEDZONE.exe", "/FO", "CSV"], capture_output=True, text=True)
     if '"ZEDZONE.exe"' in running.stdout:
@@ -70,7 +73,7 @@ def main():
     try:
         for path in map(Path, original):
             if path.name == "SmartCompanions.dll":
-                shutil.copy2(ROOT / "src/SmartCompanions/bin/SmartCompanions.dll", path)
+                shutil.copy2(CANDIDATE_DLL, path)
             elif path.name == "mod.json":
                 meta = json.loads(path.read_text(encoding="utf-8-sig"))
                 meta["version"] = VERSION

@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.8.0"><strong>Release v1.8.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.8.1"><strong>Release v1.8.1 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v1.8.1 — See what every companion is doing
+
+- **Clear state on every card:** Awaiting orders, Busy, In combat, Stopped or Needs help, in colour.
+- **Why work stopped:** no path to a named chest, no space or chest for listed categories, no chests with categories, or interrupted by combat.
+- **Squad filters:** All, Busy, Idle and Need help (HP below 50%, hungry or thirsty) with a shown/total counter.
+- **Hover hints** for doctrines, companion toggles, filters and counters.
+- **Verified:** 270/270 graphical cases on six resolutions and three languages; all 8,386 save files unchanged. [Scope and limits](docs/verification-1.8.1.md).
+
+![Squad status and filters (real engine, isolated test fixtures)](docs/images/ui-1.8.1-squad-status-en.png)
 
 ## New in v1.8.0 — A clearer interface for your screen
 
@@ -171,7 +181,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.8.0.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-1.8.1.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 

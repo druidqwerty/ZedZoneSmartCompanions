@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.8.0"><strong>Скачать релиз v1.8.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v1.8.1"><strong>Скачать релиз v1.8.1 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v1.8.1 — Видно, чем занят каждый напарник
+
+- **Понятный статус на карточке:** Ждёт приказа, Занят, В бою, Остановлен или Нужна помощь — цветом.
+- **Почему работа остановилась:** нет пути к названному ящику, нет места или ящика для категорий, нет ящиков с категориями, помешал бой.
+- **Фильтры отряда:** Все, Заняты, Свободны и Нужна помощь (HP ниже 50%, голод или жажда) со счётчиком.
+- **Подсказки при наведении** для доктрин, переключателей, фильтров и счётчиков.
+- **Проверено:** 270/270 графических случаев на шести разрешениях и трёх языках; все 8 386 файлов сохранений не изменились. [Отчёт и границы проверки](docs/verification-1.8.1.md).
+
+![Статусы и фильтры отряда (движок игры, изолированные тестовые объекты)](docs/images/ui-1.8.1-squad-status-ru.png)
 
 ## Новое в v1.8.0 — Понятный интерфейс под ваш экран
 
@@ -152,7 +162,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.8.0.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-1.8.1.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 
