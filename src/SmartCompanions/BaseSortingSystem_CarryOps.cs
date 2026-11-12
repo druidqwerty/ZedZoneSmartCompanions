@@ -510,7 +510,7 @@ namespace ZedZone.SmartCompanions
             catch { }
         }
 
-        private static void RefreshOpenLootPanelIfNeeded()
+        internal static void RefreshOpenLootPanelIfNeeded()
         {
             try
             {

@@ -21,6 +21,8 @@ namespace ZedZone.SmartCompanions
         public const string FallBack      = "Basic.FallBackToLeader";
         public const string CoverSector   = "Basic.CoverAimSector";
         public const string ResumeFollow  = "Basic.ResumeFollowFormation";
+        public const string CampGarrison  = "Basic.ToggleCampGarrison";
+        public const string SafeDismiss   = "OneTime.SafeDismissWithGear";
 
         public static readonly string[] AllCustomCommands = new[]
         {
@@ -30,6 +32,7 @@ namespace ZedZone.SmartCompanions
             FallBack,
             CoverSector,
             ResumeFollow,
+            CampGarrison,
             DocAssault,
             DocBodyguard,
             DocSniper,
@@ -38,7 +41,8 @@ namespace ZedZone.SmartCompanions
             EmergencyAid,
             ShareRation,
             UnloadVehicle,
-            BattleCry
+            BattleCry,
+            SafeDismiss
         };
 
         public static bool TryGetDisplayName(string cmd, out string label)
@@ -112,6 +116,14 @@ namespace ZedZone.SmartCompanions
                 case "ResumeFollowFormation":
                 case ResumeFollow:
                     label = CompanionConfigStore.L(lang, "Следовать в строю", "Follow Formation", "跟随编队");
+                    return true;
+                case "ToggleCampGarrison":
+                case CampGarrison:
+                    label = CompanionConfigStore.L(lang, "Гарнизон лагеря", "Camp Garrison", "营地驻守");
+                    return true;
+                case "SafeDismissWithGear":
+                case SafeDismiss:
+                    label = CompanionConfigStore.L(lang, "Сдать вещи и уйти", "Hand Over & Dismiss", "交出装备离队");
                     return true;
                 default:
                     label = null;
@@ -265,6 +277,18 @@ namespace ZedZone.SmartCompanions
             if (commandStr.EndsWith("ResumeFollowFormation", StringComparison.OrdinalIgnoreCase))
             {
                 TacticalSquadSystem.IssueOrder(agent, TacticalOrderKind.Follow);
+                return true;
+            }
+
+            if (commandStr.EndsWith("ToggleCampGarrison", StringComparison.OrdinalIgnoreCase))
+            {
+                if (st != null) CampGarrisonSystem.ToggleCampGarrison(agent, st);
+                return true;
+            }
+
+            if (commandStr.EndsWith("SafeDismissWithGear", StringComparison.OrdinalIgnoreCase))
+            {
+                if (st != null) CampGarrisonSystem.StartSafeDismiss(agent, st, handOverGear: true);
                 return true;
             }
 
@@ -842,6 +866,12 @@ namespace ZedZone.SmartCompanions
                         __result = true;
                         return false;
                     }
+                    if (!st.HasAnyPhysicalTask && st.RosterMode == CompanionRosterMode.CampGarrison &&
+                        CampGarrisonSystem.TickGarrisonFrame(agent))
+                    {
+                        __result = true;
+                        return false;
+                    }
                     if (!st.HasAnyPhysicalTask && TacticalSquadSystem.TryExecuteFollowFormationAndSpacing(agent))
                     {
                         __result = true;
@@ -865,6 +895,13 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.CompanionStates.TryGetValue(agentState.npcData.npcGUID ?? "", out var st);
                 bool hasPhysicalTask = st != null && st.HasAnyPhysicalTask;
                 bool hasPositionalOrder = st != null && st.ActiveOrder != TacticalOrderKind.Follow;
+
+                if (st != null && st.RosterMode == CompanionRosterMode.CampGarrison && !hasPhysicalTask &&
+                    agentState.npcData.zLevel == st.HomeAnchorZ)
+                {
+                    if (__result > 0.35f) __result = 0.35f;
+                    return;
+                }
 
                 if (hasPositionalOrder && !hasPhysicalTask && agentState.npcData.zLevel == st.OrderAnchorZ)
                 {

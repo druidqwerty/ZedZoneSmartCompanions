@@ -123,6 +123,47 @@ namespace ZedZone.SmartCompanions
             catch { }
         }
 
+        public static long PacketsSent { get; private set; }
+        public static long PacketsReceived { get; private set; }
+
+        public static int CountHostReplicatedHumanNpcs()
+        {
+            try
+            {
+                var sync = ZedZone.Net.NetMonsterSync.instance;
+                if (!IsMultiplayerHost || !Il2CppSafe.IsAliveUnity(sync)) return 0;
+                int n = 0;
+                var squad = SmartChatterSystem.GetActiveTeammateAgents();
+                for (int i = 0; i < squad.Count; i++)
+                {
+                    var hc = squad[i]?.humanCharacter;
+                    if (Il2CppSafe.IsAliveUnity(hc) && sync.HostTryGetNetId(hc, out _))
+                        n++;
+                }
+                return n;
+            }
+            catch { return 0; }
+        }
+
+        public static int CountClientBoundHumanPuppets()
+        {
+            try
+            {
+                var sync = ZedZone.Net.NetMonsterSync.instance;
+                if (!IsMultiplayerClient || !Il2CppSafe.IsAliveUnity(sync) || sync.m_puppets == null) return 0;
+                int n = 0;
+                foreach (var kv in sync.m_puppets)
+                {
+                    var p = kv.Value;
+                    if (Il2CppSafe.IsAlive(p) && Il2CppSafe.IsAliveUnity(p.controller) &&
+                        p.controller.TryCast<HumanCharacterController>() != null)
+                        n++;
+                }
+                return n;
+            }
+            catch { return 0; }
+        }
+
         public static void SyncCompanionStateChange(CompanionRuntimeState st, bool bumpRevision = true)
         {
             if (st == null || string.IsNullOrEmpty(st.NpcGuid) || !IsMultiplayerOnline) return;
@@ -140,7 +181,9 @@ namespace ZedZone.SmartCompanions
                 string ay = st.OrderAnchorPos.y.ToString("F1", CultureInfo.InvariantCulture);
                 string dx = st.OrderDirection.x.ToString("F2", CultureInfo.InvariantCulture);
                 string dy = st.OrderDirection.y.ToString("F2", CultureInfo.InvariantCulture);
-                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}|{rev}|{sender}|{(int)st.WorkRole}|{(int)st.ActiveOrder}|{ax}|{ay}|{st.OrderAnchorZ}|{dx}|{dy}|{(int)st.Specialization}|{(int)st.Loadout}|{st.ReserveAmmoMin}|{st.ReserveFoodMin}|{st.ReserveMedMin}";
+                string hx = st.HomeAnchorPos.x.ToString("F1", CultureInfo.InvariantCulture);
+                string hy = st.HomeAnchorPos.y.ToString("F1", CultureInfo.InvariantCulture);
+                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}|{rev}|{sender}|{(int)st.WorkRole}|{(int)st.ActiveOrder}|{ax}|{ay}|{st.OrderAnchorZ}|{dx}|{dy}|{(int)st.Specialization}|{(int)st.Loadout}|{st.ReserveAmmoMin}|{st.ReserveFoodMin}|{st.ReserveMedMin}|{(int)st.RosterMode}|{hx}|{hy}|{st.HomeAnchorZ}";
                 if (IsMultiplayerHost) BroadcastPacketFromHost(body);
                 else if (IsMultiplayerClient) SendPacketToHost(body);
             }
@@ -217,6 +260,7 @@ namespace ZedZone.SmartCompanions
                     text = PacketPrefix + payloadBody
                 };
                 net.SendToHost(msg, DeliveryMethod.ReliableOrdered, 0);
+                PacketsSent++;
             }
             catch { }
         }
@@ -235,6 +279,7 @@ namespace ZedZone.SmartCompanions
                     text = PacketPrefix + payloadBody
                 };
                 net.BroadcastToJoined(msg, exceptPeer, DeliveryMethod.ReliableOrdered, 0);
+                PacketsSent++;
             }
             catch { }
         }
@@ -246,6 +291,7 @@ namespace ZedZone.SmartCompanions
 
             try
             {
+                PacketsReceived++;
                 string body = msg.text.Substring(PacketPrefix.Length);
                 var parts = body.Split('|');
                 if (parts.Length == 0) return true;
@@ -361,6 +407,19 @@ namespace ZedZone.SmartCompanions
                         st.ReserveAmmoMin = Mathf.Clamp(rAmmo, 0, 200);
                         st.ReserveFoodMin = Mathf.Clamp(rFood, 0, 20);
                         st.ReserveMedMin = Mathf.Clamp(rMed, 0, 20);
+                    }
+                    if (parts.Length >= 20 && int.TryParse(parts[19], out int rosterInt))
+                    {
+                        st.RosterMode = (CompanionRosterMode)Mathf.Clamp(rosterInt, 0, 1);
+                        if (parts.Length >= 23 &&
+                            float.TryParse(parts[20], NumberStyles.Float, CultureInfo.InvariantCulture, out float hx) &&
+                            float.TryParse(parts[21], NumberStyles.Float, CultureInfo.InvariantCulture, out float hy) &&
+                            int.TryParse(parts[22], out int hz))
+                        {
+                            st.HomeAnchorPos = new Vector2(hx, hy);
+                            st.HomeAnchorZ = hz;
+                            st.HasHomeAnchor = st.RosterMode == CompanionRosterMode.CampGarrison || Mathf.Abs(hx) > 0.01f || Mathf.Abs(hy) > 0.01f;
+                        }
                     }
                     if (!string.IsNullOrEmpty(ownerId)) st.OwnerCharacterId = ownerId;
                     if (!string.IsNullOrEmpty(ownerName)) st.OwnerPlayerName = ownerName;

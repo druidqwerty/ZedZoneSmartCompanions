@@ -283,6 +283,12 @@ namespace ZedZone.SmartCompanions
         CampFirst = 2
     }
 
+    public enum CompanionRosterMode
+    {
+        ActiveSquad = 0,
+        CampGarrison = 1
+    }
+
     public enum CompanionBlockReason
     {
         None = 0,
@@ -425,6 +431,20 @@ namespace ZedZone.SmartCompanions
         public int ChorePropItemId = 0;
         public Action PendingChoreArrivalAction = null;
 
+        // 2.4.0: Camp Garrison & physical zero-teleport Safe Dismissal
+        public CompanionRosterMode RosterMode = CompanionRosterMode.ActiveSquad;
+        public Vector2 HomeAnchorPos = Vector2.zero;
+        public int HomeAnchorZ = 0;
+        public bool HasHomeAnchor = false;
+        public bool GarrisonAnchorSettled = false;
+
+        public bool IsSafeDismissActive = false;
+        public bool SafeDismissReturnGear = false;
+        public Vector2 SafeDismissTargetPos = Vector2.zero;
+        public Transform SafeDismissTargetAnchor = null;
+        public InventoryData SafeDismissTargetInv = null;
+        public bool SafeDismissToPlayer = false;
+
         // Shared physical arrival / stuck-detection state (zero-teleport guarantee)
         public Vector2 WalkOriginPos;
         public Vector2 LastMovedPos;
@@ -447,7 +467,7 @@ namespace ZedZone.SmartCompanions
             LastBlockTime = Time.time;
         }
 
-        public bool HasAnyPhysicalTask => IsSortingActive || IsLootingActive || IsChoreWalkActive;
+        public bool HasAnyPhysicalTask => IsSortingActive || IsLootingActive || IsChoreWalkActive || IsSafeDismissActive;
 
         public bool HasFedBuff => Time.unscaledTime < FedAndFierceUntil;
         public float FedBuffRemainingSeconds => Mathf.Max(0f, FedAndFierceUntil - Time.unscaledTime);
@@ -863,78 +883,85 @@ namespace ZedZone.SmartCompanions
             return st;
         }
 
+        public static string BuildSaveText()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("# ZED ZONE Smart Companions Saved Rules v1.4.2");
+            sb.AppendLine($"SET|LanguageMode|{(int)LanguageMode}");
+            sb.AppendLine($"SET|UseRussian|{UseRussian}");
+            sb.AppendLine($"SET|EnableChatter|{EnableChatter}");
+            sb.AppendLine($"SET|Profanity|{(int)Profanity}");
+            sb.AppendLine($"SET|ChatterIntervalMultiplier|{ChatterIntervalMultiplier.ToString("F2", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"SET|EnableSmartCombat|{EnableSmartCombat}");
+            sb.AppendLine($"SET|EnableAntiFriendlyFire|{EnableAntiFriendlyFire}");
+            sb.AppendLine($"SET|EnableKiting|{EnableKiting}");
+            sb.AppendLine($"SET|ActiveFormation|{(int)ActiveFormation}");
+            sb.AppendLine($"SET|FollowDistance|{(int)FollowDistance}");
+            sb.AppendLine($"SET|EnableNarrowPassageYield|{EnableNarrowPassageYield}");
+            sb.AppendLine($"SET|RetreatHpThresholdPercent|{RetreatHpThresholdPercent}");
+            sb.AppendLine($"SET|LowAmmoRetreat|{(int)LowAmmoRetreat}");
+            sb.AppendLine($"SET|EnableFieldMedic|{EnableFieldMedic}");
+            sb.AppendLine($"SET|EnableAmmoShare|{EnableAmmoShare}");
+            sb.AppendLine($"SET|AutoShareFoodOnEat|{AutoShareFoodOnEat}");
+            sb.AppendLine($"SET|EnableBaseAutoDropoff|{EnableBaseAutoDropoff}");
+            sb.AppendLine($"SET|EnableWorldNpcChatter|{EnableWorldNpcChatter}");
+            sb.AppendLine($"SET|EnableBaseChores|{EnableBaseChores}");
+            sb.AppendLine($"SET|BasePriorityMode|{(int)BasePriorityMode}");
+            sb.AppendLine($"SET|LootSweepRadius|{LootSweepRadius.ToString("F1", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"SET|AllowSpendRareFood|{AllowSpendRareFood}");
+            sb.AppendLine($"SET|AllowSpendRareMeds|{AllowSpendRareMeds}");
+            sb.AppendLine($"SET|AllowSpendRareAmmo|{AllowSpendRareAmmo}");
+            sb.AppendLine($"SET|EnableSmartFlashlight|{EnableSmartFlashlight}");
+            sb.AppendLine($"SET|EnablePlayerRescue|{EnablePlayerRescue}");
+            sb.AppendLine($"SET|ShowHudBadge|{ShowHudBadge}");
+            sb.AppendLine($"SET|HudBadgeCollapsed|{HudBadgeCollapsed}");
+            sb.AppendLine($"SET|BaseScanRadius|{BaseScanRadius.ToString("F1", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"SET|MaxTeamSize|{MaxTeamSize}");
+            sb.AppendLine($"SET|RequireAltForRationHotkey|{RequireAltForRationHotkey}");
+            sb.AppendLine($"SET|UiViewportWidth|{UiViewportWidth.ToString("F2", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"SET|UiViewportHeight|{UiViewportHeight.ToString("F2", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"SET|UiScale|{UiScale.ToString("F2", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"SET|MainWinPosX|{MainWinPosX.ToString("F1", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"SET|MainWinPosY|{MainWinPosY.ToString("F1", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"SET|ChestBarPosX|{ChestBarPosX.ToString("F1", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"SET|ChestBarPosY|{ChestBarPosY.ToString("F1", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"SET|HudBadgePosX|{HudBadgePosX.ToString("F1", CultureInfo.InvariantCulture)}");
+            sb.AppendLine($"SET|HudBadgePosY|{HudBadgePosY.ToString("F1", CultureInfo.InvariantCulture)}");
+
+            foreach (var kv in ContainerRules)
+            {
+                var r = kv.Value;
+                if (string.IsNullOrEmpty(r.ContainerId) ||
+                    string.Equals(r.ContainerId, "unknown_box", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(r.ContainerId, "unknown", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (!r.IsMarkedByPlayer)
+                    continue;
+                if (r.Categories == StorageCategory.None && !r.IsDropoffSource && string.IsNullOrEmpty(r.CustomName))
+                    continue;
+                var safeName = (r.CustomName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
+                sb.AppendLine($"BOX|{r.ContainerId}|{(int)r.Categories}|{r.IsDropoffSource}|{r.Priority}|{r.AutoCompact}|{safeName}|{r.IsMarkedByPlayer}");
+            }
+
+            foreach (var kv in CompanionStates)
+            {
+                var c = kv.Value;
+                var safeName = (c.LastKnownName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
+                var safeOwnerId = (c.OwnerCharacterId ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
+                var safeOwnerName = (c.OwnerPlayerName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
+                string ax = c.HomeAnchorPos.x.ToString("F2", CultureInfo.InvariantCulture);
+                string ay = c.HomeAnchorPos.y.ToString("F2", CultureInfo.InvariantCulture);
+                sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}|{(int)c.Archetype}|{c.ExperiencePoints}|{c.AllowBaseChores}|{safeOwnerId}|{safeOwnerName}|{(int)c.WorkRole}|{(int)c.Specialization}|{(int)c.Loadout}|{c.ReserveAmmoMin}|{c.ReserveFoodMin}|{c.ReserveMedMin}|{(int)c.RosterMode}|{ax}|{ay}|{c.HomeAnchorZ}");
+            }
+
+            return sb.ToString();
+        }
+
         public static void Save()
         {
             try
             {
-                var sb = new StringBuilder();
-                sb.AppendLine("# ZED ZONE Smart Companions Saved Rules v1.4.2");
-                sb.AppendLine($"SET|LanguageMode|{(int)LanguageMode}");
-                sb.AppendLine($"SET|UseRussian|{UseRussian}");
-                sb.AppendLine($"SET|EnableChatter|{EnableChatter}");
-                sb.AppendLine($"SET|Profanity|{(int)Profanity}");
-                sb.AppendLine($"SET|ChatterIntervalMultiplier|{ChatterIntervalMultiplier.ToString("F2", CultureInfo.InvariantCulture)}");
-                sb.AppendLine($"SET|EnableSmartCombat|{EnableSmartCombat}");
-                sb.AppendLine($"SET|EnableAntiFriendlyFire|{EnableAntiFriendlyFire}");
-                sb.AppendLine($"SET|EnableKiting|{EnableKiting}");
-                sb.AppendLine($"SET|ActiveFormation|{(int)ActiveFormation}");
-                sb.AppendLine($"SET|FollowDistance|{(int)FollowDistance}");
-                sb.AppendLine($"SET|EnableNarrowPassageYield|{EnableNarrowPassageYield}");
-                sb.AppendLine($"SET|RetreatHpThresholdPercent|{RetreatHpThresholdPercent}");
-                sb.AppendLine($"SET|LowAmmoRetreat|{(int)LowAmmoRetreat}");
-                sb.AppendLine($"SET|EnableFieldMedic|{EnableFieldMedic}");
-                sb.AppendLine($"SET|EnableAmmoShare|{EnableAmmoShare}");
-                sb.AppendLine($"SET|AutoShareFoodOnEat|{AutoShareFoodOnEat}");
-                sb.AppendLine($"SET|EnableBaseAutoDropoff|{EnableBaseAutoDropoff}");
-                sb.AppendLine($"SET|EnableWorldNpcChatter|{EnableWorldNpcChatter}");
-                sb.AppendLine($"SET|EnableBaseChores|{EnableBaseChores}");
-                sb.AppendLine($"SET|BasePriorityMode|{(int)BasePriorityMode}");
-                sb.AppendLine($"SET|LootSweepRadius|{LootSweepRadius.ToString("F1", CultureInfo.InvariantCulture)}");
-                sb.AppendLine($"SET|AllowSpendRareFood|{AllowSpendRareFood}");
-                sb.AppendLine($"SET|AllowSpendRareMeds|{AllowSpendRareMeds}");
-                sb.AppendLine($"SET|AllowSpendRareAmmo|{AllowSpendRareAmmo}");
-                sb.AppendLine($"SET|EnableSmartFlashlight|{EnableSmartFlashlight}");
-                sb.AppendLine($"SET|EnablePlayerRescue|{EnablePlayerRescue}");
-                sb.AppendLine($"SET|ShowHudBadge|{ShowHudBadge}");
-                sb.AppendLine($"SET|HudBadgeCollapsed|{HudBadgeCollapsed}");
-                sb.AppendLine($"SET|BaseScanRadius|{BaseScanRadius.ToString("F1", CultureInfo.InvariantCulture)}");
-                sb.AppendLine($"SET|MaxTeamSize|{MaxTeamSize}");
-                sb.AppendLine($"SET|RequireAltForRationHotkey|{RequireAltForRationHotkey}");
-                sb.AppendLine($"SET|UiViewportWidth|{UiViewportWidth.ToString("F2", CultureInfo.InvariantCulture)}");
-                sb.AppendLine($"SET|UiViewportHeight|{UiViewportHeight.ToString("F2", CultureInfo.InvariantCulture)}");
-                sb.AppendLine($"SET|UiScale|{UiScale.ToString("F2", CultureInfo.InvariantCulture)}");
-                sb.AppendLine($"SET|MainWinPosX|{MainWinPosX.ToString("F1", CultureInfo.InvariantCulture)}");
-                sb.AppendLine($"SET|MainWinPosY|{MainWinPosY.ToString("F1", CultureInfo.InvariantCulture)}");
-                sb.AppendLine($"SET|ChestBarPosX|{ChestBarPosX.ToString("F1", CultureInfo.InvariantCulture)}");
-                sb.AppendLine($"SET|ChestBarPosY|{ChestBarPosY.ToString("F1", CultureInfo.InvariantCulture)}");
-                sb.AppendLine($"SET|HudBadgePosX|{HudBadgePosX.ToString("F1", CultureInfo.InvariantCulture)}");
-                sb.AppendLine($"SET|HudBadgePosY|{HudBadgePosY.ToString("F1", CultureInfo.InvariantCulture)}");
-
-                foreach (var kv in ContainerRules)
-                {
-                    var r = kv.Value;
-                    if (string.IsNullOrEmpty(r.ContainerId) ||
-                        string.Equals(r.ContainerId, "unknown_box", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(r.ContainerId, "unknown", StringComparison.OrdinalIgnoreCase))
-                        continue;
-                    if (!r.IsMarkedByPlayer)
-                        continue;
-                    if (r.Categories == StorageCategory.None && !r.IsDropoffSource && string.IsNullOrEmpty(r.CustomName))
-                        continue;
-                    var safeName = (r.CustomName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
-                    sb.AppendLine($"BOX|{r.ContainerId}|{(int)r.Categories}|{r.IsDropoffSource}|{r.Priority}|{r.AutoCompact}|{safeName}|{r.IsMarkedByPlayer}");
-                }
-
-                foreach (var kv in CompanionStates)
-                {
-                    var c = kv.Value;
-                    var safeName = (c.LastKnownName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
-                    var safeOwnerId = (c.OwnerCharacterId ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
-                    var safeOwnerName = (c.OwnerPlayerName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
-                    sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}|{(int)c.Archetype}|{c.ExperiencePoints}|{c.AllowBaseChores}|{safeOwnerId}|{safeOwnerName}|{(int)c.WorkRole}|{(int)c.Specialization}|{(int)c.Loadout}|{c.ReserveAmmoMin}|{c.ReserveFoodMin}|{c.ReserveMedMin}");
-                }
-
-                File.WriteAllText(SaveFilePath, sb.ToString(), Encoding.UTF8);
+                File.WriteAllText(SaveFilePath, BuildSaveText(), Encoding.UTF8);
 
                 string json = "{\n" +
                     $"  \"Version\": \"{SmartCompanionsPlugin.PluginVersion}\",\n" +
@@ -963,159 +990,192 @@ namespace ZedZone.SmartCompanions
             try
             {
                 if (!File.Exists(SaveFilePath)) return;
-                bool isV142Format = false;
-                foreach (var raw in File.ReadAllLines(SaveFilePath, Encoding.UTF8))
-                {
-                    var line = raw.Trim();
-                    if (string.IsNullOrEmpty(line)) continue;
-                    if (line.StartsWith("#"))
-                    {
-                        if (line.Contains("v1.4.2")) isV142Format = true;
-                        continue;
-                    }
-                    var parts = line.Split('|');
-                    if (parts.Length < 3) continue;
-
-                    if (parts[0] == "SET")
-                    {
-                        var key = parts[1];
-                        var val = parts[2];
-                        if (key == "LanguageMode" && int.TryParse(val, out var lMode)) LanguageMode = (ModLanguage)Mathf.Clamp(lMode, 0, 3);
-                        else if (key == "LanguageMode" && Enum.TryParse<ModLanguage>(val, true, out var lEnum)) LanguageMode = lEnum;
-                        else if (key == "UseRussian" && bool.TryParse(val, out var b0) && LanguageMode == ModLanguage.Auto) { /* Keep Auto unless explicitly set */ }
-                        else if (key == "EnableChatter" && bool.TryParse(val, out var b1)) EnableChatter = b1;
-                        else if (key == "Profanity" && int.TryParse(val, out var pMode)) Profanity = (ProfanityMode)Mathf.Clamp(pMode, 0, 2);
-                        else if (key == "ChatterIntervalMultiplier" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f1)) ChatterIntervalMultiplier = Mathf.Clamp(f1, 0.25f, 4f);
-                        else if (key == "EnableSmartCombat" && bool.TryParse(val, out var b2)) EnableSmartCombat = b2;
-                        else if (key == "EnableAntiFriendlyFire" && bool.TryParse(val, out var b3)) EnableAntiFriendlyFire = b3;
-                        else if (key == "EnableKiting" && bool.TryParse(val, out var b4)) EnableKiting = b4;
-                        else if (key == "ActiveFormation" && int.TryParse(val, out var formInt)) ActiveFormation = (SquadFormation)Mathf.Clamp(formInt, 0, 4);
-                        else if (key == "FollowDistance" && int.TryParse(val, out var fdInt)) FollowDistance = (FollowDistanceMode)Mathf.Clamp(fdInt, 0, 3);
-                        else if (key == "EnableNarrowPassageYield" && bool.TryParse(val, out var bNarrow)) EnableNarrowPassageYield = bNarrow;
-                        else if (key == "RetreatHpThresholdPercent" && int.TryParse(val, out var rHp)) RetreatHpThresholdPercent = rHp <= 0 ? 0 : Mathf.Clamp(rHp, 15, 65);
-                        else if (key == "LowAmmoRetreat" && int.TryParse(val, out var rAmmo)) LowAmmoRetreat = (LowAmmoRetreatMode)Mathf.Clamp(rAmmo, 0, 2);
-                        else if (key == "EnableFieldMedic" && bool.TryParse(val, out var b5)) EnableFieldMedic = b5;
-                        else if (key == "EnableAmmoShare" && bool.TryParse(val, out var b6)) EnableAmmoShare = b6;
-                        else if (key == "AutoShareFoodOnEat" && bool.TryParse(val, out var bShare)) AutoShareFoodOnEat = bShare;
-                        else if (key == "EnableBaseAutoDropoff" && bool.TryParse(val, out var bDrop)) EnableBaseAutoDropoff = bDrop;
-                        else if (key == "EnableWorldNpcChatter" && bool.TryParse(val, out var bWorld)) EnableWorldNpcChatter = bWorld;
-                        else if (key == "EnableBaseChores" && bool.TryParse(val, out var bChores)) EnableBaseChores = bChores;
-                        else if (key == "BasePriorityMode" && int.TryParse(val, out var bpInt)) BasePriorityMode = (BaseWorkPriority)Mathf.Clamp(bpInt, 0, 2);
-                        else if (key == "LootSweepRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var lsr)) LootSweepRadius = Mathf.Clamp(lsr, 10f, 60f);
-                        else if (key == "AllowSpendRareFood" && bool.TryParse(val, out var bRareF)) AllowSpendRareFood = bRareF;
-                        else if (key == "AllowSpendRareMeds" && bool.TryParse(val, out var bRareM)) AllowSpendRareMeds = bRareM;
-                        else if (key == "AllowSpendRareAmmo" && bool.TryParse(val, out var bRareA)) AllowSpendRareAmmo = bRareA;
-                        else if (key == "EnableSmartFlashlight" && bool.TryParse(val, out var bFlash)) EnableSmartFlashlight = bFlash;
-                        else if (key == "EnablePlayerRescue" && bool.TryParse(val, out var bRescue)) EnablePlayerRescue = bRescue;
-                        else if (key == "ShowHudBadge" && bool.TryParse(val, out var b7)) ShowHudBadge = b7;
-                        else if (key == "HudBadgeCollapsed" && bool.TryParse(val, out var bCol)) HudBadgeCollapsed = bCol;
-                        else if (key == "BaseScanRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f2)) BaseScanRadius = Mathf.Clamp(f2, 15f, 120f);
-                        else if (key == "MaxTeamSize" && int.TryParse(val, out var mts)) MaxTeamSize = Mathf.Clamp(mts, 0, 30);
-                        else if (key == "RequireAltForRationHotkey" && bool.TryParse(val, out var bAlt)) RequireAltForRationHotkey = bAlt;
-                        else if (key == "UiViewportWidth" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var uiW))
-                            UiViewportWidth = float.IsFinite(uiW) && uiW > 0f ? uiW : 0f;
-                        else if (key == "UiViewportHeight" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var uiH))
-                            UiViewportHeight = float.IsFinite(uiH) && uiH > 0f ? uiH : 0f;
-                        else if (key == "UiScale" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var uiScale))
-                            UiScale = float.IsNaN(uiScale) || float.IsInfinity(uiScale) || uiScale <= 0f ? 0f : Mathf.Clamp(uiScale, 0.75f, 2f);
-                        else if (key == "MainWinPosX" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var mx)) MainWinPosX = mx;
-                        else if (key == "MainWinPosY" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var my)) MainWinPosY = my;
-                        else if (key == "ChestBarPosX" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var cx)) ChestBarPosX = cx;
-                        else if (key == "ChestBarPosY" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var cy)) ChestBarPosY = cy;
-                        else if (key == "HudBadgePosX" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var hx)) HudBadgePosX = hx;
-                        else if (key == "HudBadgePosY" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var hy)) HudBadgePosY = hy;
-                    }
-                    else if (parts[0] == "BOX" && parts.Length >= 6)
-                    {
-                        var id = parts[1];
-                        if (string.IsNullOrEmpty(id) ||
-                            string.Equals(id, "unknown_box", StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(id, "unknown", StringComparison.OrdinalIgnoreCase))
-                            continue;
-                        int.TryParse(parts[2], out var catInt);
-                        bool.TryParse(parts[3], out var drop);
-                        int.TryParse(parts[4], out var prio);
-                        bool.TryParse(parts[5], out var compact);
-                        var name = parts.Length >= 7 ? parts[6] : "";
-                        bool isMarked = true;
-                        if (parts.Length >= 8 && bool.TryParse(parts[7], out var parsedMarked))
-                            isMarked = parsedMarked;
-
-                        // Purge bogus Medicine-only rules generated by v1.4.1's AutoDetectCategoriesFromContents bug
-                        if (!isV142Format && (StorageCategory)catInt == StorageCategory.Medicine && !drop)
-                            continue;
-                        if (!isMarked)
-                            continue;
-
-                        ContainerRules[id] = new ContainerRuleProfile
-                        {
-                            ContainerId = id,
-                            Categories = (StorageCategory)catInt,
-                            IsDropoffSource = drop,
-                            IsMarkedByPlayer = true,
-                            Priority = Mathf.Clamp(prio, 1, 5),
-                            AutoCompact = compact,
-                            CustomName = name
-                        };
-                    }
-                    else if (parts[0] == "NPC" && parts.Length >= 7)
-                    {
-                        var guid = parts[1];
-                        int.TryParse(parts[2], out var docInt);
-                        bool.TryParse(parts[3], out var sort);
-                        bool.TryParse(parts[4], out var loot);
-                        bool.TryParse(parts[5], out var med);
-                        bool.TryParse(parts[6], out var ammo);
-                        var name = parts.Length >= 8 ? parts[7] : "";
-                        bool autoDrop = true;
-                        if (parts.Length >= 9 && bool.TryParse(parts[8], out var ad)) autoDrop = ad;
-                        var arch = CompanionArchetype.Auto;
-                        if (parts.Length >= 10 && int.TryParse(parts[9], out var archInt)) arch = (CompanionArchetype)Mathf.Clamp(archInt, 0, 5);
-                        int xp = 0;
-                        if (parts.Length >= 11 && int.TryParse(parts[10], out var xpParsed)) xp = Mathf.Max(0, xpParsed);
-                        bool chores = true;
-                        if (parts.Length >= 12 && bool.TryParse(parts[11], out var chParsed)) chores = chParsed;
-                        var ownerId = parts.Length >= 13 ? parts[12] : "";
-                        var ownerName = parts.Length >= 14 ? parts[13] : "";
-                        var role = CompanionWorkRole.Any;
-                        if (parts.Length >= 15 && int.TryParse(parts[14], out var roleInt)) role = (CompanionWorkRole)Mathf.Clamp(roleInt, 0, 4);
-                        var spec = CompanionSpecialization.Custom;
-                        if (parts.Length >= 16 && int.TryParse(parts[15], out var specInt)) spec = (CompanionSpecialization)Mathf.Clamp(specInt, 0, 4);
-                        var loadout = PreferredLoadout.Auto;
-                        if (parts.Length >= 17 && int.TryParse(parts[16], out var loadInt)) loadout = (PreferredLoadout)Mathf.Clamp(loadInt, 0, 2);
-                        int resAmmo = 24, resFood = 2, resMed = 1;
-                        if (parts.Length >= 18 && int.TryParse(parts[17], out var ra)) resAmmo = Mathf.Clamp(ra, 0, 200);
-                        if (parts.Length >= 19 && int.TryParse(parts[18], out var rf)) resFood = Mathf.Clamp(rf, 0, 20);
-                        if (parts.Length >= 20 && int.TryParse(parts[19], out var rm)) resMed = Mathf.Clamp(rm, 0, 20);
-
-                        CompanionStates[guid] = new CompanionRuntimeState
-                        {
-                            NpcGuid = guid,
-                            Doctrine = (TacticalDoctrine)Mathf.Clamp(docInt, 0, 5),
-                            AllowAutoSortBase = sort,
-                            AllowAutoLootNearby = loot,
-                            AllowFieldMedic = med,
-                            AllowAmmoShare = ammo,
-                            AllowAutoDropoffAtBase = autoDrop,
-                            Archetype = arch,
-                            ExperiencePoints = xp,
-                            AllowBaseChores = chores,
-                            LastKnownName = name,
-                            OwnerCharacterId = ownerId,
-                            OwnerPlayerName = ownerName,
-                            WorkRole = role,
-                            Specialization = spec,
-                            Loadout = loadout,
-                            ReserveAmmoMin = resAmmo,
-                            ReserveFoodMin = resFood,
-                            ReserveMedMin = resMed
-                        };
-                    }
-                }
+                LoadFromText(File.ReadAllText(SaveFilePath, Encoding.UTF8));
             }
             catch (Exception e)
             {
                 SmartCompanionsPlugin.LogWarning("Load rules failed: " + e.Message);
+            }
+        }
+
+        public static void LoadFromText(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            bool isV142Format = false;
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var raw in lines)
+            {
+                var line = raw.Trim();
+                if (string.IsNullOrEmpty(line)) continue;
+                if (line.StartsWith("#"))
+                {
+                    if (line.Contains("v1.4.2")) isV142Format = true;
+                    continue;
+                }
+                var parts = line.Split('|');
+                if (parts.Length < 3) continue;
+
+                if (parts[0] == "SET")
+                {
+                    var key = parts[1];
+                    var val = parts[2];
+                    if (key == "LanguageMode" && int.TryParse(val, out var lMode)) LanguageMode = (ModLanguage)Mathf.Clamp(lMode, 0, 3);
+                    else if (key == "LanguageMode" && Enum.TryParse<ModLanguage>(val, true, out var lEnum)) LanguageMode = lEnum;
+                    else if (key == "UseRussian" && bool.TryParse(val, out var b0) && LanguageMode == ModLanguage.Auto) { /* Keep Auto unless explicitly set */ }
+                    else if (key == "EnableChatter" && bool.TryParse(val, out var b1)) EnableChatter = b1;
+                    else if (key == "Profanity" && int.TryParse(val, out var pMode)) Profanity = (ProfanityMode)Mathf.Clamp(pMode, 0, 2);
+                    else if (key == "ChatterIntervalMultiplier" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f1)) ChatterIntervalMultiplier = Mathf.Clamp(f1, 0.25f, 4f);
+                    else if (key == "EnableSmartCombat" && bool.TryParse(val, out var b2)) EnableSmartCombat = b2;
+                    else if (key == "EnableAntiFriendlyFire" && bool.TryParse(val, out var b3)) EnableAntiFriendlyFire = b3;
+                    else if (key == "EnableKiting" && bool.TryParse(val, out var b4)) EnableKiting = b4;
+                    else if (key == "ActiveFormation" && int.TryParse(val, out var formInt)) ActiveFormation = (SquadFormation)Mathf.Clamp(formInt, 0, 4);
+                    else if (key == "FollowDistance" && int.TryParse(val, out var fdInt)) FollowDistance = (FollowDistanceMode)Mathf.Clamp(fdInt, 0, 3);
+                    else if (key == "EnableNarrowPassageYield" && bool.TryParse(val, out var bNarrow)) EnableNarrowPassageYield = bNarrow;
+                    else if (key == "RetreatHpThresholdPercent" && int.TryParse(val, out var rHp)) RetreatHpThresholdPercent = rHp <= 0 ? 0 : Mathf.Clamp(rHp, 15, 65);
+                    else if (key == "LowAmmoRetreat" && int.TryParse(val, out var rAmmo)) LowAmmoRetreat = (LowAmmoRetreatMode)Mathf.Clamp(rAmmo, 0, 2);
+                    else if (key == "EnableFieldMedic" && bool.TryParse(val, out var b5)) EnableFieldMedic = b5;
+                    else if (key == "EnableAmmoShare" && bool.TryParse(val, out var b6)) EnableAmmoShare = b6;
+                    else if (key == "AutoShareFoodOnEat" && bool.TryParse(val, out var bShare)) AutoShareFoodOnEat = bShare;
+                    else if (key == "EnableBaseAutoDropoff" && bool.TryParse(val, out var bDrop)) EnableBaseAutoDropoff = bDrop;
+                    else if (key == "EnableWorldNpcChatter" && bool.TryParse(val, out var bWorld)) EnableWorldNpcChatter = bWorld;
+                    else if (key == "EnableBaseChores" && bool.TryParse(val, out var bChores)) EnableBaseChores = bChores;
+                    else if (key == "BasePriorityMode" && int.TryParse(val, out var bpInt)) BasePriorityMode = (BaseWorkPriority)Mathf.Clamp(bpInt, 0, 2);
+                    else if (key == "LootSweepRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var lsr)) LootSweepRadius = Mathf.Clamp(lsr, 10f, 60f);
+                    else if (key == "AllowSpendRareFood" && bool.TryParse(val, out var bRareF)) AllowSpendRareFood = bRareF;
+                    else if (key == "AllowSpendRareMeds" && bool.TryParse(val, out var bRareM)) AllowSpendRareMeds = bRareM;
+                    else if (key == "AllowSpendRareAmmo" && bool.TryParse(val, out var bRareA)) AllowSpendRareAmmo = bRareA;
+                    else if (key == "EnableSmartFlashlight" && bool.TryParse(val, out var bFlash)) EnableSmartFlashlight = bFlash;
+                    else if (key == "EnablePlayerRescue" && bool.TryParse(val, out var bRescue)) EnablePlayerRescue = bRescue;
+                    else if (key == "ShowHudBadge" && bool.TryParse(val, out var b7)) ShowHudBadge = b7;
+                    else if (key == "HudBadgeCollapsed" && bool.TryParse(val, out var bCol)) HudBadgeCollapsed = bCol;
+                    else if (key == "BaseScanRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f2)) BaseScanRadius = Mathf.Clamp(f2, 15f, 120f);
+                    else if (key == "MaxTeamSize" && int.TryParse(val, out var mts)) MaxTeamSize = Mathf.Clamp(mts, 0, 30);
+                    else if (key == "RequireAltForRationHotkey" && bool.TryParse(val, out var bAlt)) RequireAltForRationHotkey = bAlt;
+                    else if (key == "UiViewportWidth" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var uiW))
+                        UiViewportWidth = float.IsFinite(uiW) && uiW > 0f ? uiW : 0f;
+                    else if (key == "UiViewportHeight" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var uiH))
+                        UiViewportHeight = float.IsFinite(uiH) && uiH > 0f ? uiH : 0f;
+                    else if (key == "UiScale" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var uiScale))
+                        UiScale = float.IsNaN(uiScale) || float.IsInfinity(uiScale) || uiScale <= 0f ? 0f : Mathf.Clamp(uiScale, 0.75f, 2f);
+                    else if (key == "MainWinPosX" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var mx)) MainWinPosX = mx;
+                    else if (key == "MainWinPosY" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var my)) MainWinPosY = my;
+                    else if (key == "ChestBarPosX" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var cx)) ChestBarPosX = cx;
+                    else if (key == "ChestBarPosY" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var cy)) ChestBarPosY = cy;
+                    else if (key == "HudBadgePosX" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var hx)) HudBadgePosX = hx;
+                    else if (key == "HudBadgePosY" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var hy)) HudBadgePosY = hy;
+                }
+                else if (parts[0] == "BOX" && parts.Length >= 6)
+                {
+                    var id = parts[1];
+                    if (string.IsNullOrEmpty(id) ||
+                        string.Equals(id, "unknown_box", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(id, "unknown", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    int.TryParse(parts[2], out var catInt);
+                    bool.TryParse(parts[3], out var drop);
+                    int.TryParse(parts[4], out var prio);
+                    bool.TryParse(parts[5], out var compact);
+                    var name = parts.Length >= 7 ? parts[6] : "";
+                    bool isMarked = true;
+                    if (parts.Length >= 8 && bool.TryParse(parts[7], out var parsedMarked))
+                        isMarked = parsedMarked;
+
+                    // Purge bogus Medicine-only rules generated by v1.4.1's AutoDetectCategoriesFromContents bug
+                    if (!isV142Format && (StorageCategory)catInt == StorageCategory.Medicine && !drop)
+                        continue;
+                    if (!isMarked)
+                        continue;
+
+                    ContainerRules[id] = new ContainerRuleProfile
+                    {
+                        ContainerId = id,
+                        Categories = (StorageCategory)catInt,
+                        IsDropoffSource = drop,
+                        IsMarkedByPlayer = true,
+                        Priority = Mathf.Clamp(prio, 1, 5),
+                        AutoCompact = compact,
+                        CustomName = name
+                    };
+                }
+                else if (parts[0] == "NPC" && parts.Length >= 7)
+                {
+                    var guid = parts[1];
+                    int.TryParse(parts[2], out var docInt);
+                    bool.TryParse(parts[3], out var sort);
+                    bool.TryParse(parts[4], out var loot);
+                    bool.TryParse(parts[5], out var med);
+                    bool.TryParse(parts[6], out var ammo);
+                    var name = parts.Length >= 8 ? parts[7] : "";
+                    bool autoDrop = true;
+                    if (parts.Length >= 9 && bool.TryParse(parts[8], out var ad)) autoDrop = ad;
+                    var arch = CompanionArchetype.Auto;
+                    if (parts.Length >= 10 && int.TryParse(parts[9], out var archInt)) arch = (CompanionArchetype)Mathf.Clamp(archInt, 0, 5);
+                    int xp = 0;
+                    if (parts.Length >= 11 && int.TryParse(parts[10], out var xpParsed)) xp = Mathf.Max(0, xpParsed);
+                    bool chores = true;
+                    if (parts.Length >= 12 && bool.TryParse(parts[11], out var chParsed)) chores = chParsed;
+                    var ownerId = parts.Length >= 13 ? parts[12] : "";
+                    var ownerName = parts.Length >= 14 ? parts[13] : "";
+                    var role = CompanionWorkRole.Any;
+                    if (parts.Length >= 15 && int.TryParse(parts[14], out var roleInt)) role = (CompanionWorkRole)Mathf.Clamp(roleInt, 0, 4);
+                    var spec = CompanionSpecialization.Custom;
+                    if (parts.Length >= 16 && int.TryParse(parts[15], out var specInt)) spec = (CompanionSpecialization)Mathf.Clamp(specInt, 0, 4);
+                    var loadout = PreferredLoadout.Auto;
+                    if (parts.Length >= 17 && int.TryParse(parts[16], out var loadInt)) loadout = (PreferredLoadout)Mathf.Clamp(loadInt, 0, 2);
+                    int resAmmo = 24, resFood = 2, resMed = 1;
+                    if (parts.Length >= 18 && int.TryParse(parts[17], out var ra)) resAmmo = Mathf.Clamp(ra, 0, 200);
+                    if (parts.Length >= 19 && int.TryParse(parts[18], out var rf)) resFood = Mathf.Clamp(rf, 0, 20);
+                    if (parts.Length >= 20 && int.TryParse(parts[19], out var rm)) resMed = Mathf.Clamp(rm, 0, 20);
+
+                    var rosterMode = CompanionRosterMode.ActiveSquad;
+                    if (parts.Length >= 21 && int.TryParse(parts[20], out var rosterInt))
+                        rosterMode = (CompanionRosterMode)Mathf.Clamp(rosterInt, 0, 1);
+                    float anchorX = 0f, anchorY = 0f;
+                    bool parsedAnchor = false;
+                    if (parts.Length >= 23 &&
+                        float.TryParse(parts[21], NumberStyles.Float, CultureInfo.InvariantCulture, out var ax) &&
+                        float.TryParse(parts[22], NumberStyles.Float, CultureInfo.InvariantCulture, out var ay))
+                    {
+                        if (float.IsFinite(ax) && float.IsFinite(ay))
+                        {
+                            anchorX = ax;
+                            anchorY = ay;
+                            parsedAnchor = (rosterMode == CompanionRosterMode.CampGarrison) ||
+                                           Mathf.Abs(ax) > 0.001f || Mathf.Abs(ay) > 0.001f;
+                        }
+                    }
+                    int anchorZ = 0;
+                    if (parts.Length >= 24 && int.TryParse(parts[23], out var az))
+                        anchorZ = az;
+
+                    CompanionStates[guid] = new CompanionRuntimeState
+                    {
+                        NpcGuid = guid,
+                        Doctrine = (TacticalDoctrine)Mathf.Clamp(docInt, 0, 5),
+                        AllowAutoSortBase = sort,
+                        AllowAutoLootNearby = loot,
+                        AllowFieldMedic = med,
+                        AllowAmmoShare = ammo,
+                        AllowAutoDropoffAtBase = autoDrop,
+                        Archetype = arch,
+                        ExperiencePoints = xp,
+                        AllowBaseChores = chores,
+                        LastKnownName = name,
+                        OwnerCharacterId = ownerId,
+                        OwnerPlayerName = ownerName,
+                        WorkRole = role,
+                        Specialization = spec,
+                        Loadout = loadout,
+                        ReserveAmmoMin = resAmmo,
+                        ReserveFoodMin = resFood,
+                        ReserveMedMin = resMed,
+                        RosterMode = rosterMode,
+                        HomeAnchorPos = new Vector2(anchorX, anchorY),
+                        HomeAnchorZ = anchorZ,
+                        HasHomeAnchor = parsedAnchor,
+                        GarrisonAnchorSettled = (rosterMode == CompanionRosterMode.CampGarrison)
+                    };
+                }
             }
         }
     }

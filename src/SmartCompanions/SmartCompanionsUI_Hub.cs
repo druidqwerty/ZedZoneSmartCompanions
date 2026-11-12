@@ -328,20 +328,72 @@ namespace ZedZone.SmartCompanions
                     CompanionConfigStore.Save();
                 }
 
-                // Row 4: Direct Companion Orders
+                // Row 4: Direct Companion Orders, Garrison & Two-Step Safe Dismiss (2.4.0)
                 cy += 30f;
-                float orderW = (innerW - 18f) / 4f;
-                if (GUI.Button(new Rect(cx, cy, orderW, 28f), CompanionConfigStore.L(lang, " Сортировать базу", " Sort Base Chests", " 整理基地储物箱"), _btnStyle))
-                    BaseSortingSystem.CommandSortBase(ag, null, instant: false);
+                if (CampGarrisonSystem.PendingDismissConfirmGuid == st.NpcGuid)
+                {
+                    float toggleW = innerW * 0.48f;
+                    float confirmW = (innerW - toggleW - 12f) * 0.54f;
+                    float cancelW = innerW - toggleW - confirmW - 12f;
+                    if (GUI.Button(new Rect(cx, cy, toggleW, 28f), UiTip(
+                        (CampGarrisonSystem.PendingDismissReturnGear ? "[x] " : "[ ] ") +
+                        CompanionConfigStore.L(lang, "Сдать вещи в ящик/игроку", "Hand over gear first", "离队前交出全部装备"),
+                        CompanionConfigStore.L(lang, "Физически подойдёт к ящику базы или к вам и выложит оружие, броню и рюкзак без телепортации",
+                            "Walks to a marked chest or to you and hands over weapons, armor and pack (0 teleport)",
+                            "走过去把武器、护甲和背包交进基地箱子或交给玩家（零瞬移）")),
+                        CampGarrisonSystem.PendingDismissReturnGear ? _catOnStyle : _catOffStyle))
+                    {
+                        CampGarrisonSystem.PendingDismissReturnGear = !CampGarrisonSystem.PendingDismissReturnGear;
+                    }
+                    if (GUI.Button(new Rect(cx + toggleW + 6f, cy, confirmW, 28f),
+                        CompanionConfigStore.L(lang, "Подтвердить уход", "Confirm Leave", "确认离队"), _catOnStyle))
+                    {
+                        CampGarrisonSystem.StartSafeDismiss(ag, st, CampGarrisonSystem.PendingDismissReturnGear);
+                    }
+                    if (GUI.Button(new Rect(cx + toggleW + confirmW + 12f, cy, cancelW, 28f),
+                        CompanionConfigStore.L(lang, "Отмена", "Cancel", "取消"), _btnStyle))
+                    {
+                        CampGarrisonSystem.PendingDismissConfirmGuid = "";
+                    }
+                }
+                else
+                {
+                    float orderW = (innerW - 24f) / 5f;
+                    if (GUI.Button(new Rect(cx, cy, orderW, 28f),
+                        CompanionConfigStore.L(lang, "Сортировать", "Sort Base", "整理基地"), _btnStyle))
+                        BaseSortingSystem.CommandSortBase(ag, null, instant: false);
 
-                if (GUI.Button(new Rect(cx + orderW + 6f, cy, orderW, 28f), CompanionConfigStore.L(lang, " Разгрузить багажник", " Unload Car Trunk", " 卸载汽车后备箱"), _btnStyle))
-                    BaseChoreSystem.CommandUnloadVehiclesToBase(ag, silentIfEmpty: false);
+                    if (GUI.Button(new Rect(cx + (orderW + 6f) * 1f, cy, orderW, 28f),
+                        CompanionConfigStore.L(lang, "Багажник", "Unload Car", "卸后备箱"), _btnStyle))
+                        BaseChoreSystem.CommandUnloadVehiclesToBase(ag, silentIfEmpty: false);
 
-                if (GUI.Button(new Rect(cx + (orderW + 6f) * 2f, cy, orderW, 28f), CompanionConfigStore.L(lang, " Байка у костра", " Campfire Story", " 篝火旁闲聊"), _btnStyle))
-                    SmartChatterSystem.Speak(ag, ChatterTopic.CampfireStory, minCooldown: 0.1f, bubbleDuration: 6.5f, force: true);
+                    if (GUI.Button(new Rect(cx + (orderW + 6f) * 2f, cy, orderW, 28f),
+                        CompanionConfigStore.L(lang, "Боевой клич", "Battle Cry", "战吼突击"), _btnStyle))
+                        SmartCombatAI.CommandSquadBattleCry(ag);
 
-                if (GUI.Button(new Rect(cx + (orderW + 6f) * 3f, cy, orderW, 28f), CompanionConfigStore.L(lang, " Боевой клич [F9]", " Battle Cry [F9]", " 战吼突击 [F9]"), _btnStyle))
-                    SmartCombatAI.CommandSquadBattleCry(ag);
+                    bool inGarrison = st.RosterMode == CompanionRosterMode.CampGarrison;
+                    if (GUI.Button(new Rect(cx + (orderW + 6f) * 3f, cy, orderW, 28f), UiTip(
+                        inGarrison
+                            ? CompanionConfigStore.L(lang, "[x] Гарнизон", "[x] Garrison", "[x] 营地驻守")
+                            : CompanionConfigStore.L(lang, "Гарнизон", "Garrison", "营地驻守"),
+                        CompanionConfigStore.L(lang, "Оставить напарника охранять базу и работать по хозяйству, не бегая за вами в рейд",
+                            "Keep companion guarding the base and doing chores instead of following raids",
+                            "留在基地巡逻并干活，不再跟随外出远征")),
+                        inGarrison ? _catOnStyle : _btnStyle))
+                    {
+                        CampGarrisonSystem.ToggleCampGarrison(ag, st);
+                    }
+
+                    if (GUI.Button(new Rect(cx + (orderW + 6f) * 4f, cy, orderW, 28f), UiTip(
+                        CompanionConfigStore.L(lang, "Отпустить", "Dismiss", "安全离队"),
+                        CompanionConfigStore.L(lang, "Безопасно отпустить напарника из отряда с возможностью сдать выданное снаряжение",
+                            "Safely dismiss companion with optional physical gear handover",
+                            "安全解雇队友，可选择先走过去交出装备")), _btnStyle))
+                    {
+                        CampGarrisonSystem.PendingDismissConfirmGuid = st.NpcGuid;
+                        CampGarrisonSystem.PendingDismissReturnGear = true;
+                    }
+                }
 
                 // Row 5: Tactical Combat Order & Status (2.1.0)
                 cy += 32f;
@@ -824,6 +876,21 @@ namespace ZedZone.SmartCompanions
                         "Diagnostic report copied to clipboard.",
                         "诊断报告已复制至剪贴板。"), 6f);
             }
+            ly += 36f;
+
+            string netMode = MultiplayerSyncSystem.IsMultiplayerHost
+                ? CompanionConfigStore.L(lang, "Хост", "Host", "主机")
+                : MultiplayerSyncSystem.IsMultiplayerClient
+                    ? CompanionConfigStore.L(lang, "Клиент", "Client", "客户端")
+                    : CompanionConfigStore.L(lang, "Одиночная игра", "Singleplayer", "单人模式");
+            int netNpcs = MultiplayerSyncSystem.IsMultiplayerHost
+                ? MultiplayerSyncSystem.CountHostReplicatedHumanNpcs()
+                : MultiplayerSyncSystem.CountClientBoundHumanPuppets();
+            GUI.Box(new Rect(lx, ly, lw, 30f), GUIContent.none, _boxStyle);
+            GUI.Label(new Rect(lx + 10f, ly + 3f, lw - 20f, 24f), UiSafe(CompanionConfigStore.L(lang,
+                $"Сеть: {netMode}  ·  Пакеты SC14 отпр./прин.: {MultiplayerSyncSystem.PacketsSent}/{MultiplayerSyncSystem.PacketsReceived}  ·  Отклонено: {MultiplayerSyncSystem.RejectedCompanionChanges}  ·  Сетевые NPC: {netNpcs}",
+                $"Network: {netMode}  ·  SC14 sent/recv: {MultiplayerSyncSystem.PacketsSent}/{MultiplayerSyncSystem.PacketsReceived}  ·  Rejected: {MultiplayerSyncSystem.RejectedCompanionChanges}  ·  Synced NPCs: {netNpcs}",
+                $"网络：{netMode}  ·  SC14 收发：{MultiplayerSyncSystem.PacketsSent}/{MultiplayerSyncSystem.PacketsReceived}  ·  拦截冲突：{MultiplayerSyncSystem.RejectedCompanionChanges}  ·  同步队友：{netNpcs}")), _labelStyle);
             ly += 36f;
 
             _settingsContentHeight = ly + 12f;

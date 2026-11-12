@@ -108,6 +108,40 @@ namespace ZedZone.SmartCompanions
                     AddDiscoveredContainer(inv, tobj, pos, Vector2.Distance(playerPos, pos));
                 }
 
+                // 1b. Also include chests around any garrisoned companion's HomeAnchorPos when player is away on a raid
+                Vector2 scannedGarrisonCenter = new Vector2(-99999f, -99999f);
+                int scannedGarrisonZ = -999;
+                foreach (var kv in CompanionConfigStore.CompanionStates)
+                {
+                    var gst = kv.Value;
+                    if (gst == null || gst.RosterMode != CompanionRosterMode.CampGarrison || !gst.HasHomeAnchor)
+                        continue;
+                    if ((gst.HomeAnchorPos - playerPos).sqrMagnitude <= 144f && gst.HomeAnchorZ == playerZ)
+                        continue;
+                    if ((gst.HomeAnchorPos - scannedGarrisonCenter).sqrMagnitude <= 64f && gst.HomeAnchorZ == scannedGarrisonZ)
+                        continue;
+
+                    scannedGarrisonCenter = gst.HomeAnchorPos;
+                    scannedGarrisonZ = gst.HomeAnchorZ;
+                    InvalidateTerrainScanCache();
+                    var garObjs = CollectWorldTerrainObjects(gst.HomeAnchorPos, 20f);
+                    for (int i = 0; i < garObjs.Count; i++)
+                    {
+                        var tobj = garObjs[i];
+                        if (!Il2CppSafe.IsAliveUnity(tobj) || !Il2CppSafe.IsAlive(tobj.objectData)) continue;
+                        if (tobj.objectData.zLayer != gst.HomeAnchorZ) continue;
+
+                        var inv = ResolveOrInitTerrainObjectInventory(tobj, allowEnsureLoot: true);
+                        if (!Il2CppSafe.IsAlive(inv) || inv.isLocked) continue;
+                        if (inv.inventorySizeX <= 0 || inv.inventorySizeY <= 0) continue;
+                        if (!seenInvs.Add(inv.Pointer)) continue;
+
+                        RegisterInventoryTerrainObject(inv, tobj);
+                        Vector2 pos = tobj.transform.position;
+                        AddDiscoveredContainer(inv, tobj, pos, Vector2.Distance(playerPos, pos));
+                    }
+                }
+
                 // 2. Scan deployed BasicItem containers on the ground
                 var activeItems = BasicItem.ActiveObjects;
                 if (activeItems != null)

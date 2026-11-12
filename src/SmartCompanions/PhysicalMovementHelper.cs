@@ -194,6 +194,10 @@ namespace ZedZone.SmartCompanions
                 st.IsChoreWalkActive = false;
                 st.PendingChoreArrivalAction = null;
             }
+            if (st.IsSafeDismissActive)
+            {
+                st.IsSafeDismissActive = false;
+            }
             st.ArrivalInteractStarted = false;
         }
 
@@ -244,6 +248,12 @@ namespace ZedZone.SmartCompanions
                 return true;
             }
 
+            if (st.IsSafeDismissActive)
+            {
+                CampGarrisonSystem.StepSafeDismissForAgent(agent, st);
+                return true;
+            }
+
             return false;
         }
     }
@@ -257,6 +267,8 @@ namespace ZedZone.SmartCompanions
             try
             {
                 if (PhysicalMovementHelper.TickPhysicalFrameForAgent(__instance))
+                    return false;
+                if (CampGarrisonSystem.TickGarrisonFrame(__instance))
                     return false;
                 if (TacticalSquadSystem.TickTacticalGoalOverride(__instance))
                     return false;

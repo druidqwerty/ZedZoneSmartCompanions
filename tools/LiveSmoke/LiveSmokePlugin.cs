@@ -24,6 +24,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             if (!Directory.Exists(Path.Combine(Lab,"GameData","GameData"))) throw new Exception("Missing copied lab profile");
             Original = Application.persistentDataPath;
             Logger = Log;
+            Application.runInBackground = true;
             new Harmony("zedzone.smartcompanions.livesmoke").PatchAll(typeof(LiveSmokePlugin).Assembly);
             AddComponent<LiveRunner>();
             Logger.LogInfo("[LiveLab] Save/config paths redirected to disposable copy; cloud saving disabled.");
@@ -154,8 +155,16 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                                 }
                                 if(SoakAndScaleLiveRegression.Tick())
                                 {
-                                    ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
-                                    enabled=false;Application.Quit(SoakAndScaleLiveRegression.Succeeded ? 0 : 1);return;
+                                    if(!SoakAndScaleLiveRegression.Succeeded)
+                                    {
+                                        ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
+                                        enabled=false;Application.Quit(1);return;
+                                    }
+                                    if(GarrisonLiveRegression.Tick())
+                                    {
+                                        ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
+                                        enabled=false;Application.Quit(GarrisonLiveRegression.Succeeded ? 0 : 1);return;
+                                    }
                                 }
                             }
                         }

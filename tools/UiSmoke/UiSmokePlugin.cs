@@ -85,6 +85,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     TacticalRegression.Run();
                     SpecializationRegression.Run();
                     ScaleAndPrivacyRegression.Run();
+                    GarrisonRegression.Run();
                     if (Environment.GetCommandLineArgs().Contains("--sc-native-menu-only"))
                     {
                         NativeMenuRegression.VerifyAllLanguages();
@@ -145,6 +146,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 Tab.SetValue(null, variant == 9 ? 4 : variant == 8 ? 3 : variant >= 4 ? 0 : variant);
                 CompanionConfigStore.BaseWorkPaused = variant == 9 && language == 1; // English work case shows the paused header
                 ProfilePreviewOpen?.SetValue(null, variant == 9 && language == 0); // Russian work case shows the squad profile diff preview
+                CampGarrisonSystem.PendingDismissConfirmGuid = (variant == 0 && SmokeFixtures.Agents.Count > 1)
+                    ? SmokeFixtures.Agents[1].npcData.npcGUID : "";
                 SquadScroll.SetValue(null, new Vector2(0f, variant == 5 ? 100000f : 0f));
                 SettingsScroll.SetValue(null, new Vector2(0f, variant == 8 ? 100000f : 0f));
                 Centered.SetValue(null, false);

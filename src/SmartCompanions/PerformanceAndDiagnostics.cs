@@ -176,7 +176,7 @@ namespace ZedZone.SmartCompanions
             sb.AppendLine($"Screen: {Screen.width}x{Screen.height} | UiScalePref: {CompanionConfigStore.UiScale:F2} | EffectiveUiScale: {SmartCompanionsUI.EffectiveUiScale:F3}");
             sb.AppendLine($"LanguageMode: {CompanionConfigStore.LanguageMode} (Effective: {CompanionConfigStore.EffectiveLanguage})");
             sb.AppendLine($"HarmonyPatchedMethods: {LastPatchedMethodCount}");
-            sb.AppendLine($"MultiplayerMode: {(MultiplayerSyncSystem.IsMultiplayerHost ? "Host" : MultiplayerSyncSystem.IsMultiplayerClient ? "Client" : "Singleplayer")} | RejectedMpChanges: {MultiplayerSyncSystem.RejectedCompanionChanges}");
+            sb.AppendLine($"MultiplayerMode: {(MultiplayerSyncSystem.IsMultiplayerHost ? "Host" : MultiplayerSyncSystem.IsMultiplayerClient ? "Client" : "Singleplayer")} | SentPkts: {MultiplayerSyncSystem.PacketsSent} | RecvPkts: {MultiplayerSyncSystem.PacketsReceived} | RejectedMpChanges: {MultiplayerSyncSystem.RejectedCompanionChanges} | HostNetNpcs: {MultiplayerSyncSystem.CountHostReplicatedHumanNpcs()} | ClientHumanPuppets: {MultiplayerSyncSystem.CountClientBoundHumanPuppets()}");
             sb.AppendLine($"AvoExpandedDetected: {avo} ({avoSource}) | ConfiguredSquadCap: {CompanionConfigStore.MaxTeamSize} | EffectiveNativeCap: {nativeCap} | RationHotkey: {(CompanionConfigStore.ShouldUseAltForRationHotkey() ? "Alt+F6" : "F6")}");
             sb.AppendLine($"Tactics: Formation={CompanionConfigStore.ActiveFormation} | FollowDist={CompanionConfigStore.FollowDistance} | DoorwayYield={CompanionConfigStore.EnableNarrowPassageYield} | RetreatHP={CompanionConfigStore.RetreatHpThresholdPercent}% | LowAmmoRetreat={CompanionConfigStore.LowAmmoRetreat}");
             sb.AppendLine($"BaseAndSupply: Paused={CompanionConfigStore.BaseWorkPaused} | Priority={CompanionConfigStore.BasePriorityMode} | LootRadius={CompanionConfigStore.LootSweepRadius:F0}m | ZonePinned={CompanionConfigStore.LootZonePinned} | RareFood={CompanionConfigStore.AllowSpendRareFood} | RareMeds={CompanionConfigStore.AllowSpendRareMeds} | RareAmmo={CompanionConfigStore.AllowSpendRareAmmo}");
@@ -204,7 +204,7 @@ namespace ZedZone.SmartCompanions
                 if (idx > 15) break;
                 // Strictly anonymized: never emit NpcGuid, LastKnownName, OwnerPlayerName, OwnerCharacterId, or coordinates!
                 sb.AppendLine(
-                    $"  Companion#{idx:00}: Spec={s.Specialization} | Role={s.WorkRole} | Doc={s.Doctrine} | Loadout={s.Loadout} | " +
+                    $"  Companion#{idx:00}: Roster={s.RosterMode} | Spec={s.Specialization} | Role={s.WorkRole} | Doc={s.Doctrine} | Loadout={s.Loadout} | " +
                     $"Order={s.ActiveOrder} | OrderBlock={s.OrderBlockReason} | WorkBlock={s.LastBlockReason} | " +
                     $"Reserves={s.ReserveAmmoMin}/{s.ReserveFoodMin}/{s.ReserveMedMin} | Busy={(s.HasAnyPhysicalTask ? 1 : 0)} | Carry={s.CarryBuffer.Count}");
             }

@@ -38,7 +38,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     for (int i = 0; i < commands.Count; i++) if (commands[i] == path) count++;
                     if (count != 1) throw new Exception("Custom command missing or duplicated: " + path);
                 }
-                UiSmokePlugin.Logger.LogInfo("[NativeMenu] PASS four native groups, 13 vanilla + 11 custom commands; bare/path/legacy labels.");
+                UiSmokePlugin.Logger.LogInfo($"[NativeMenu] PASS four native groups, {CustomNpcCommands.AllCustomCommands.Length} custom commands; bare/path/legacy labels.");
             }
             return root;
         }

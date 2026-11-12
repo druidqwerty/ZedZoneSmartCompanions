@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "2.3.0";
+        public const string PluginVersion = "2.4.0";
 
         internal static ManualLogSource Logs;
 

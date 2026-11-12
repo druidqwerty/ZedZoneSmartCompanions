@@ -97,18 +97,21 @@ def main() -> int:
             STEAM_APPID.write_text("1211600\n", encoding="utf-8")
             created_appid = True
 
+        env = dict(os.environ, SteamAppId="1211600", SteamGameId="1211600")
         cmd = [
             str(GAME_DIR / "ZEDZONE.exe"),
             f"--sc-live-profile={PROFILE_DIR}",
+            "-screen-fullscreen", "0", "-screen-width", "1280", "-screen-height", "720",
         ]
         print("Launching ZEDZONE.exe isolated live acceptance...", flush=True)
         t0 = time.time()
-        proc = subprocess.Popen(cmd, cwd=str(GAME_DIR))
+        proc = subprocess.Popen(cmd, cwd=str(GAME_DIR), env=env)
         try:
             rc = proc.wait(timeout=150)
         except subprocess.TimeoutExpired:
             print("TIMEOUT: killing ZEDZONE.exe after 150s", flush=True)
             proc.kill()
+            proc.wait(timeout=15)
             rc = 124
         elapsed = time.time() - t0
         print(f"ZEDZONE.exe exited with code={rc} after {elapsed:.1f}s", flush=True)
