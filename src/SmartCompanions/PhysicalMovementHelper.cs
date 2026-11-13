@@ -153,7 +153,7 @@ namespace ZedZone.SmartCompanions
                     agent.hasNavigationTarget = false;
                 }
                 float stopDist = Mathf.Max(0.85f, arrivalRadius - 0.35f);
-                agent.MoveTo(targetPos, stopDist, true);
+                CorridorNavigationHelper.SmartMoveTo(agent, targetPos, stopDist, true);
                 agent.LookAtPositionSmoothCompat(targetPos, 10f);
             }
             catch { }

@@ -126,12 +126,57 @@ namespace ZedZone.SmartCompanions
                 if (Il2CppSafe.IsAliveUnity(ag))
                 {
                     ag.leaderCharacter = null;
+                    try { ag.DisableWithLeaderGoals(); } catch { }
+                    try { ag.SetFollowLeaderColliderSuppressed(false); } catch { }
+                    try { GOAPTeamManager.instance?.RemoveTeamMember(ag); } catch { }
                     if (Il2CppSafe.IsAlive(ag.agentState))
                     {
                         ag.agentState.SetState("hasLeader", false);
                         ag.agentState.SetState("leaderCharacter", (Il2CppSystem.Object)null);
                     }
                 }
+
+                // Purge native HUD / TeamNPCPanel / TeamNPCOverheadUI and player team sets so dismissed NPCs never linger in game UI!
+                try { GOAPNPCManager.instance?.teammateNPCs?.Remove(npcData); } catch { }
+                try
+                {
+                    var player = GameController.instance?.playerCharacter;
+                    if (Il2CppSafe.IsAliveUnity(player) && Il2CppSafe.IsAlive(player.characterData))
+                    {
+                        if (!string.IsNullOrEmpty(npcData.npcGUID))
+                            player.characterData.teamNPCGuids?.Remove(npcData.npcGUID);
+                        player.characterData.teamNPCsTemp?.Remove(npcData);
+                        player.characterData.RefreshTeamData();
+                        player.characterData.SyncTeamUI();
+                    }
+                }
+                catch { }
+                try
+                {
+                    var panel = TeamNPCPanel.instance;
+                    if (Il2CppSafe.IsAliveUnity(panel))
+                    {
+                        panel.RemoveNPC(npcData);
+                        if (!string.IsNullOrEmpty(npcData.npcGUID) && panel.npcUIDic != null &&
+                            panel.npcUIDic.TryGetValue(npcData.npcGUID, out var staleCard))
+                        {
+                            panel.npcUIDic.Remove(npcData.npcGUID);
+                            if (Il2CppSafe.IsAliveUnity(staleCard) && Il2CppSafe.IsAliveUnity(staleCard.gameObject))
+                                UnityEngine.Object.Destroy(staleCard.gameObject);
+                        }
+                        panel.RefreshHeaderCount();
+                        panel.ApplyCardVisibility();
+                    }
+                }
+                catch { }
+                try
+                {
+                    TeamNPCOverheadUI.NotifyRemove(npcData);
+                    if (!string.IsNullOrEmpty(npcData.npcGUID) && Il2CppSafe.IsAliveUnity(TeamNPCOverheadUI.instance))
+                        TeamNPCOverheadUI.instance.Unbind(npcData.npcGUID);
+                }
+                catch { }
+
                 SyncCompanionDismissed(npcData.npcGUID);
                 SmartChatterSystem.InvalidateSquadCache();
                 CompanionConfigStore.Save();

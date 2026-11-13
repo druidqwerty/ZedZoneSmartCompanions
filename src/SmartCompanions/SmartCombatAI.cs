@@ -512,10 +512,9 @@ namespace ZedZone.SmartCompanions
                             awayDir = (awayDir + toPlayer.normalized * 0.45f).normalized;
                     }
 
-                    Vector2 kiteDest = selfPos + awayDir * 2.5f;
                     try
                     {
-                        agent.MoveTo_Direct(kiteDest, true, true, false);
+                        CorridorNavigationHelper.SmartStepInClearDirection(agent, selfPos, awayDir, 2.3f, true);
                         agent.LookAtPositionSmoothCompat(targetPos, 14f);
                     }
                     catch { }
@@ -528,10 +527,9 @@ namespace ZedZone.SmartCompanions
                     st.LastKiteStepTime = now;
                     Vector2 toEnemy = (targetPos - selfPos).normalized;
                     Vector2 perp = (Time.frameCount % 120 < 60) ? new Vector2(-toEnemy.y, toEnemy.x) : new Vector2(toEnemy.y, -toEnemy.x);
-                    Vector2 strafeDest = selfPos + perp * 1.9f;
                     try
                     {
-                        agent.MoveTo_Direct(strafeDest, true, true, false);
+                        CorridorNavigationHelper.SmartStepInClearDirection(agent, selfPos, perp, 1.8f, true);
                         agent.LookAtPositionSmoothCompat(targetPos, 14f);
                     }
                     catch { }
@@ -640,7 +638,16 @@ namespace ZedZone.SmartCompanions
                     if (Vector2.Dot(selfPos - closestOnRay, side) < 0f)
                         side = -side;
 
-                    Vector2 safePos = selfPos + side * 1.95f;
+                    // Check left/right wall clearance before stepping aside so aiming down a corridor never slams companions into walls!
+                    bool sideClear = agent.IsPathClear(selfPos, selfPos + side * 1.45f, 0.34f);
+                    if (!sideClear)
+                    {
+                        side = -side;
+                        sideClear = agent.IsPathClear(selfPos, selfPos + side * 1.45f, 0.34f);
+                    }
+                    if (!sideClear) return false;
+
+                    Vector2 safePos = selfPos + side * 1.55f;
                     agent.MoveTo_Direct(safePos, true, true, false);
                     SmartChatterSystem.Speak(agent, ChatterTopic.CombatClearFireLine, minCooldown: 6.0f);
                     return true;
@@ -748,7 +755,7 @@ namespace ZedZone.SmartCompanions
 
                 if (dist > 2.6f)
                 {
-                    agent.MoveTo_Direct(player.transform.position, false, true, false);
+                    CorridorNavigationHelper.SmartMoveTo(agent, player.transform.position, 1.8f, true);
                 }
 
                 st.LastPlayerRescueTime = now;

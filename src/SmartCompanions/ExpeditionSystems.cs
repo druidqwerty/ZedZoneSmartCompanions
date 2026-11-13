@@ -116,7 +116,7 @@ namespace ZedZone.SmartCompanions
             float dist = Vector2.Distance(selfPos, chosen.pos);
             if (dist > PortalReachRadius)
             {
-                try { agent.MoveTo(chosen.pos, 1.45f, dist > 5.5f); } catch { }
+                try { CorridorNavigationHelper.SmartMoveTo(agent, chosen.pos, 1.45f, dist > 5.5f); } catch { }
                 if (st != null) st.CurrentTaskText = CompanionConfigStore.L("Идёт к переходу между этажами...", "Moving to floor stairs/hatch...", "正前往跨层楼梯/入口...");
                 return true;
             }

@@ -225,11 +225,25 @@ namespace ZedZone.SmartCompanions
 
                 if (Il2CppSafe.IsAlive(npcData))
                 {
+                    // 1. Run native OneTime.QuitTeam FIRST while leaderCharacterGUID is still bound to the player!
+                    try { npcData.ExecuteNPCCommand("OneTime.QuitTeam"); } catch { }
+
                     var player = GameController.instance?.playerCharacter;
                     if (Il2CppSafe.IsAliveUnity(player) && Il2CppSafe.IsAlive(player.characterData))
                     {
                         try { player.characterData.RemoveTeamNPC(npcData); } catch { }
+                        try { player.characterData.teamNPCGuids?.Remove(npcData.npcGUID); } catch { }
+                        try { player.characterData.RefreshTeamData(); } catch { }
+                        try { player.characterData.SyncTeamUI(); } catch { }
                     }
+
+                    if (Il2CppSafe.IsAliveUnity(ag))
+                    {
+                        try { ag.SetLeader(null); } catch { }
+                        try { ag.DisableWithLeaderGoals(); } catch { }
+                        try { ag.SetFollowLeaderColliderSuppressed(false); } catch { }
+                    }
+
                     try { GOAPNPCManager.instance?.teammateNPCs?.Remove(npcData); } catch { }
                     MultiplayerSyncSystem.OnCompanionDismissed(npcData);
                 }

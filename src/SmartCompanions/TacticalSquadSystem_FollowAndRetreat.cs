@@ -61,15 +61,22 @@ namespace ZedZone.SmartCompanions
             var hc = agent.humanCharacter;
             Vector2 selfPos = hc.transform.position;
             Vector2 leaderPos = leader.transform.position;
+            CorridorNavigationHelper.RecordLeaderBreadcrumb(leaderPos, leader.characterData?.zLevel ?? 0);
             float followDist = GetFollowDistanceMeters(CompanionConfigStore.FollowDistance);
             Vector2 fwd = ResolveLeaderForward(leader);
 
-            Vector2 desired = ComputeFormationSlot(
-                myIdx, count, leaderPos, fwd, CompanionConfigStore.ActiveFormation, followDist);
+            bool inCorridor = CorridorNavigationHelper.IsNarrowCorridorAt(agent, leaderPos, fwd, 1.30f) ||
+                              CorridorNavigationHelper.IsNarrowCorridorAt(agent, selfPos, leaderPos - selfPos, 1.20f);
+
+            Vector2 desired = inCorridor
+                ? CorridorNavigationHelper.GetTrailSingleFileSlot(leaderPos, fwd, myIdx, 1.35f)
+                : ComputeFormationSlot(myIdx, count, leaderPos, fwd, CompanionConfigStore.ActiveFormation, followDist);
 
             if (CompanionConfigStore.EnableNarrowPassageYield)
             {
-                desired = ComputeAllySeparatedPoint(desired, selfPos, ScratchAllyPos, 1.25f);
+                if (!inCorridor)
+                    desired = ComputeAllySeparatedPoint(desired, selfPos, ScratchAllyPos, 1.25f);
+
                 if (ScratchAheadPos.Count > 0)
                 {
                     Vector2 toTarget = desired - selfPos;
@@ -94,9 +101,10 @@ namespace ZedZone.SmartCompanions
                 }
             }
 
-            // In Free + Normal distance mode without nearby stacking, let vanilla FollowLeader run cleanly.
+            // In Free + Normal distance mode: never push companions laterally into corridor walls; let native A* FollowLeader run!
             if (!customFormation && !customDist)
             {
+                if (inCorridor) return false;
                 bool stacked = false;
                 for (int i = 0; i < ScratchAllyPos.Count; i++)
                 {
@@ -109,6 +117,7 @@ namespace ZedZone.SmartCompanions
                 if (!stacked) return false;
             }
 
+            desired = CorridorNavigationHelper.ClampToWalkableTarget(agent, desired, leaderPos);
             float distToSlot = Vector2.Distance(selfPos, desired);
             if (distToSlot <= 1.15f)
             {
@@ -119,7 +128,7 @@ namespace ZedZone.SmartCompanions
 
             try
             {
-                agent.MoveTo(desired, 1.05f, distToSlot > followDist + 2.6f);
+                CorridorNavigationHelper.SmartMoveTo(agent, desired, 1.05f, distToSlot > followDist + 2.6f);
                 agent.LookAtPositionSmoothCompat(leaderPos + fwd * 4f, 9f);
             }
             catch { }
@@ -186,7 +195,9 @@ namespace ZedZone.SmartCompanions
 
             try
             {
-                agent.MoveTo_Direct(retreatPoint, true, true, false);
+                CorridorNavigationHelper.SmartStepInClearDirection(
+                    agent, selfPos, retreatPoint - selfPos,
+                    Mathf.Clamp(Vector2.Distance(selfPos, retreatPoint), 1.6f, 3.2f), true);
                 agent.LookAtPositionSmoothCompat(targetPos, 12f);
             }
             catch { }

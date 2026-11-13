@@ -284,7 +284,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         if (b.DistanceToPlayer > 11f) continue;
                         if (b.Inventory.inventorySizeX < 3 || b.Inventory.inventorySizeY < 3) continue;
                         float sep = Vector2.Distance(a.WorldPos, b.WorldPos);
-                        if (sep < 3.0f || sep > 12f) continue;
+                        if (sep < 5.2f || sep > 12f) continue;
                         if (pass == 0 && !_agent.IsPathClear(a.WorldPos, b.WorldPos, 0.15f)) continue;
                         bestSrc = a;
                         bestDest = b;

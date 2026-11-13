@@ -138,6 +138,22 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         if (!_state.IsDismissedOrNotInTeam)
                             return End(false, "FAIL [GarrisonLive Phase 1]: SafeDismiss did not mark companion dismissed!");
 
+                        // v3.0.1 Live check #1: Dismissed companion MUST also be purged from native TeamNPCPanel & teamNPCGuids!
+                        string dGuid = _agent.npcData.npcGUID;
+                        if (player.characterData.teamNPCGuids != null && player.characterData.teamNPCGuids.Contains(dGuid))
+                            return End(false, "FAIL [v3.0.1 NativeTeamMenu]: dismissed companion still in player.characterData.teamNPCGuids!");
+                        if (Il2CppSafe.IsAliveUnity(TeamNPCPanel.instance) && TeamNPCPanel.instance.npcUIDic != null &&
+                            TeamNPCPanel.instance.npcUIDic.ContainsKey(dGuid))
+                            return End(false, "FAIL [v3.0.1 NativeTeamMenu]: dismissed companion card still lingering in TeamNPCPanel.npcUIDic!");
+
+                        // v3.0.1 Live check #2: Corridor breadcrumb single-file trail & walkable target clamping!
+                        CorridorNavigationHelper.RecordLeaderBreadcrumb(_campSpot, _agent.npcData.zLevel);
+                        CorridorNavigationHelper.RecordLeaderBreadcrumb(_campSpot + Vector2.right * 2.0f, _agent.npcData.zLevel);
+                        Vector2 trailPt = CorridorNavigationHelper.GetTrailSingleFileSlot(_campSpot + Vector2.right * 2.0f, Vector2.right, 0, 1.35f);
+                        Vector2 clampedPt = CorridorNavigationHelper.ClampToWalkableTarget(_agent, trailPt, _campSpot);
+                        if (float.IsNaN(clampedPt.x) || Vector2.Distance(clampedPt, _campSpot) > 3.0f)
+                            return End(false, $"FAIL [v3.0.1 CorridorNav]: invalid single-file slot {clampedPt}!");
+
                         // v2.5.0 Live check: GrenadeSafetyGate blocks throw right on player's position, and IssueMoveToCursorOrder assigns fan anchors!
                         FieldTacticsSystem.CommandSafeOffensiveGrenade(_agent, player.transform.position);
                         if (FieldTacticsSystem.LastGrenadeBlockReason != GrenadeSafetyBlockReason.TooCloseToFriendly)
@@ -173,7 +189,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         if (string.IsNullOrEmpty(petSum))
                             return End(false, "FAIL [v3.0.0 Pets]: empty pet summary!");
 
-                        return End(true, $"PASS v2.4–v3.0 Live Suite: Garrison, SafeDismiss (walked={_walkedDismiss:F2}m, 0 teleports), GrenadeSafetyGate, SavedMask, FuelWhitelist, VehicleSeats & Pets.");
+                        return End(true, $"PASS v2.4–v3.0.1 Live Suite: Garrison, SafeDismiss + Native TeamNPCPanel Purge (walked={_walkedDismiss:F2}m, 0 teleports), CorridorNav, GrenadeSafetyGate, SavedMask, FuelWhitelist, VehicleSeats & Pets.");
                     }
 
                     if (now - _phaseStart > 16f)

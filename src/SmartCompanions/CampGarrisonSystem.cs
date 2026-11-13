@@ -98,7 +98,7 @@ namespace ZedZone.SmartCompanions
 
             if (dist > 3.6f)
             {
-                try { agent.MoveTo(st.HomeAnchorPos, 1.8f, dist > 7.5f); } catch { }
+                try { CorridorNavigationHelper.SmartMoveTo(agent, st.HomeAnchorPos, 1.8f, dist > 7.5f); } catch { }
                 return true;
             }
             hc.movementInput = Vector2.zero;

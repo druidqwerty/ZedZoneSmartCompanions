@@ -229,7 +229,7 @@ namespace ZedZone.SmartCompanions
 
             try
             {
-                agent.MoveTo(st.OrderAnchorPos, 1.15f, shouldRun);
+                CorridorNavigationHelper.SmartMoveTo(agent, st.OrderAnchorPos, 1.15f, shouldRun);
                 Vector2 lookPos = st.ActiveOrder == TacticalOrderKind.CoverDirection
                     ? selfPos + st.OrderDirection * 6f
                     : st.OrderAnchorPos;
