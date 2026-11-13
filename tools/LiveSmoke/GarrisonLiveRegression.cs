@@ -138,7 +138,12 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         if (!_state.IsDismissedOrNotInTeam)
                             return End(false, "FAIL [GarrisonLive Phase 1]: SafeDismiss did not mark companion dismissed!");
 
-                        return End(true, $"PASS Camp Garrison perimeter hold (0m raid chase) & SafeDismiss physical gear handover (walked={_walkedDismiss:F2}m, 0 teleports).");
+                        // v2.5.0 Live check: GrenadeSafetyGate blocks throw right on player's position, and IssueMoveToCursorOrder assigns fan anchors!
+                        FieldTacticsSystem.CommandSafeOffensiveGrenade(_agent, player.transform.position);
+                        if (FieldTacticsSystem.LastGrenadeBlockReason != GrenadeSafetyBlockReason.TooCloseToFriendly)
+                            return End(false, $"FAIL [v2.5.0 GrenadeSafetyGate]: expected TooCloseToFriendly at player pos, got {FieldTacticsSystem.LastGrenadeBlockReason}!");
+
+                        return End(true, $"PASS Camp Garrison perimeter hold, SafeDismiss physical gear handover (walked={_walkedDismiss:F2}m, 0 teleports) & v2.5.0 live GrenadeSafetyGate.");
                     }
 
                     if (now - _phaseStart > 16f)

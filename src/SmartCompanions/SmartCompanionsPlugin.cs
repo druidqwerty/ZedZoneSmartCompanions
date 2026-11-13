@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "2.4.0";
+        public const string PluginVersion = "2.5.0";
 
         internal static ManualLogSource Logs;
 
@@ -243,6 +243,17 @@ namespace ZedZone.SmartCompanions
                     if (Input.GetKeyDown(KeyCode.F9))
                     {
                         SmartCombatAI.CommandSquadBattleCry(null);
+                    }
+
+                    // Hotkeys Alt+G / Alt+H (2.5.0): Tactical Move-To-Cursor Fan & Tactical Healing Smoke
+                    bool altMod = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+                    if (altMod && Input.GetKeyDown(KeyCode.G))
+                    {
+                        FieldTacticsSystem.IssueMoveToCursorOrder(null);
+                    }
+                    if (altMod && Input.GetKeyDown(KeyCode.H))
+                    {
+                        FieldTacticsSystem.CommandTacticalHealingSmoke(null);
                     }
                 }
 

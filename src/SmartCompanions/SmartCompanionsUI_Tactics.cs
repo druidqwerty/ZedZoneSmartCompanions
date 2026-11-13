@@ -2,70 +2,64 @@ using UnityEngine;
 
 namespace ZedZone.SmartCompanions
 {
-    // 2.1.0: tactical bar, per-companion order row, and retreat/formation settings.
+    // 2.1.0–2.5.0: tactical bar, cursor move, safe grenade, healing smoke, and retreat/formation settings.
     public static partial class SmartCompanionsUI
     {
         private static void DrawSquadTacticalBar(Rect row, ModLanguage lang)
         {
-            float gap = 6f;
-            float bw = (row.width - gap * 5f) / 6f;
+            float gap = 5f;
+            float bw = (row.width - gap * 7f) / 8f;
             string formName = TacticalSquadSystem.GetFormationLabel(CompanionConfigStore.ActiveFormation, lang);
             string distName = TacticalSquadSystem.GetFollowDistanceLabel(CompanionConfigStore.FollowDistance, lang);
 
             if (GUI.Button(new Rect(row.x, row.y, bw, row.height), UiTip(
-                CompanionConfigStore.L(lang, $"Строй: {formName}", $"Form: {formName}", $"队形：{formName}"),
-                CompanionConfigStore.L(lang, "Построение отряда при следовании (Свободно / Клин / Шеренга / Колонна / Круг)",
-                    "Squad follow formation (Free / Wedge / Line / Column / Ring)", "跟随时的队伍阵型（自由/楔形/横队/纵队/环形）")),
+                CompanionConfigStore.L(lang, formName, $"Form:{formName}", $"阵型:{formName}"),
+                CompanionConfigStore.L(lang, "Построение отряда при следовании", "Squad follow formation", "跟随时的队伍阵型")),
                 CompanionConfigStore.ActiveFormation != SquadFormation.Free ? _catOnStyle : _btnStyle))
-            {
                 TacticalSquadSystem.CycleFormation();
-            }
 
             if (GUI.Button(new Rect(row.x + (bw + gap) * 1f, row.y, bw, row.height), UiTip(
-                CompanionConfigStore.L(lang, $"Дист.: {distName}", $"Dist: {distName}", $"距离：{distName}"),
-                CompanionConfigStore.L(lang, "Дистанция следования за командиром (2.5м / 4м / 6.5м / 9м)",
-                    "Follow distance behind leader (2.5m / 4m / 6.5m / 9m)", "与队长的跟随距离（2.5米/4米/6.5米/9米）")),
+                CompanionConfigStore.L(lang, $"Дист:{distName}", $"Dist:{distName}", $"距离:{distName}"),
+                CompanionConfigStore.L(lang, "Дистанция следования (2.5–9м)", "Follow distance (2.5–9m)", "跟随距离（2.5–9米）")),
                 CompanionConfigStore.FollowDistance != FollowDistanceMode.Normal ? _catOnStyle : _btnStyle))
-            {
                 TacticalSquadSystem.CycleFollowDistance();
-            }
 
             if (GUI.Button(new Rect(row.x + (bw + gap) * 2f, row.y, bw, row.height), UiTip(
-                CompanionConfigStore.L(lang, "Следовать", "Follow", "跟随编队"),
-                CompanionConfigStore.L(lang, "Снять удержание позиции — весь отряд снова идёт за вами в выбранном строю",
-                    "Clear hold orders — the squad follows you in formation again", "解除驻守指令——全队恢复编队跟随")), _btnStyle))
-            {
+                CompanionConfigStore.L(lang, "В строй", "Follow", "跟随"),
+                CompanionConfigStore.L(lang, "Вернуть отряд в строй", "Resume following in formation", "恢复编队跟随")), _btnStyle))
                 TacticalSquadSystem.IssueOrder(null, TacticalOrderKind.Follow);
-            }
 
             if (GUI.Button(new Rect(row.x + (bw + gap) * 3f, row.y, bw, row.height), UiTip(
-                CompanionConfigStore.L(lang, "Держать", "Hold Here", "原地坚守"),
-                CompanionConfigStore.L(lang, "Приказать отряду удерживать свои текущие точки и вести огонь с места",
-                    "Order the squad to hold their current positions and fire from there", "命令全队在当前位置驻守并原地射击")), _btnStyle))
-            {
+                CompanionConfigStore.L(lang, "Держать", "Hold", "坚守"),
+                CompanionConfigStore.L(lang, "Удерживать текущие позиции", "Hold current spots", "原地驻守射击")), _btnStyle))
                 TacticalSquadSystem.IssueOrder(null, TacticalOrderKind.HoldPosition);
-            }
 
             if (GUI.Button(new Rect(row.x + (bw + gap) * 4f, row.y, bw, row.height), UiTip(
-                CompanionConfigStore.L(lang, "Ко мне!", "Fall Back", "撤回到我"),
-                CompanionConfigStore.L(lang, "Немедленно разорвать дистанцию и бегом отступить к вашей позиции",
-                    "Disengage and run back to your current position", "立即脱离追击并跑步撤回到你的位置")), _btnStyle))
-            {
+                CompanionConfigStore.L(lang, "Ко мне!", "Retreat", "撤回"),
+                CompanionConfigStore.L(lang, "Бегом отступить к вашей позиции", "Run back to your position", "跑步撤回玩家位置")), _btnStyle))
                 TacticalSquadSystem.IssueOrder(null, TacticalOrderKind.FallBackHere);
-            }
 
             if (GUI.Button(new Rect(row.x + (bw + gap) * 5f, row.y, bw, row.height), UiTip(
-                CompanionConfigStore.L(lang, "Сектор", "Cover Dir", "掩护方向"),
-                CompanionConfigStore.L(lang, "Удерживать позицию и в первую очередь встречать цели в направлении вашего прицела",
-                    "Hold position and prioritize targets in your current aim direction", "原地驻守并优先迎击你当前瞄准方向的敌人")), _btnStyle))
-            {
+                CompanionConfigStore.L(lang, "Сектор", "Sector", "掩护"),
+                CompanionConfigStore.L(lang, "Прикрывать направление прицела", "Cover aimed direction", "掩护瞄准方向")), _btnStyle))
                 TacticalSquadSystem.IssueOrder(null, TacticalOrderKind.CoverDirection);
-            }
+
+            if (GUI.Button(new Rect(row.x + (bw + gap) * 6f, row.y, bw, row.height), UiTip(
+                CompanionConfigStore.L(lang, "К цели", "To Spot", "定点"),
+                CompanionConfigStore.L(lang, "Отправить отряд веером в точку прицела/курсора [Alt+G]",
+                    "Send squad in a fan to the cursor spot [Alt+G]", "扇形前往准星位置 [Alt+G]")), _btnStyle))
+                FieldTacticsSystem.IssueMoveToCursorOrder(null);
+
+            if (GUI.Button(new Rect(row.x + (bw + gap) * 7f, row.y, bw, row.height), UiTip(
+                CompanionConfigStore.L(lang, "Граната", "Grenade", "安全雷"),
+                CompanionConfigStore.L(lang, "Прицельная граната (строго с защитой своих и ящиков базы)",
+                    "Safe offensive grenade (blocks friendly fire & base chest damage)", "防误伤安全投雷（保护友军与基地箱）")), _btnStyle))
+                FieldTacticsSystem.CommandSafeOffensiveGrenade(null);
         }
 
         private static void DrawCompanionTacticalRow(Rect row, GOAPAgent ag, CompanionRuntimeState st, ModLanguage lang)
         {
-            float statusW = row.width * 0.44f;
+            float statusW = row.width * 0.36f;
             string orderText = TacticalSquadSystem.GetOrderLabel(st.ActiveOrder, lang);
             string blockText = TacticalSquadSystem.DescribeTacticalBlock(st, lang);
 
@@ -91,7 +85,7 @@ namespace ZedZone.SmartCompanions
             float bx = row.x + statusW;
             float remW = row.width - statusW;
             float gap = 5f;
-            float bw = (remW - gap * 3f) / 4f;
+            float bw = (remW - gap * 4f) / 5f;
 
             var items = new[]
             {
@@ -115,6 +109,14 @@ namespace ZedZone.SmartCompanions
                     TacticalSquadSystem.IssueOrder(ag, it.Item1);
                 }
             }
+
+            if (GUI.Button(new Rect(bx + 4f * (bw + gap), row.y, bw, row.height), UiTip(
+                CompanionConfigStore.L(lang, "Мед-дым", "Smoke", "治疗烟"),
+                CompanionConfigStore.L(lang, "Бросить лечебный дым или перевязать рядом [Alt+H]",
+                    "Throw healing smoke or field-bandage nearby [Alt+H]", "投掷治疗烟雾或近身包扎 [Alt+H]")), _btnStyle))
+            {
+                FieldTacticsSystem.CommandTacticalHealingSmoke(ag);
+            }
         }
 
         private static float DrawTacticalSettings(float x, float y, float width, ModLanguage lang)
@@ -126,15 +128,11 @@ namespace ZedZone.SmartCompanions
             if (GUI.Button(new Rect(x, y, halfW, 30f),
                 CompanionConfigStore.L(lang, $"Построение отряда: {formName}", $"Squad Formation: {formName}", $"队伍编队阵型：{formName}"),
                 CompanionConfigStore.ActiveFormation != SquadFormation.Free ? _catOnStyle : _btnStyle))
-            {
                 TacticalSquadSystem.CycleFormation();
-            }
             if (GUI.Button(new Rect(x + halfW + 8f, y, halfW, 30f),
                 CompanionConfigStore.L(lang, $"Дистанция следования: {distName}", $"Follow Distance: {distName}", $"跟随距离：{distName}"),
                 CompanionConfigStore.FollowDistance != FollowDistanceMode.Normal ? _catOnStyle : _btnStyle))
-            {
                 TacticalSquadSystem.CycleFollowDistance();
-            }
             y += 36f;
 
             string hpLabel = TacticalSquadSystem.GetRetreatHpLabel(CompanionConfigStore.RetreatHpThresholdPercent, lang);
@@ -142,15 +140,11 @@ namespace ZedZone.SmartCompanions
             if (GUI.Button(new Rect(x, y, halfW, 30f),
                 CompanionConfigStore.L(lang, $"Отход при ранении: {hpLabel}", $"Wounded Retreat: {hpLabel}", $"受伤撤退阈值：{hpLabel}"),
                 CompanionConfigStore.RetreatHpThresholdPercent > 0 ? _catOnStyle : _catOffStyle))
-            {
                 TacticalSquadSystem.CycleRetreatHpThreshold();
-            }
             if (GUI.Button(new Rect(x + halfW + 8f, y, halfW, 30f),
                 CompanionConfigStore.L(lang, $"Отход без патронов: {ammoLabel}", $"Low-Ammo Retreat: {ammoLabel}", $"缺弹撤退条件：{ammoLabel}"),
                 CompanionConfigStore.LowAmmoRetreat != LowAmmoRetreatMode.Off ? _catOnStyle : _catOffStyle))
-            {
                 TacticalSquadSystem.CycleLowAmmoRetreat();
-            }
             y += 36f;
 
             if (GUI.Button(new Rect(x, y, width, 30f),

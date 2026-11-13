@@ -86,6 +86,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     SpecializationRegression.Run();
                     ScaleAndPrivacyRegression.Run();
                     GarrisonRegression.Run();
+                    FieldTacticsRegression.Run();
                     if (Environment.GetCommandLineArgs().Contains("--sc-native-menu-only"))
                     {
                         NativeMenuRegression.VerifyAllLanguages();

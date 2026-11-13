@@ -23,6 +23,9 @@ namespace ZedZone.SmartCompanions
         public const string ResumeFollow  = "Basic.ResumeFollowFormation";
         public const string CampGarrison  = "Basic.ToggleCampGarrison";
         public const string SafeDismiss   = "OneTime.SafeDismissWithGear";
+        public const string MoveToCursor  = "Basic.MoveToCursorPoint";
+        public const string SafeGrenade   = "OneTime.ThrowSafeGrenade";
+        public const string HealSmoke     = "OneTime.ThrowHealingSmoke";
 
         public static readonly string[] AllCustomCommands = new[]
         {
@@ -33,6 +36,7 @@ namespace ZedZone.SmartCompanions
             CoverSector,
             ResumeFollow,
             CampGarrison,
+            MoveToCursor,
             DocAssault,
             DocBodyguard,
             DocSniper,
@@ -42,6 +46,8 @@ namespace ZedZone.SmartCompanions
             ShareRation,
             UnloadVehicle,
             BattleCry,
+            SafeGrenade,
+            HealSmoke,
             SafeDismiss
         };
 
@@ -124,6 +130,18 @@ namespace ZedZone.SmartCompanions
                 case "SafeDismissWithGear":
                 case SafeDismiss:
                     label = CompanionConfigStore.L(lang, "Сдать вещи и уйти", "Hand Over & Dismiss", "交出装备离队");
+                    return true;
+                case "MoveToCursorPoint":
+                case MoveToCursor:
+                    label = CompanionConfigStore.L(lang, "К точке [Alt+G]", "Move Here [Alt+G]", "前往此处 [Alt+G]");
+                    return true;
+                case "ThrowSafeGrenade":
+                case SafeGrenade:
+                    label = CompanionConfigStore.L(lang, "Граната (без FF)", "Safe Grenade", "安全投雷");
+                    return true;
+                case "ThrowHealingSmoke":
+                case HealSmoke:
+                    label = CompanionConfigStore.L(lang, "Лечебный дым [Alt+H]", "Heal Smoke [Alt+H]", "治疗烟雾 [Alt+H]");
                     return true;
                 default:
                     label = null;
@@ -289,6 +307,24 @@ namespace ZedZone.SmartCompanions
             if (commandStr.EndsWith("SafeDismissWithGear", StringComparison.OrdinalIgnoreCase))
             {
                 if (st != null) CampGarrisonSystem.StartSafeDismiss(agent, st, handOverGear: true);
+                return true;
+            }
+
+            if (commandStr.EndsWith("MoveToCursorPoint", StringComparison.OrdinalIgnoreCase))
+            {
+                FieldTacticsSystem.IssueMoveToCursorOrder(agent);
+                return true;
+            }
+
+            if (commandStr.EndsWith("ThrowSafeGrenade", StringComparison.OrdinalIgnoreCase))
+            {
+                FieldTacticsSystem.CommandSafeOffensiveGrenade(agent);
+                return true;
+            }
+
+            if (commandStr.EndsWith("ThrowHealingSmoke", StringComparison.OrdinalIgnoreCase))
+            {
+                FieldTacticsSystem.CommandTacticalHealingSmoke(agent);
                 return true;
             }
 

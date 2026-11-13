@@ -390,6 +390,7 @@ namespace ZedZone.SmartCompanions
                     }
                     TickFieldSupport(agent, st, allyPlayer, now);
                 }
+                FieldTacticsSystem.TryMedicRescueWoundedTeammate(agent, st, now);
             }
 
             var leader = Il2CppSafe.IsAliveUnity(agent.leaderCharacter) && !agent.leaderCharacter.deadFlag
@@ -486,6 +487,8 @@ namespace ZedZone.SmartCompanions
 
             if (TacticalSquadSystem.TryApplyCombatRetreat(agent, st, leader, target, now))
                 return;
+
+            FieldTacticsSystem.TryTriggerCoverUnderRangedFire(agent, st, target, now);
 
             if (CompanionConfigStore.EnableKiting && st.Doctrine != TacticalDoctrine.Assault &&
                 CombatResponse.AllowsRangedResponse(st, agent.npcData.weaponPreference))
