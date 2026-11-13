@@ -1,0 +1,27 @@
+{
+  "version": "2.6.0",
+  "workshop_id": "3836613312",
+  "status": "published-github-steam-boosty-queued",
+  "github_release": "https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.6.0",
+  "zip": "ZedZoneSmartCompanions-2.6.0.zip",
+  "zip_size": 1778798,
+  "zip_sha256": "1fdf921604a509c3df06e4a8cb421b0fdecbcf9a579087d8c05cdd10bf684382",
+  "github_anonymous_asset_verified": true,
+  "dll_sha256": "08f0d48c42e5ca55420e697962225a1f36d3a1ab239de9ab8ba06b0ed78ed47e",
+  "steam_api": {
+    "result": 1,
+    "visibility": 0,
+    "banned": 0
+  },
+  "steam_locales_uploaded": [
+    "english",
+    "russian",
+    "schinese"
+  ],
+  "steam_dependency": {
+    "id": "3834614258",
+    "sdk_result": 29
+  },
+  "boosty_queue_path": "BOOSTY_2.6.0.md",
+  "boosty_published": false
+}

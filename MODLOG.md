@@ -294,3 +294,9 @@
 - Rejected 4ef74d86... after screenshot review caught RU formation button wrap; shortened to concise formation label.
 - Live acceptance PASS (backups/live-20261113-031142) + UI matrix PASS 300/300 uninterrupted (backups/ui250-20261113-031249) + FieldTacticsRegression.
 - Published to GitHub v2.5.0, Steam 3836613312 (public), Boosty BOOSTY_2.5.0.md queued.
+
+## 2.6.0 Autonomous survival (bio-masks, debuff care & sentry sleep shifts) published (2026-11-13)
+- Built via Antigravity /boost (DeepCoder) + coordinator verification: DLL 08f0d48c42e5ca55420e697962225a1f36d3a1ab239de9ab8ba06b0ed78ed47e, ZIP 1fdf921604a509c3df06e4a8cb421b0fdecbcf9a579087d8c05cdd10bf684382.
+- Added vSyncCount=0 & targetFrameRate=60 to LiveSmoke/UiSmoke so unfocused/sleeping monitor runs stay at 60 FPS.
+- Live acceptance PASS (backups/live-20261113-111220) + UI matrix PASS 300/300 uninterrupted (backups/ui260-20261113-111528) + SurvivalRegression.
+- Published to GitHub v2.6.0, Steam 3836613312 (public), Boosty BOOSTY_2.6.0.md queued.
