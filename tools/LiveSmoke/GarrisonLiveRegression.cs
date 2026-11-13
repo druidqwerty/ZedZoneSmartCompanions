@@ -160,7 +160,20 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                             !BaseIndustrySystem.IsApprovedStationFuelItem(101, StorageCategory.Materials, "дрова"))
                             return End(false, "FAIL [v2.7.0 FuelWhitelist]: unexpected live fuel whitelist evaluation!");
 
-                        return End(true, $"PASS Camp Garrison, SafeDismiss (walked={_walkedDismiss:F2}m, 0 teleports), v2.5.0 GrenadeSafetyGate, v2.6.0 SavedMask & v2.7.0 FuelWhitelist.");
+                        // v3.0.0 Live check: Vehicle seat overflow + zLevel portal routing + PetSystem summary in real engine!
+                        var (bSeats, ovSeats) = ExpeditionSystems.PlanVehicleSeatAllocation(new[]
+                        {
+                            ("g1", 0.90f, CompanionSpecialization.Scavenger, CompanionRosterMode.ActiveSquad),
+                            ("g2", 0.25f, CompanionSpecialization.Scavenger, CompanionRosterMode.ActiveSquad),
+                            ("g3", 0.90f, CompanionSpecialization.Medic, CompanionRosterMode.ActiveSquad)
+                        }, 2);
+                        if (bSeats.Count != 2 || bSeats[0] != "g2" || bSeats[1] != "g3" || ovSeats.Count != 1)
+                            return End(false, "FAIL [v3.0.0 VehicleSeats]: unexpected seat allocation!");
+                        string petSum = ExpeditionSystems.GetActivePlayerPetsSummary(ModLanguage.Russian);
+                        if (string.IsNullOrEmpty(petSum))
+                            return End(false, "FAIL [v3.0.0 Pets]: empty pet summary!");
+
+                        return End(true, $"PASS v2.4–v3.0 Live Suite: Garrison, SafeDismiss (walked={_walkedDismiss:F2}m, 0 teleports), GrenadeSafetyGate, SavedMask, FuelWhitelist, VehicleSeats & Pets.");
                     }
 
                     if (now - _phaseStart > 16f)

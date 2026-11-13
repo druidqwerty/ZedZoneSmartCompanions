@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "2.7.0";
+        public const string PluginVersion = "3.0.0";
 
         internal static ManualLogSource Logs;
 
@@ -272,6 +272,8 @@ namespace ZedZone.SmartCompanions
                 {
                     _lastSortTickTime = now;
                     CompanionProfileSystem.TickPrioritizedBaseSystems();
+                    ExpeditionSystems.TickVehicleExpedition(now);
+                    ExpeditionSystems.TickPetCompanionSynergy(now);
                 }
 
                 SmartChatterSystem.TickAmbientChatter();

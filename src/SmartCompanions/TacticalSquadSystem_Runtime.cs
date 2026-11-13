@@ -141,6 +141,8 @@ namespace ZedZone.SmartCompanions
             int myZ = agent.npcData.zLevel;
             if (myZ != st.OrderAnchorZ)
             {
+                if (ExpeditionSystems.TryStepMultiFloorTransition(agent, st, (sbyte)st.OrderAnchorZ))
+                    return true;
                 st.NoteTacticalBlock(TacticalOrderBlockReason.DifferentZLevel);
                 return false;
             }

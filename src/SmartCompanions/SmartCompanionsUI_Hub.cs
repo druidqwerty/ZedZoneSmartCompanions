@@ -120,8 +120,11 @@ namespace ZedZone.SmartCompanions
             string limitStr = CompanionConfigStore.MaxTeamSize <= 0
                 ? CompanionConfigStore.L(lang, "Авто (3/AVO)", "Auto (3/AVO)", "自动 (3/AVO)")
                 : CompanionConfigStore.MaxTeamSize.ToString();
+            string petSummary = ExpeditionSystems.GetActivePlayerPetsSummary(lang);
             GUI.Label(new Rect(bx + 8f, by, area.width - 265f, 28f), CompanionConfigStore.L(lang,
-                $"Напарников рядом: {teammates.Count}", $"Companions nearby: {teammates.Count}", $"附近队友：{teammates.Count}"), _subHeaderStyle);
+                $"Напарников рядом: {teammates.Count}  ·  {petSummary}",
+                $"Companions nearby: {teammates.Count}  ·  {petSummary}",
+                $"附近队友：{teammates.Count}  ·  {petSummary}"), _subHeaderStyle);
             if (GUI.Button(new Rect(area.xMax - 232f, by, 224f, 28f), CompanionConfigStore.L(lang,
                 $"Лимит: {limitStr}", $"Squad cap: {limitStr}", $"队伍上限：{limitStr}"), _btnStyle))
                 CompanionConfigStore.CycleMaxTeamSize();

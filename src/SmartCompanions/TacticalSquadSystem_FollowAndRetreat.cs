@@ -25,6 +25,13 @@ namespace ZedZone.SmartCompanions
                 : GameController.instance?.playerCharacter;
             if (!Il2CppSafe.IsAliveUnity(leader) || leader.deadFlag) return false;
 
+            if (Il2CppSafe.IsAlive(leader.characterData) && leader.characterData.zLevel != agent.npcData.zLevel &&
+                (st == null || st.RosterMode != CompanionRosterMode.CampGarrison))
+            {
+                if (ExpeditionSystems.TryStepMultiFloorTransition(agent, st, leader.characterData.zLevel))
+                    return true;
+            }
+
             bool customFormation = CompanionConfigStore.ActiveFormation != SquadFormation.Free;
             bool customDist = CompanionConfigStore.FollowDistance != FollowDistanceMode.Normal;
             if (!customFormation && !customDist && !CompanionConfigStore.EnableNarrowPassageYield)
