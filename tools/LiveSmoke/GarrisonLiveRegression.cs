@@ -154,7 +154,13 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         if (!prot260.Contains(addedMask.Pointer))
                             return End(false, "FAIL [v2.6.0 SavedMask]: BuildProtectedBackpackPointers failed to protect displaced everyday mask!");
 
-                        return End(true, $"PASS Camp Garrison, SafeDismiss physical handover (walked={_walkedDismiss:F2}m, 0 teleports), v2.5.0 GrenadeSafetyGate & v2.6.0 live SavedMask protection.");
+                        // v2.7.0 Live check: real world ItemData (gun 406, steak 248, medkit 220) strictly blocked from fuel slots!
+                        if (BaseIndustrySystem.IsApprovedStationFuelItem(406, StorageCategory.RangedWeapons, "rifle") ||
+                            BaseIndustrySystem.IsApprovedStationFuelItem(248, StorageCategory.FreshFood, "steak") ||
+                            !BaseIndustrySystem.IsApprovedStationFuelItem(101, StorageCategory.Materials, "дрова"))
+                            return End(false, "FAIL [v2.7.0 FuelWhitelist]: unexpected live fuel whitelist evaluation!");
+
+                        return End(true, $"PASS Camp Garrison, SafeDismiss (walked={_walkedDismiss:F2}m, 0 teleports), v2.5.0 GrenadeSafetyGate, v2.6.0 SavedMask & v2.7.0 FuelWhitelist.");
                     }
 
                     if (now - _phaseStart > 16f)

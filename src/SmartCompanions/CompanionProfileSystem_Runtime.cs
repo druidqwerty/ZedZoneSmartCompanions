@@ -194,6 +194,7 @@ namespace ZedZone.SmartCompanions
                     break;
                 case BaseWorkPriority.CampFirst:
                     BaseChoreSystem.TickBaseChoresAndCampLife();
+                    if (CompanionConfigStore.EnableBaseIndustry) BaseIndustrySystem.TickBaseIndustry(Time.unscaledTime);
                     BaseSortingSystem.TickActiveSortingJobs();
                     AutoLootSystem.TickPassiveAutoLoot();
                     break;
@@ -201,6 +202,7 @@ namespace ZedZone.SmartCompanions
                     BaseSortingSystem.TickActiveSortingJobs();
                     AutoLootSystem.TickPassiveAutoLoot();
                     BaseChoreSystem.TickBaseChoresAndCampLife();
+                    if (CompanionConfigStore.EnableBaseIndustry) BaseIndustrySystem.TickBaseIndustry(Time.unscaledTime);
                     break;
             }
         }

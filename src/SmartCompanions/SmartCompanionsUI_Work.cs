@@ -66,28 +66,29 @@ namespace ZedZone.SmartCompanions
                 AutoLootSystem.CommandSweepNearbyLoot(null, CompanionConfigStore.LootSweepRadius);
 
             by += 34f;
+            float w5 = (area.width - 16f - 24f) / 5f;
             string prioLbl = CompanionProfileSystem.GetBasePriorityLabel(CompanionConfigStore.BasePriorityMode, lang);
             string zoneLbl = CompanionConfigStore.LootZonePinned
                 ? CompanionConfigStore.L(lang, "Зона: точка", "Zone: Pinned", "区域：已固定")
-                : CompanionConfigStore.L(lang, "Зона: за вами", "Zone: Player", "区域：跟随你");
-            if (GUI.Button(new Rect(bx, by, w4, 28f), UiTip(
-                CompanionConfigStore.L(lang, $"Очередь: {prioLbl}", $"Order: {prioLbl}", $"优先：{prioLbl}"),
+                : CompanionConfigStore.L(lang, "Зона: игрок", "Zone: Player", "区域：跟随你");
+            if (GUI.Button(new Rect(bx, by, w5, 28f), UiTip(
+                CompanionConfigStore.L(lang, prioLbl, prioLbl, $"优先：{prioLbl}"),
                 CompanionConfigStore.L(lang, "Порядок автоматических задач базы (Склад / Лут / Лагерь)",
                     "Priority order for automatic base jobs (Sort / Loot / Camp)", "自动基地工作的优先顺序")),
                 CompanionConfigStore.BasePriorityMode != BaseWorkPriority.SortFirst ? _catOnStyle : _btnStyle))
             {
                 CompanionProfileSystem.CycleBaseWorkPriority();
             }
-            if (GUI.Button(new Rect(bx + (w4 + 6f), by, w4, 28f), UiTip(
-                CompanionConfigStore.L(lang, $"Радиус лута: {CompanionConfigStore.LootSweepRadius:F0}м",
-                    $"Loot radius: {CompanionConfigStore.LootSweepRadius:F0}m",
-                    $"搜刮半径：{CompanionConfigStore.LootSweepRadius:F0}米"),
+            if (GUI.Button(new Rect(bx + (w5 + 6f), by, w5, 28f), UiTip(
+                CompanionConfigStore.L(lang, $"Лут: {CompanionConfigStore.LootSweepRadius:F0}м",
+                    $"Loot: {CompanionConfigStore.LootSweepRadius:F0}m",
+                    $"半径：{CompanionConfigStore.LootSweepRadius:F0}米"),
                 CompanionConfigStore.L(lang, "Дальность поиска трофеев (14м / 24м / 36м / 48м)",
                     "Loot search radius (14m / 24m / 36m / 48m)", "物资搜刮半径（14/24/36/48米）")), _btnStyle))
             {
                 CompanionProfileSystem.CycleLootSweepRadius();
             }
-            if (GUI.Button(new Rect(bx + (w4 + 6f) * 2f, by, w4, 28f), UiTip(zoneLbl,
+            if (GUI.Button(new Rect(bx + (w5 + 6f) * 2f, by, w5, 28f), UiTip(zoneLbl,
                 CompanionConfigStore.L(lang, "Закрепить зону сбора в вашей текущей точке или вернуть привязку к игроку (ящики базы всегда защищены)",
                     "Pin the scavenging zone at your feet or follow the player (marked base chests stay protected)",
                     "在当前位置固定搜刮区或恢复跟随玩家（基地箱子始终受保护）")),
@@ -95,7 +96,20 @@ namespace ZedZone.SmartCompanions
             {
                 CompanionProfileSystem.TogglePinnedLootZone();
             }
-            if (GUI.Button(new Rect(bx + (w4 + 6f) * 3f, by, w4, 28f), UiTip(
+            if (GUI.Button(new Rect(bx + (w5 + 6f) * 3f, by, w5, 28f), UiTip(
+                (CompanionConfigStore.EnableBaseIndustry ? "[x] " : "[ ] ") +
+                CompanionConfigStore.L(lang, "Энерго/Печи", "Power & Kilns", "发电与熔炉"),
+                CompanionConfigStore.L(lang, "Физический поднос топлива в генераторы/печи, зарядка батарей и выгрузка готовой продукции",
+                    "Zero-teleport generator/furnace refueling, battery rotation & station output unloading",
+                    "零瞬移为发电机与熔炉加燃料、轮换电池并卸下成品")),
+                CompanionConfigStore.EnableBaseIndustry ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.EnableBaseIndustry = !CompanionConfigStore.EnableBaseIndustry;
+                BaseIndustrySystem.EnablePowerGridAutomation = CompanionConfigStore.EnableBaseIndustry;
+                BaseIndustrySystem.EnableFurnaceAndKitchenAutomation = CompanionConfigStore.EnableBaseIndustry;
+                CompanionConfigStore.Save();
+            }
+            if (GUI.Button(new Rect(bx + (w5 + 6f) * 4f, by, w5, 28f), UiTip(
                 CompanionConfigStore.L(lang, "Профиль отряда", "Squad Profile", "全队专精预览"),
                 CompanionConfigStore.L(lang, "Открыть предпросмотр специализации перед применением ко всему отряду",
                     "Preview specialization changes before applying to the whole squad", "在应用至全队前预览专精变更")),

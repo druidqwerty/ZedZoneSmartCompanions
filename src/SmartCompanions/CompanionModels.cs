@@ -672,6 +672,7 @@ namespace ZedZone.SmartCompanions
         public static bool EnableSmartFlashlight = true;
         public static bool EnablePlayerRescue = true;
         public static bool EnableAutoBioAndSleep = true;
+        public static bool EnableBaseIndustry = true;
         public static bool ShowHudBadge = true;
         public static bool HudBadgeCollapsed = false;
         public static float BaseScanRadius = 48f;
@@ -915,6 +916,7 @@ namespace ZedZone.SmartCompanions
             sb.AppendLine($"SET|EnableSmartFlashlight|{EnableSmartFlashlight}");
             sb.AppendLine($"SET|EnablePlayerRescue|{EnablePlayerRescue}");
             sb.AppendLine($"SET|EnableAutoBioAndSleep|{EnableAutoBioAndSleep}");
+            sb.AppendLine($"SET|EnableBaseIndustry|{EnableBaseIndustry}");
             sb.AppendLine($"SET|ShowHudBadge|{ShowHudBadge}");
             sb.AppendLine($"SET|HudBadgeCollapsed|{HudBadgeCollapsed}");
             sb.AppendLine($"SET|BaseScanRadius|{BaseScanRadius.ToString("F1", CultureInfo.InvariantCulture)}");
@@ -1049,6 +1051,7 @@ namespace ZedZone.SmartCompanions
                     else if (key == "EnableSmartFlashlight" && bool.TryParse(val, out var bFlash)) EnableSmartFlashlight = bFlash;
                     else if (key == "EnablePlayerRescue" && bool.TryParse(val, out var bRescue)) EnablePlayerRescue = bRescue;
                     else if (key == "EnableAutoBioAndSleep" && bool.TryParse(val, out var bBio)) EnableAutoBioAndSleep = bBio;
+                    else if (key == "EnableBaseIndustry" && bool.TryParse(val, out var bInd)) EnableBaseIndustry = bInd;
                     else if (key == "ShowHudBadge" && bool.TryParse(val, out var b7)) ShowHudBadge = b7;
                     else if (key == "HudBadgeCollapsed" && bool.TryParse(val, out var bCol)) HudBadgeCollapsed = bCol;
                     else if (key == "BaseScanRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f2)) BaseScanRadius = Mathf.Clamp(f2, 15f, 120f);
