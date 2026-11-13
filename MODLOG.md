@@ -300,3 +300,8 @@
 - Added vSyncCount=0 & targetFrameRate=60 to LiveSmoke/UiSmoke so unfocused/sleeping monitor runs stay at 60 FPS.
 - Live acceptance PASS (backups/live-20261113-111220) + UI matrix PASS 300/300 uninterrupted (backups/ui260-20261113-111528) + SurvivalRegression.
 - Published to GitHub v2.6.0, Steam 3836613312 (public), Boosty BOOSTY_2.6.0.md queued.
+
+## 2.7.0 Industrial base & power grid published (2026-11-13)
+- Built via Antigravity /boost (DeepCoder) + coordinator verification: DLL 2c15a6ecfcbb3d12370412e075b802424e6d72ed090984b8f1f537c0ed2eeb84, ZIP 1c999824d3d041e6d3273f4de80412efe43c57fbe9526062ce61e4d6076d28d7.
+- Live acceptance PASS (backups/live-20261113-132706) + UI matrix PASS 300/300 uninterrupted (backups/ui270-20261113-132922) + IndustryRegression.
+- Published to GitHub v2.7.0, Steam 3836613312 (public), Boosty BOOSTY_2.7.0.md queued.
