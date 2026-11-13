@@ -288,3 +288,9 @@
 - Live acceptance PASS (backups/live-20261113-022051): Camp Garrison hold (0.40m within anchor while player raided 12m away) + SafeDismiss physical walk (4.77m, 0 teleports) & gear handover.
 - UI matrix PASS 300/300 (backups/ui240-20261113-022229 + 023134) + GarrisonRegression 8/8.
 - Published to GitHub v2.4.0, Steam 3836613312 (public), Boosty BOOSTY_2.4.0.md queued.
+
+## 2.5.0 Field tactics 2.0 published (2026-11-13)
+- Built via Antigravity /boost (DeepCoder) + coordinator verification: DLL 9527234181900a03a26ee0c4db28f5e8ea4262ccf1558891f0b0fa788f436c70, ZIP e7ca2468151af31588dbbd3362af2eb003a9b44c4055661eccae9999cc1b2f6b.
+- Rejected 4ef74d86... after screenshot review caught RU formation button wrap; shortened to concise formation label.
+- Live acceptance PASS (backups/live-20261113-031142) + UI matrix PASS 300/300 uninterrupted (backups/ui250-20261113-031249) + FieldTacticsRegression.
+- Published to GitHub v2.5.0, Steam 3836613312 (public), Boosty BOOSTY_2.5.0.md queued.
