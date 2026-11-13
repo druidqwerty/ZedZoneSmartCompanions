@@ -1,0 +1,26 @@
+{
+  "live": {
+    "returncode": 0,
+    "version_verified": "2.7.0",
+    "has_fail_in_log": false,
+    "pre_file_count": 8386,
+    "post_file_count": 8386,
+    "gamedata_identical": true,
+    "zlivesmoke_removed": true,
+    "installs_restored": true,
+    "steam_appid_removed": true
+  },
+  "dll_sha256": "2c15a6ecfcbb3d12370412e075b802424e6d72ed090984b8f1f537c0ed2eeb84",
+  "passed": 300,
+  "version": "2.7.0",
+  "restoration": {
+    "save_files": 8386,
+    "gamedata_identical": true,
+    "original_files_restored": true,
+    "screen_preferences_restored": true,
+    "screenshots": 300
+  },
+  "evidence": "backups/ui270-20261113-132922",
+  "failures": 0,
+  "cases": 300
+}

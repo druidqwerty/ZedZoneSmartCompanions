@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.6.0"><strong>Release v2.6.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.7.0"><strong>Release v2.7.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v2.7.0 — Industrial base & power grid (zero teleportation)
+
+- **Zero-teleport generator, heater & battery care (`F8 → Work`):** companions physically carry approved fuel from storage chests into `StirlingGenerator` and `Heater` stations (`<= 2.45 m`) and rotate depleted / `100%` charged batteries in `BatteryCharger`.
+- **Furnace & kitchen unloading:** collects finished ingots, charcoal and cooked meals from `Furnace`, `ElectricFurnace`, `Stove` and `CookingHob` stations into categorized base chests.
+- **Strict fuel whitelist (`IsApprovedStationFuelItem`):** never burns weapons, armor, clothing, medicine, food, books, cash, batteries, planks or rare vehicle parts — only explicit fuels enter fuel slots.
+- **Verified:** live combat + physical carry + garrison + safe dismiss + `GrenadeSafetyGate` + saved-mask protection + live fuel whitelist; 300/300 graphical cases; all 8,386 save files unchanged. [Scope and limits](docs/verification-2.7.0.md).
+
+![Work tab with Power & Kilns toggle (real engine, isolated test fixtures)](docs/images/ui-2.7.0-work-industry-en.png)
 
 ## New in v2.6.0 — Autonomous survival: bio-masks, debuff remedies & sentry sleep shifts
 
@@ -258,7 +267,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.6.0.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.7.0.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 

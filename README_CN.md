@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.6.0"><strong>下载 v2.6.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.7.0"><strong>下载 v2.7.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v2.7.0 更新 — 工业基地与电力网络（零瞬移）
+
+- **发电机、取暖器与充电器维护（`F8 → 工作`）：** 队友从储物箱走到 `StirlingGenerator` / `Heater` 加注燃料（`<= 2.45米`），并在 `BatteryCharger` 轮换满电电池。
+- **熔炉与灶台成品回收：** 将烧制好的金属锭、木炭与熟食搬回对应分类储物箱。
+- **严格燃料白名单（`IsApprovedStationFuelItem`）：** 绝不误烧武器、护甲、衣物、药品、食物、书籍、钞票、木板、电池或稀有零件。
+- **已验证：** 实测战斗、搬运、驻守、安全离队、手雷门控、防毒面具与燃料白名单 + 300/300 图形测试；8,386 个存档文件均未改变。[测试范围与限制](docs/verification-2.7.0.md)。
+
+![2.7.0 工作面板发电与熔炉开关（游戏引擎中的隔离测试）](docs/images/ui-2.7.0-work-industry-zh.png)
 
 ## v2.6.0 更新 — 自主生存：自动防毒面具、解异常与轮班睡眠
 
@@ -213,7 +222,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.6.0.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.7.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

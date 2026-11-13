@@ -1,0 +1,360 @@
+[Info   :ZED ZONE Smart Companions] Patched 57 game method(s) via Harmony.
+[Info   :ZED ZONE Smart Companions] [SelfVerify] PASS v2.7.0: 60 chatter topics (565 unique RU lines [Rude=349, Clean=216], 290 unique EN lines [Rude=194, Clean=134], 324 unique ZH lines [Rude=190, Clean=134]), 12 storage categories (RU/EN/ZH), 20 custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, MP Sync (Looter=200/Survivor=201) & Hostile Human Combat AI, ModLanguage Auto/RU/EN/ZH verified.
+[Info   :Il2CppInterop] Registered mono type ZedZone.SmartCompanions.UiSmoke.UiSmokeRunner in il2cpp domain
+[Info   :Smart Companions UI Smoke] [UiSmoke] Enabled. Main-menu fixtures only; no save is loaded or written.
+[Info   :ZED ZONE Code Mod Loader]   - Smart Companions UI Smoke 1.0.0 [BepInEx plugin] G:\Steam\steamapps\common\ZED ZONE\Mods\ZUiSmoke\SmartCompanions.UiSmoke.dll
+[Info   :Smart Companions UI Smoke] [UiSmoke] Planned 300 cases across 10 real render resolutions.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS co-op authority decision table 13/13 (logic only; live two-player session not exercised).
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS v2.1.0 tactical formations, doorway yield, retreat thresholds & sector priority (16/16).
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS v2.2.0 specialization presets, non-mutating squad preview, backpack reserves & rare-supply gates (12/12).
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS v2.3.0 15-NPC scale, AVO compatibility & zero-PII diagnostic report audit (14/14).
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS v2.4.0 camp garrison persistence, host-checked sync & telemetry privacy (8/8).
+[Info   :   Console] [UiSmoke] PASS v2.5.0 cursor fan, GrenadeSafetyGate & tactical cover/rescue rules
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS v2.6.0 bio-mask protection, sentry sleep rotation & rare-remedy gates
+[Info   :   Console] [UiSmoke] PASS v2.6.0 bio-mask protection, sentry sleep rotation & rare-remedy gates
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS v2.7.0 industrial fuel whitelist, station priority & zero-teleport routing
+[Info   :   Console] [UiSmoke] PASS v2.7.0 industrial fuel whitelist, station priority & zero-teleport routing
+[Info   :Smart Companions UI Smoke] [UiSmoke] Created three disabled native GOAPAgent fixtures.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Inert chest editor, native overlay panel and multiline chatter fixtures ready.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS open F8 blocks player controls and mouse.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native CharacterInput stopAllInput=true, CanPressMouse=false, CanControlMouseActions=false.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player attack blocked while F8 open.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS companion attack unaffected by F8.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player gun attack blocked while F8 open.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS companion gun attack unaffected by F8.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player melee attack blocked while F8 open.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS companion melee attack unaffected by F8.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player held melee input blocked while F8 open.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS companion held melee input unaffected by F8.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native player control handler blocked.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS scene transition does not suppress unidentified NPC.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native attack isolation, modal movement reset, null-pointer and scene-transition guards.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Requested actual backbuffer 1280x720.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native GUI coordinate roundtrip; actual=1280x720, scale=1,000. Synthetic drag/scroll injection unsupported and not counted.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-000-1280x720-pref0,00-Russian-0, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-001-1280x720-pref0,00-Russian-1, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-002-1280x720-pref0,00-Russian-2, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-003-1280x720-pref0,00-Russian-3, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-004-1280x720-pref0,00-Russian-4, NPCs=0, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-005-1280x720-pref0,00-Russian-5, NPCs=6, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-006-1280x720-pref0,00-Russian-6, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-007-1280x720-pref0,00-Russian-7, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-008-1280x720-pref0,00-Russian-8, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-009-1280x720-pref0,00-Russian-9, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-010-1280x720-pref0,00-English-0, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-011-1280x720-pref0,00-English-1, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-012-1280x720-pref0,00-English-2, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-013-1280x720-pref0,00-English-3, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-014-1280x720-pref0,00-English-4, NPCs=0, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-015-1280x720-pref0,00-English-5, NPCs=6, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-016-1280x720-pref0,00-English-6, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-017-1280x720-pref0,00-English-7, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-018-1280x720-pref0,00-English-8, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-019-1280x720-pref0,00-English-9, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-020-1280x720-pref0,00-Chinese-0, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-021-1280x720-pref0,00-Chinese-1, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-022-1280x720-pref0,00-Chinese-2, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-023-1280x720-pref0,00-Chinese-3, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-024-1280x720-pref0,00-Chinese-4, NPCs=0, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-025-1280x720-pref0,00-Chinese-5, NPCs=6, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-026-1280x720-pref0,00-Chinese-6, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-027-1280x720-pref0,00-Chinese-7, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-028-1280x720-pref0,00-Chinese-8, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-029-1280x720-pref0,00-Chinese-9, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Requested actual backbuffer 1920x1080.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native GUI coordinate roundtrip; actual=1920x1080, scale=1,000. Synthetic drag/scroll injection unsupported and not counted.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-030-1920x1080-pref0,00-Russian-0, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-031-1920x1080-pref0,00-Russian-1, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-032-1920x1080-pref0,00-Russian-2, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-033-1920x1080-pref0,00-Russian-3, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-034-1920x1080-pref0,00-Russian-4, NPCs=0, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-035-1920x1080-pref0,00-Russian-5, NPCs=6, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-036-1920x1080-pref0,00-Russian-6, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-037-1920x1080-pref0,00-Russian-7, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-038-1920x1080-pref0,00-Russian-8, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-039-1920x1080-pref0,00-Russian-9, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-040-1920x1080-pref0,00-English-0, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-041-1920x1080-pref0,00-English-1, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-042-1920x1080-pref0,00-English-2, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-043-1920x1080-pref0,00-English-3, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-044-1920x1080-pref0,00-English-4, NPCs=0, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-045-1920x1080-pref0,00-English-5, NPCs=6, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-046-1920x1080-pref0,00-English-6, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-047-1920x1080-pref0,00-English-7, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-048-1920x1080-pref0,00-English-8, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-049-1920x1080-pref0,00-English-9, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-050-1920x1080-pref0,00-Chinese-0, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-051-1920x1080-pref0,00-Chinese-1, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-052-1920x1080-pref0,00-Chinese-2, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-053-1920x1080-pref0,00-Chinese-3, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-054-1920x1080-pref0,00-Chinese-4, NPCs=0, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-055-1920x1080-pref0,00-Chinese-5, NPCs=6, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-056-1920x1080-pref0,00-Chinese-6, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-057-1920x1080-pref0,00-Chinese-7, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-058-1920x1080-pref0,00-Chinese-8, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-059-1920x1080-pref0,00-Chinese-9, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Requested actual backbuffer 2560x1440.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native GUI coordinate roundtrip; actual=2560x1440, scale=1,333. Synthetic drag/scroll injection unsupported and not counted.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-060-2560x1440-pref0,00-Russian-0, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-061-2560x1440-pref0,00-Russian-1, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-062-2560x1440-pref0,00-Russian-2, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-063-2560x1440-pref0,00-Russian-3, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-064-2560x1440-pref0,00-Russian-4, NPCs=0, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-065-2560x1440-pref0,00-Russian-5, NPCs=6, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-066-2560x1440-pref0,00-Russian-6, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-067-2560x1440-pref0,00-Russian-7, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-068-2560x1440-pref0,00-Russian-8, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-069-2560x1440-pref0,00-Russian-9, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-070-2560x1440-pref0,00-English-0, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-071-2560x1440-pref0,00-English-1, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-072-2560x1440-pref0,00-English-2, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-073-2560x1440-pref0,00-English-3, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-074-2560x1440-pref0,00-English-4, NPCs=0, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-075-2560x1440-pref0,00-English-5, NPCs=6, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-076-2560x1440-pref0,00-English-6, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-077-2560x1440-pref0,00-English-7, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-078-2560x1440-pref0,00-English-8, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-079-2560x1440-pref0,00-English-9, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-080-2560x1440-pref0,00-Chinese-0, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-081-2560x1440-pref0,00-Chinese-1, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-082-2560x1440-pref0,00-Chinese-2, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-083-2560x1440-pref0,00-Chinese-3, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-084-2560x1440-pref0,00-Chinese-4, NPCs=0, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-085-2560x1440-pref0,00-Chinese-5, NPCs=6, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-086-2560x1440-pref0,00-Chinese-6, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-087-2560x1440-pref0,00-Chinese-7, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-088-2560x1440-pref0,00-Chinese-8, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-089-2560x1440-pref0,00-Chinese-9, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Requested actual backbuffer 3840x2160.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native GUI coordinate roundtrip; actual=3840x2160, scale=2,000. Synthetic drag/scroll injection unsupported and not counted.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-090-3840x2160-pref0,00-Russian-0, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-091-3840x2160-pref0,00-Russian-1, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-092-3840x2160-pref0,00-Russian-2, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-093-3840x2160-pref0,00-Russian-3, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-094-3840x2160-pref0,00-Russian-4, NPCs=0, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-095-3840x2160-pref0,00-Russian-5, NPCs=6, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-096-3840x2160-pref0,00-Russian-6, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-097-3840x2160-pref0,00-Russian-7, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-098-3840x2160-pref0,00-Russian-8, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-099-3840x2160-pref0,00-Russian-9, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-100-3840x2160-pref0,00-English-0, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-101-3840x2160-pref0,00-English-1, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-102-3840x2160-pref0,00-English-2, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-103-3840x2160-pref0,00-English-3, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-104-3840x2160-pref0,00-English-4, NPCs=0, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-105-3840x2160-pref0,00-English-5, NPCs=6, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-106-3840x2160-pref0,00-English-6, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-107-3840x2160-pref0,00-English-7, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-108-3840x2160-pref0,00-English-8, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-109-3840x2160-pref0,00-English-9, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-110-3840x2160-pref0,00-Chinese-0, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-111-3840x2160-pref0,00-Chinese-1, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-112-3840x2160-pref0,00-Chinese-2, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-113-3840x2160-pref0,00-Chinese-3, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-114-3840x2160-pref0,00-Chinese-4, NPCs=0, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-115-3840x2160-pref0,00-Chinese-5, NPCs=6, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-116-3840x2160-pref0,00-Chinese-6, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-117-3840x2160-pref0,00-Chinese-7, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-118-3840x2160-pref0,00-Chinese-8, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-119-3840x2160-pref0,00-Chinese-9, NPCs=3, uiScale=2,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Requested actual backbuffer 3440x1440.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native GUI coordinate roundtrip; actual=3440x1440, scale=1,333. Synthetic drag/scroll injection unsupported and not counted.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-120-3440x1440-pref0,00-Russian-0, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-121-3440x1440-pref0,00-Russian-1, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-122-3440x1440-pref0,00-Russian-2, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-123-3440x1440-pref0,00-Russian-3, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-124-3440x1440-pref0,00-Russian-4, NPCs=0, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-125-3440x1440-pref0,00-Russian-5, NPCs=6, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-126-3440x1440-pref0,00-Russian-6, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-127-3440x1440-pref0,00-Russian-7, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-128-3440x1440-pref0,00-Russian-8, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-129-3440x1440-pref0,00-Russian-9, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-130-3440x1440-pref0,00-English-0, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-131-3440x1440-pref0,00-English-1, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-132-3440x1440-pref0,00-English-2, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-133-3440x1440-pref0,00-English-3, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-134-3440x1440-pref0,00-English-4, NPCs=0, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-135-3440x1440-pref0,00-English-5, NPCs=6, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-136-3440x1440-pref0,00-English-6, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-137-3440x1440-pref0,00-English-7, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-138-3440x1440-pref0,00-English-8, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-139-3440x1440-pref0,00-English-9, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-140-3440x1440-pref0,00-Chinese-0, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-141-3440x1440-pref0,00-Chinese-1, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-142-3440x1440-pref0,00-Chinese-2, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-143-3440x1440-pref0,00-Chinese-3, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-144-3440x1440-pref0,00-Chinese-4, NPCs=0, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-145-3440x1440-pref0,00-Chinese-5, NPCs=6, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-146-3440x1440-pref0,00-Chinese-6, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-147-3440x1440-pref0,00-Chinese-7, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-148-3440x1440-pref0,00-Chinese-8, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-149-3440x1440-pref0,00-Chinese-9, NPCs=3, uiScale=1,333.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Requested actual backbuffer 1024x768.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native GUI coordinate roundtrip; actual=1024x768, scale=1,000. Synthetic drag/scroll injection unsupported and not counted.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-150-1024x768-pref0,00-Russian-0, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-151-1024x768-pref0,00-Russian-1, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-152-1024x768-pref0,00-Russian-2, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-153-1024x768-pref0,00-Russian-3, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-154-1024x768-pref0,00-Russian-4, NPCs=0, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-155-1024x768-pref0,00-Russian-5, NPCs=6, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-156-1024x768-pref0,00-Russian-6, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-157-1024x768-pref0,00-Russian-7, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-158-1024x768-pref0,00-Russian-8, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-159-1024x768-pref0,00-Russian-9, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-160-1024x768-pref0,00-English-0, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-161-1024x768-pref0,00-English-1, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-162-1024x768-pref0,00-English-2, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-163-1024x768-pref0,00-English-3, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-164-1024x768-pref0,00-English-4, NPCs=0, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-165-1024x768-pref0,00-English-5, NPCs=6, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-166-1024x768-pref0,00-English-6, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-167-1024x768-pref0,00-English-7, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-168-1024x768-pref0,00-English-8, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-169-1024x768-pref0,00-English-9, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-170-1024x768-pref0,00-Chinese-0, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-171-1024x768-pref0,00-Chinese-1, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-172-1024x768-pref0,00-Chinese-2, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-173-1024x768-pref0,00-Chinese-3, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-174-1024x768-pref0,00-Chinese-4, NPCs=0, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-175-1024x768-pref0,00-Chinese-5, NPCs=6, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-176-1024x768-pref0,00-Chinese-6, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-177-1024x768-pref0,00-Chinese-7, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-178-1024x768-pref0,00-Chinese-8, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-179-1024x768-pref0,00-Chinese-9, NPCs=3, uiScale=1,000.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Requested actual backbuffer 1920x1080.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native GUI coordinate roundtrip; actual=1920x1080, scale=0,750. Synthetic drag/scroll injection unsupported and not counted.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-180-1920x1080-pref0,75-Russian-0, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-181-1920x1080-pref0,75-Russian-1, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-182-1920x1080-pref0,75-Russian-2, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-183-1920x1080-pref0,75-Russian-3, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-184-1920x1080-pref0,75-Russian-4, NPCs=0, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-185-1920x1080-pref0,75-Russian-5, NPCs=6, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-186-1920x1080-pref0,75-Russian-6, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-187-1920x1080-pref0,75-Russian-7, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-188-1920x1080-pref0,75-Russian-8, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-189-1920x1080-pref0,75-Russian-9, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-190-1920x1080-pref0,75-English-0, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-191-1920x1080-pref0,75-English-1, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-192-1920x1080-pref0,75-English-2, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-193-1920x1080-pref0,75-English-3, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-194-1920x1080-pref0,75-English-4, NPCs=0, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-195-1920x1080-pref0,75-English-5, NPCs=6, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-196-1920x1080-pref0,75-English-6, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-197-1920x1080-pref0,75-English-7, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-198-1920x1080-pref0,75-English-8, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-199-1920x1080-pref0,75-English-9, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-200-1920x1080-pref0,75-Chinese-0, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-201-1920x1080-pref0,75-Chinese-1, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-202-1920x1080-pref0,75-Chinese-2, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-203-1920x1080-pref0,75-Chinese-3, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-204-1920x1080-pref0,75-Chinese-4, NPCs=0, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-205-1920x1080-pref0,75-Chinese-5, NPCs=6, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-206-1920x1080-pref0,75-Chinese-6, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-207-1920x1080-pref0,75-Chinese-7, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-208-1920x1080-pref0,75-Chinese-8, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-209-1920x1080-pref0,75-Chinese-9, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Requested actual backbuffer 1920x1080.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native GUI coordinate roundtrip; actual=1920x1080, scale=1,617. Synthetic drag/scroll injection unsupported and not counted.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-210-1920x1080-pref2,00-Russian-0, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-211-1920x1080-pref2,00-Russian-1, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-212-1920x1080-pref2,00-Russian-2, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-213-1920x1080-pref2,00-Russian-3, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-214-1920x1080-pref2,00-Russian-4, NPCs=0, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-215-1920x1080-pref2,00-Russian-5, NPCs=6, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-216-1920x1080-pref2,00-Russian-6, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-217-1920x1080-pref2,00-Russian-7, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-218-1920x1080-pref2,00-Russian-8, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-219-1920x1080-pref2,00-Russian-9, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-220-1920x1080-pref2,00-English-0, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-221-1920x1080-pref2,00-English-1, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-222-1920x1080-pref2,00-English-2, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-223-1920x1080-pref2,00-English-3, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-224-1920x1080-pref2,00-English-4, NPCs=0, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-225-1920x1080-pref2,00-English-5, NPCs=6, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-226-1920x1080-pref2,00-English-6, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-227-1920x1080-pref2,00-English-7, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-228-1920x1080-pref2,00-English-8, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-229-1920x1080-pref2,00-English-9, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-230-1920x1080-pref2,00-Chinese-0, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-231-1920x1080-pref2,00-Chinese-1, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-232-1920x1080-pref2,00-Chinese-2, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-233-1920x1080-pref2,00-Chinese-3, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-234-1920x1080-pref2,00-Chinese-4, NPCs=0, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-235-1920x1080-pref2,00-Chinese-5, NPCs=6, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-236-1920x1080-pref2,00-Chinese-6, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-237-1920x1080-pref2,00-Chinese-7, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-238-1920x1080-pref2,00-Chinese-8, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-239-1920x1080-pref2,00-Chinese-9, NPCs=3, uiScale=1,617.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Requested actual backbuffer 1280x720.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native GUI coordinate roundtrip; actual=1280x720, scale=0,750. Synthetic drag/scroll injection unsupported and not counted.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-240-1280x720-pref0,75-Russian-0, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-241-1280x720-pref0,75-Russian-1, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-242-1280x720-pref0,75-Russian-2, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-243-1280x720-pref0,75-Russian-3, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-244-1280x720-pref0,75-Russian-4, NPCs=0, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-245-1280x720-pref0,75-Russian-5, NPCs=6, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-246-1280x720-pref0,75-Russian-6, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-247-1280x720-pref0,75-Russian-7, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-248-1280x720-pref0,75-Russian-8, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-249-1280x720-pref0,75-Russian-9, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-250-1280x720-pref0,75-English-0, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-251-1280x720-pref0,75-English-1, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-252-1280x720-pref0,75-English-2, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-253-1280x720-pref0,75-English-3, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-254-1280x720-pref0,75-English-4, NPCs=0, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-255-1280x720-pref0,75-English-5, NPCs=6, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-256-1280x720-pref0,75-English-6, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-257-1280x720-pref0,75-English-7, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-258-1280x720-pref0,75-English-8, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-259-1280x720-pref0,75-English-9, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-260-1280x720-pref0,75-Chinese-0, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-261-1280x720-pref0,75-Chinese-1, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-262-1280x720-pref0,75-Chinese-2, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-263-1280x720-pref0,75-Chinese-3, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-264-1280x720-pref0,75-Chinese-4, NPCs=0, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-265-1280x720-pref0,75-Chinese-5, NPCs=6, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-266-1280x720-pref0,75-Chinese-6, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-267-1280x720-pref0,75-Chinese-7, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-268-1280x720-pref0,75-Chinese-8, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-269-1280x720-pref0,75-Chinese-9, NPCs=3, uiScale=0,750.
+[Info   :Smart Companions UI Smoke] [UiSmoke] Requested actual backbuffer 1280x720.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native GUI coordinate roundtrip; actual=1280x720, scale=1,078. Synthetic drag/scroll injection unsupported and not counted.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-270-1280x720-pref2,00-Russian-0, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-271-1280x720-pref2,00-Russian-1, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-272-1280x720-pref2,00-Russian-2, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-273-1280x720-pref2,00-Russian-3, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-274-1280x720-pref2,00-Russian-4, NPCs=0, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-275-1280x720-pref2,00-Russian-5, NPCs=6, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-276-1280x720-pref2,00-Russian-6, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-277-1280x720-pref2,00-Russian-7, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-278-1280x720-pref2,00-Russian-8, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-279-1280x720-pref2,00-Russian-9, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-280-1280x720-pref2,00-English-0, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-281-1280x720-pref2,00-English-1, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-282-1280x720-pref2,00-English-2, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-283-1280x720-pref2,00-English-3, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-284-1280x720-pref2,00-English-4, NPCs=0, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-285-1280x720-pref2,00-English-5, NPCs=6, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-286-1280x720-pref2,00-English-6, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-287-1280x720-pref2,00-English-7, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-288-1280x720-pref2,00-English-8, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-289-1280x720-pref2,00-English-9, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-290-1280x720-pref2,00-Chinese-0, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-291-1280x720-pref2,00-Chinese-1, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-292-1280x720-pref2,00-Chinese-2, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-293-1280x720-pref2,00-Chinese-3, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-294-1280x720-pref2,00-Chinese-4, NPCs=0, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-295-1280x720-pref2,00-Chinese-5, NPCs=6, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-296-1280x720-pref2,00-Chinese-6, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-297-1280x720-pref2,00-Chinese-7, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-298-1280x720-pref2,00-Chinese-8, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS actual repaint case-299-1280x720-pref2,00-Chinese-9, NPCs=3, uiScale=1,078.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS closing-frame attack remains blocked.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player attack restored after release.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player gun attack restored after release.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player melee attack restored after release.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS player held melee input restored after release.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS companion attack remains allowed.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS native player control handler restored.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS close-frame attack quarantine and native player controls/attack restored after release; NPC attacks unaffected.
+[Info   :Smart Companions UI Smoke] [UiSmoke] PASS 300/300 actual repaint cases; screenshots=300; fixture NPCs=3.
