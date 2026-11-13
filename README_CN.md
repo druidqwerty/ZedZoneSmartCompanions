@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.5.0"><strong>下载 v2.5.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.6.0"><strong>下载 v2.6.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v2.6.0 更新 — 自主生存：自动防毒面具、解异常与轮班睡眠
+
+- **血雨/辐射自动戴防毒面具（`GOAPAction_EquipFaceMask`）：** 危险环境下自动换戴呼吸防护，日常面罩受保护绝不误存基地箱，空气洁净后自动换回。
+- **异常状态自救（`GOAPAction_ClearDebuff_*`）：** 自动处理燃烧、发烧、失温与孢子，优先使用普通药品并遵守稀有血清开关。
+- **哨兵轮班睡眠（`GOAPAction_Sleep`）：** 疲劳队友走向营地床位轮换休息，始终保留至少 1 名清醒哨兵并在战斗打响时立即唤醒。
+- **已验证：** 实测战斗、搬运、驻守、安全离队、手雷门控与面罩保护 + 300/300 图形测试；8,386 个存档文件均未改变。[测试范围与限制](docs/verification-2.6.0.md)。
+
+![2.6.0 自动防毒面具与轮班睡眠设置（游戏引擎中的隔离测试）](docs/images/ui-2.6.0-survival-settings-zh.png)
 
 ## v2.5.0 更新 — 野战战术 2.0：准星扇形移动、掩体、防误伤投雷与战地救援
 
@@ -204,7 +213,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.5.0.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.6.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

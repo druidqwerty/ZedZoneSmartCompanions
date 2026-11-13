@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.5.0"><strong>Release v2.5.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.6.0"><strong>Release v2.6.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v2.6.0 — Autonomous survival: bio-masks, debuff remedies & sentry sleep shifts
+
+- **Auto gas masks in blood rain & radiation (`GOAPAction_EquipFaceMask`):** companions automatically equip protective masks during hazards, keep their everyday bandana/mask safe from base sorting (`SavedEverydayMaskByGuid`), and re-equip it once the air clears.
+- **Debuff & environmental care (`GOAPAction_ClearDebuff_*`):** treats burning, fever, hypothermia and spores using ordinary remedies first while strictly respecting your rare-serum rule.
+- **Sentry-guarded sleep rotation (`GOAPAction_Sleep`):** exhausted companions walk (`<= 2.45 m`, 0 teleport) to camp beds in shifts so at least one watchman always stays awake, waking everyone immediately if combat starts.
+- **Verified:** live combat + physical carry + garrison + safe dismiss + `GrenadeSafetyGate` + live saved-mask reserve protection; 300/300 graphical cases; all 8,386 save files unchanged. [Scope and limits](docs/verification-2.6.0.md).
+
+![Settings with Auto Bio-Masks, Debuff Care & Sentry Sleep Shifts (real engine, isolated test fixtures)](docs/images/ui-2.6.0-survival-settings-en.png)
 
 ## New in v2.5.0 — Field tactics 2.0: cursor fan orders, cover, safe grenades & medic rescue
 
@@ -249,7 +258,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.5.0.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.6.0.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 
