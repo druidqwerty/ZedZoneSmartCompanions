@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.7.0"><strong>Скачать релиз v2.7.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.0"><strong>Скачать релиз v3.0.0 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v3.0.0 — Рубеж «Экспедиции»: экипажи транспорта, бункеры/этажи (zLevel) и питомцы
+
+- **Экипажи транспорта и переполнение мест (`BasicVehicle`):** при посадке за руль раненые, медики и бойцы получают приоритет мест (`PlanVehicleSeatAllocation`), а лишние бойцы большого отряда аккуратно остаются в гарнизоне/ожидании без толкотни у дверей; снабженцы физически подходят к авто (`<= 2.45 м`) для ухода за кузовом.
+- **Межэтажная навигация и бункеры (`TerrainObject_Door_UndergroundEntrance`, `DugShaft`, `zLevel`):** напарники сами находят ближайший люк или лестницу на своём этаже, подходят ногами (`<= 2.15 м`, без телепортации сквозь потолок!) и синхронно переходят на нужный уровень `zLevel`.
+- **Связка с питомцами (`PetSystem`, `F8 → Отряд`):** сводка активных питомцев в шапке вкладки **Отряд**, помощь при посадке в авто, полная защита от дружественного огня и физическая подкормка голодных питомцев.
+- **Проверено:** полный живой прогон в игре + 300/300 графических случаев + все 9 пакетов детерминированных проверок; все 8 386 файлов сохранений без изменений. [Отчёт и границы](docs/verification-3.0.0.md).
+
+![Вкладка «Отряд» 3.0.0 со сводкой питомцев, тактической строкой и гарнизоном (движок игры, изолированные тестовые объекты)](docs/images/ui-3.0.0-expeditions-squad-ru.png)
 
 ## Новое в v2.7.0 — Индустриальная база и энергетика (0 телепортаций)
 
@@ -248,7 +257,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.7.0.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-3.0.0.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

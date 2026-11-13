@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.7.0"><strong>下载 v2.7.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.0"><strong>下载 v3.0.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v3.0.0 里程碑更新 — 远征系统：载具乘员调度、跨楼层/地堡导航与宠物协同
+
+- **载具乘员与超员调度（`BasicVehicle`）：** 玩家驾驶时优先安排重伤员、医疗兵与战斗员上车（`PlanVehicleSeatAllocation`），超员队友自动留守待命不再挤车门；军需官自动走近停放车辆（`<= 2.45米`）维护车身。
+- **跨楼层与地堡通行（`TerrainObject_Door_UndergroundEntrance`、`DugShaft`、`zLevel`）：** 队友自动寻找当前层最近的楼梯或地堡入口，步行靠近（`<= 2.15米`，绝不穿墙瞬移）并同步切换 `zLevel`。
+- **宠物协同（`PetSystem`、`F8 → 队伍`）：** 队伍顶栏显示同行宠物状态、协助上车、严格防误伤并自动投喂饥饿宠物。
+- **已验证：** 完整游戏内实测与 300/300 图形测试及全部 9 组回归测试；8,386 个存档文件均未改变。[测试范围与限制](docs/verification-3.0.0.md)。
+
+![3.0.0 队伍总览与宠物状态（游戏引擎中的隔离测试）](docs/images/ui-3.0.0-expeditions-squad-zh.png)
 
 ## v2.7.0 更新 — 工业基地与电力网络（零瞬移）
 
@@ -222,7 +231,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.7.0.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-3.0.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

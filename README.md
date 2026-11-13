@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.7.0"><strong>Release v2.7.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.0"><strong>Release v3.0.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v3.0.0 — Expeditions milestone: vehicle crews, multi-floor (zLevel) navigation & pet synergy
+
+- **Organized vehicle crews & overflow policy (`BasicVehicle`):** when you take the wheel, critically wounded teammates, `Medic`s and `Fighter`s receive priority seats (`PlanVehicleSeatAllocation`), while overflow squadmates hold cleanly at camp/standby instead of crowding vehicle doors; `Supplier` specialists perform physical parked bodywork upkeep (`<= 2.45 m`).
+- **Physical multi-floor & bunker transitions (`TerrainObject_Door_UndergroundEntrance`, `DugShaft`, `zLevel`):** companions locate the nearest stairway/bunker hatch on their current `zLevel`, walk to the portal (`<= 2.15 m`, zero ceiling teleportation!), resolve `GetMigrateDestination`, and transition floors atomically.
+- **Pet companion synergy (`PetSystem`, `F8 → Squad`):** live friendly pet summary in **F8 → Squad**, vehicle boarding assistance (`TryBoardOwnerVehicle`), strict friendly-fire protection, and physical pet feeding from `Farming & Pets` supplies.
+- **Verified:** full live combat + physical carry + 80-chest soak + Camp Garrison + SafeDismiss + `GrenadeSafetyGate` + Bio-Masks + Fuel Whitelist + live `v3.0.0` vehicle/floor/pet checks; 300/300 graphical cases; all 8,386 save files unchanged. [Scope and limits](docs/verification-3.0.0.md).
+
+![Squad hub v3.0.0 with companions, active pet summary, tactical bar & garrison controls (real engine, isolated test fixtures)](docs/images/ui-3.0.0-expeditions-squad-en.png)
 
 ## New in v2.7.0 — Industrial base & power grid (zero teleportation)
 
@@ -267,7 +276,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.7.0.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-3.0.0.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 
