@@ -305,3 +305,8 @@
 - Built via Antigravity /boost (DeepCoder) + coordinator verification: DLL 2c15a6ecfcbb3d12370412e075b802424e6d72ed090984b8f1f537c0ed2eeb84, ZIP 1c999824d3d041e6d3273f4de80412efe43c57fbe9526062ce61e4d6076d28d7.
 - Live acceptance PASS (backups/live-20261113-132706) + UI matrix PASS 300/300 uninterrupted (backups/ui270-20261113-132922) + IndustryRegression.
 - Published to GitHub v2.7.0, Steam 3836613312 (public), Boosty BOOSTY_2.7.0.md queued.
+
+## 3.0.0 Expeditions milestone (vehicles, zLevel navigation & pet synergy) published (2026-11-13) — FULL v2.4.0–v3.0.0 ROADMAP COMPLETE
+- Built via Antigravity /boost (DeepCoder) + coordinator verification: DLL 5b9ed3d28848a1f5dfd0be117a625da11d6a95e20eb3ce22807847bf0b8002ab, ZIP fca8bfbf550ff01a6cf58bbff93d2f64136358e755a1fa401c4788103db38dba.
+- Live acceptance PASS (backups/live-20261113-135603) + UI matrix PASS 300/300 uninterrupted (backups/ui300-20261113-142451) + all 9 regression suites (Expedition, Industry, Survival, FieldTactics, Garrison, ScaleAndPrivacy, Specialization, Tactical, Protocol).
+- Published to GitHub v3.0.0, Steam 3836613312 (public, both local Workshop DLL copies verified), local Mods/SmartCompanions updated to 3.0.0 (rollback backups/before-install-3.0.0), cumulative BOOSTY_3.0.0.md queued.

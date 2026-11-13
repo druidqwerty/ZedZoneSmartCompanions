@@ -1,0 +1,36 @@
+{
+  "version": "3.0.0",
+  "workshop_id": "3836613312",
+  "status": "published-github-steam-boosty-queued",
+  "github_release": "https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.0",
+  "zip": "ZedZoneSmartCompanions-3.0.0.zip",
+  "zip_size": 1882750,
+  "zip_sha256": "fca8bfbf550ff01a6cf58bbff93d2f64136358e755a1fa401c4788103db38dba",
+  "github_anonymous_asset_verified": true,
+  "dll_sha256": "5b9ed3d28848a1f5dfd0be117a625da11d6a95e20eb3ce22807847bf0b8002ab",
+  "steam_api": {
+    "result": 1,
+    "title": "ZED ZONE: Smart Companions 3.0.0",
+    "visibility": 0,
+    "banned": 0,
+    "file_size": "1047788",
+    "time_updated": 1794569776
+  },
+  "steam_local_download_verified": true,
+  "steam_local_dll_copies": 2,
+  "steam_locales_uploaded": [
+    "english",
+    "russian",
+    "schinese"
+  ],
+  "steam_dependency": {
+    "id": "3834614258",
+    "sdk_result": 29
+  },
+  "local_install": "G:/Steam/steamapps/common/ZED ZONE/Mods/SmartCompanions updated to 3.0.0; rollback backups/before-install-3.0.0",
+  "boosty_queue_path": "BOOSTY_3.0.0.md",
+  "boosty_superseded_pending_removed": [
+    "BOOSTY_2.7.0.md"
+  ],
+  "boosty_published": false
+}
