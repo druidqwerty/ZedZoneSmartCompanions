@@ -377,6 +377,11 @@ namespace ZedZone.SmartCompanions
                 TickSmartFlashlight(agent, st, hc);
             }
 
+            if (CompanionConfigStore.EnableAutoBioAndSleep)
+            {
+                CompanionSurvivalSystem.TickCompanionSurvival(agent, st, now);
+            }
+
             if (!MultiplayerSyncSystem.IsMultiplayerClient)
             {
                 var alliedPlayers = MultiplayerSyncSystem.GetAllAlliedPlayers();

@@ -66,6 +66,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
         private void LateUpdate() { if(_loaded) Time.timeScale=1f; }
         private void Update()
         {
+            QualitySettings.vSyncCount=0;
+            Application.targetFrameRate=60;
             try
             {
                 if(Environment.GetCommandLineArgs().Contains("--sc-dump-native"))
@@ -92,6 +94,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 if (Il2CppSafe.IsAliveUnity(gc?.playerCharacter) && Il2CppSafe.IsAliveUnity(InGameController.instance))
                 {
                     Time.timeScale=1f;
+                    QualitySettings.vSyncCount=0;
+                    Application.targetFrameRate=60;
                     if (!_loaded)
                     {
                         _loaded=true;

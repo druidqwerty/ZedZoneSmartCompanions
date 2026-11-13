@@ -774,6 +774,19 @@ namespace ZedZone.SmartCompanions
             ly += 36f;
             ly = DrawRareSupplySettings(lx, ly, lw, lang);
 
+            if (GUI.Button(new Rect(lx, ly, lw, 30f),
+                (CompanionConfigStore.EnableAutoBioAndSleep ? "[x] " : "[ ] ") +
+                CompanionConfigStore.L(lang,
+                    "Авто-противогаз в спорах/дожде, лечение дебаффов и вахта сна",
+                    "Auto Bio-Masks in Hazards, Debuff Care & Sentry Sleep Shifts",
+                    "血雨/辐射自动戴防毒面具、解异常与营地轮班睡眠"),
+                CompanionConfigStore.EnableAutoBioAndSleep ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.EnableAutoBioAndSleep = !CompanionConfigStore.EnableAutoBioAndSleep;
+                CompanionConfigStore.Save();
+            }
+            ly += 36f;
+
             ly = DrawSettingsHeading(lx, ly, lw, CompanionConfigStore.L(lang, "База и походный быт", "Base & camp life", "基地与营地生活"));
             if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 (CompanionConfigStore.EnableBaseAutoDropoff ? "[x] " : "[ ] ") +

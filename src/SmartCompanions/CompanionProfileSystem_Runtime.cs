@@ -132,7 +132,8 @@ namespace ZedZone.SmartCompanions
                 if (!Il2CppSafe.IsAlive(item)) continue;
                 var cat = ItemCategorizer.ClassifyItem(item);
                 int units = Mathf.Max(1, Mathf.RoundToInt(item.itemNumberFloat));
-                bool isEq = equippedPtrs.Contains(item.Pointer);
+                bool isEq = equippedPtrs.Contains(item.Pointer) ||
+                            CompanionSurvivalSystem.IsProtectedSavedMask(st.NpcGuid, item.Pointer);
                 tuples.Add((cat, units, isEq));
                 ptrs.Add(item.Pointer);
             }

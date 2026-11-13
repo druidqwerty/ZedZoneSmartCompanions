@@ -143,7 +143,18 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         if (FieldTacticsSystem.LastGrenadeBlockReason != GrenadeSafetyBlockReason.TooCloseToFriendly)
                             return End(false, $"FAIL [v2.5.0 GrenadeSafetyGate]: expected TooCloseToFriendly at player pos, got {FieldTacticsSystem.LastGrenadeBlockReason}!");
 
-                        return End(true, $"PASS Camp Garrison perimeter hold, SafeDismiss physical gear handover (walked={_walkedDismiss:F2}m, 0 teleports) & v2.5.0 live GrenadeSafetyGate.");
+                        // v2.6.0 Live check: SavedEverydayMaskByGuid protects displaced face mask inside BuildProtectedBackpackPointers!
+                        var dummyPack = new InventoryData { inventorySize = new Vector2Int(6, 6), inventoryId = "test_v260_mask_pack" };
+                        var maskItem = ItemManager.instance.GetRandomDataByAttr(ItemManager.instance.GetItemAttrById(220), false, false);
+                        InventoryTransfers.TryAddWholeCopy(dummyPack, maskItem, out var addedMask);
+                        var testSt260 = new CompanionRuntimeState { NpcGuid = "v260_mask_guid", ReserveAmmoMin = 0, ReserveFoodMin = 0, ReserveMedMin = 0 };
+                        CompanionSurvivalSystem.SavedEverydayMaskByGuid["v260_mask_guid"] = addedMask;
+                        var prot260 = CompanionProfileSystem.BuildProtectedBackpackPointers(_agent, testSt260, dummyPack);
+                        CompanionSurvivalSystem.SavedEverydayMaskByGuid.Remove("v260_mask_guid");
+                        if (!prot260.Contains(addedMask.Pointer))
+                            return End(false, "FAIL [v2.6.0 SavedMask]: BuildProtectedBackpackPointers failed to protect displaced everyday mask!");
+
+                        return End(true, $"PASS Camp Garrison, SafeDismiss physical handover (walked={_walkedDismiss:F2}m, 0 teleports), v2.5.0 GrenadeSafetyGate & v2.6.0 live SavedMask protection.");
                     }
 
                     if (now - _phaseStart > 16f)

@@ -53,6 +53,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
 
         private void Update()
         {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 60;
             try
             {
                 if (!_initialized)
@@ -87,6 +89,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     ScaleAndPrivacyRegression.Run();
                     GarrisonRegression.Run();
                     FieldTacticsRegression.Run();
+                    SurvivalRegression.Run();
                     if (Environment.GetCommandLineArgs().Contains("--sc-native-menu-only"))
                     {
                         NativeMenuRegression.VerifyAllLanguages();

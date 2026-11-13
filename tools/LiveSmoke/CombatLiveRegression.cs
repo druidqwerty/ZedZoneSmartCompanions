@@ -79,7 +79,11 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                             if (spawnDistance < nearestZombie) { nearestZombie = spawnDistance; _zombie = zombie; }
                         }
                     }
-                    if (_zombie == null) return End(false, "BLOCKED: no live native zombie in the loaded area.");
+                    if (_zombie == null)
+                    {
+                        if (now - _start < 22f) { _agent = null; return false; }
+                        return End(false, "BLOCKED: no live native zombie in the loaded area.");
+                    }
                     _originalCombat = _agent.npcData.combatCommand;
                     _originalWeapon = _agent.npcData.weaponPreference;
                     _originalBasic = _agent.npcData.basicCommand;
