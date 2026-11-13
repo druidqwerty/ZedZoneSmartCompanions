@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.4.0"><strong>Release v2.4.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.5.0"><strong>Release v2.5.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v2.5.0 — Field tactics 2.0: cursor fan orders, cover, safe grenades & medic rescue
+
+- **Move-to-Cursor fan order (`Alt+G`, `F8 → Squad → To Spot` & radial menu):** send a fighter or the whole squad in a non-overlapping fan (`>= 1.25 m` spacing) to your mouse cursor.
+- **Smart ranged-fire cover (`GOAPAction_TakeCover`):** companions automatically take cover during firefights against armed looters and raiders.
+- **Offensive grenades with `GrenadeSafetyGate` (`F8 → Squad → Grenade`):** attacks enemy clusters (`>= 3`) or bosses while strictly blocking throws within `6.5 m` of players/allies/pets or `18.0 m` of marked base chests.
+- **Healing smoke & Medic rescue (`Alt+H`, `Smoke` button & radial menu):** deploys medical smoke (with field-bandage fallback), while Medics autonomously rescue critically wounded teammates (`< 32% HP`).
+- **Verified:** live combat + physical carry + Camp Garrison + SafeDismiss + live `GrenadeSafetyGate` check; 300/300 graphical cases; all 8,386 save files unchanged. [Scope and limits](docs/verification-2.5.0.md).
+
+![8-button tactical bar with To Spot & Safe Grenade and per-card Smoke button (real engine, isolated test fixtures)](docs/images/ui-2.5.0-field-tactics-en.png)
 
 ## New in v2.4.0 — Camp garrison, safe gear handover & co-op telemetry
 
@@ -239,7 +249,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.4.0.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-2.5.0.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 

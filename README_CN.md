@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.4.0"><strong>下载 v2.4.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.5.0"><strong>下载 v2.5.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v2.5.0 更新 — 野战战术 2.0：准星扇形移动、掩体、防误伤投雷与战地救援
+
+- **准星扇形移动（`Alt+G`、`F8 → 定点`与轮盘菜单）：** 让单人或全队以无重叠扇形（`>= 1.25米`）前往鼠标准星位置。
+- **枪战自动找掩体（`GOAPAction_TakeCover`）：** 面对持枪劫匪时自动利用掩体作战。
+- **防误伤手雷门控（`GrenadeSafetyGate`）：** 仅对 `>= 3` 名聚集敌人或首领投掷，严禁在玩家/队友/宠物 `6.5米` 内或基地储物箱 `18米` 内爆炸。
+- **治疗烟雾与医疗兵救援（`Alt+H`、`治疗烟`按钮）：** 投掷医疗烟雾或近身包扎，医疗兵自动冲刺救援重伤队友（`< 32% HP`）。
+- **已验证：** 实测战斗、搬运、营地驻守、安全离队与防误伤门控 + 300/300 图形测试；8,386 个存档文件均未改变。[测试范围与限制](docs/verification-2.5.0.md)。
+
+![2.5.0 战术栏与单人治疗烟雾按钮（游戏引擎中的隔离测试）](docs/images/ui-2.5.0-field-tactics-zh.png)
 
 ## v2.4.0 更新 — 营地驻守、安全离队交接与联机状态监测
 
@@ -194,7 +204,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.4.0.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-2.5.0.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

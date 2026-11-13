@@ -1,0 +1,26 @@
+{
+  "dll_sha256": "9527234181900a03a26ee0c4db28f5e8ea4262ccf1558891f0b0fa788f436c70",
+  "passed": 300,
+  "restoration": {
+    "save_files": 8386,
+    "gamedata_identical": true,
+    "original_files_restored": true,
+    "screen_preferences_restored": true,
+    "screenshots": 300
+  },
+  "cases": 300,
+  "evidence": "backups/ui250-20261113-031249",
+  "failures": 0,
+  "live": {
+    "returncode": 0,
+    "version_verified": "2.5.0",
+    "has_fail_in_log": false,
+    "pre_file_count": 8386,
+    "post_file_count": 8386,
+    "gamedata_identical": true,
+    "zlivesmoke_removed": true,
+    "installs_restored": true,
+    "steam_appid_removed": true
+  },
+  "version": "2.5.0"
+}

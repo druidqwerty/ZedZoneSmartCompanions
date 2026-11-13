@@ -7,12 +7,22 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.4.0"><strong>Скачать релиз v2.4.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v2.5.0"><strong>Скачать релиз v2.5.0 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v2.5.0 — Полевая тактика 2.0: приказ по курсору, укрытия, гранаты и эвакуация
+
+- **Веерный приказ по курсору (`Alt+G`, `F8 → Отряд → К цели` и радиальное меню):** отправляйте бойца или весь отряд веером (`>= 1.25 м`) точно в точку под курсором мыши.
+- **Умные укрытия под обстрелом (`GOAPAction_TakeCover`):** напарники автоматически уходят за укрытия в перестрелках с вооружёнными мародёрами.
+- **Безопасные гранаты с `GrenadeSafetyGate` (`F8 → Отряд → Граната`):** бросок только по скоплению `>= 3` врагов или боссу с жёсткой блокировкой в радиусе `6.5 м` от своих/питомцев и `18.0 м` от ящиков базы.
+- **Лечебный дым и спасение раненых (`Alt+H`, кнопка `Мед-дым` и радиальное меню):** прицельный мед-дым, перевязка и автоматическое спасение тяжелораненых (`< 32% HP`) медиками.
+- **Проверено:** живой бой, переноска, гарнизон, безопасный отпуск и живая проверка `GrenadeSafetyGate` + 300/300 графических случаев; все 8 386 файлов сохранений без изменений. [Отчёт и границы](docs/verification-2.5.0.md).
+
+![Тактическая панель 2.5.0 с кнопками «К цели», «Граната» и «Мед-дым» (движок игры, изолированные тестовые объекты)](docs/images/ui-2.5.0-field-tactics-ru.png)
 
 ## Новое в v2.4.0 — Гарнизон базы, безопасный отпуск и телеметрия кооператива
 
@@ -220,7 +230,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.4.0.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-2.5.0.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

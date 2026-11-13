@@ -1,17 +1,17 @@
 version=1
 id=3836613312
-title=ZED ZONE: Smart Companions 2.4.0
+title=ZED ZONE: Smart Companions 2.5.0
 visibility=public
-description=[h1]Smart Companions 2.4.0[/h1]
+description=[h1]Smart Companions 2.5.0[/h1]
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Enjoy the mod? Support development on Boosty.
 description=Turn recruited survivors into a reliable squad: tactical combat, physical scavenging and base deliveries, with 1,179 live chatter lines across English, Russian and Simplified Chinese.
-description=[h2]New in 2.4.0: camp garrison, safe gear handover & co-op telemetry[/h2]
-description=[list][*]Camp Garrison mode: leave chosen companions guarding your base and tending storage/crops while you go on raids.[*]Safe two-step dismissal: confirm before leaving and optionally walk over (0 teleport) to hand over weapons, armor and pack.[*]Live co-op sync health bar in Settings & privacy-safe diagnostics.[*]Includes 2.3.0 80+ chest / 15-NPC optimizations, 2.2.0 specializations & reserves, 2.1.0 formations & tactical orders, and 2.0.0 Work board.[/list]
+description=[h2]New in 2.5.0: cursor fan orders, cover, safe grenades & medic rescue[/h2]
+description=[list][*]Cursor fan move (Alt+G & F8 -> To Spot): send your squad in a clean non-overlapping fan to the cursor.[*]Smart ranged cover under gunfire, plus offensive grenades guarded by GrenadeSafetyGate (zero friendly fire or base chest damage).[*]Healing smoke (Alt+H) & autonomous Medic rescue of critically wounded allies.[*]Includes 2.4.0 Camp Garrison & safe gear-handover dismissal, 2.3.0 80+ chest / 15-NPC optimizations, 2.2.0 specializations & reserves, and 2.1.0 formations.[/list]
 description=[h2]Your squad and base[/h2]
 description=Six combat doctrines, squad cap up to 15, emergency medic and ammo aid, autonomous scavenging, and 12 storage categories. Companions walk to loot and carry goods between your marked chests; there is no instant item transfer. Existing saves do not need resetting.
 description=[h2]Install & hotkeys[/h2]
-description=Requires third-party [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (run its install.cmd once, then launch via Steam). The loader is not a mod by druidqwerty. Both co-op players should use 2.4.0.
+description=Requires third-party [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (run its install.cmd once, then launch via Steam). The loader is not a mod by druidqwerty. Both co-op players should use 2.5.0.
 description=F8: squad, work, base, chatter & settings · Esc: close F8 · F7: physical base sorting · F6 (Alt+F6 with AVO): share rations · F9: battle cry.
 description=[h2]Co-op limitation[/h2]
 description=1.9.0 makes the host check and resolve every companion order, proven in the real game with a 13-case decision test. A real two-player host + client session, including human NPC visibility, still awaits live confirmation. Please report co-op issues in the discussions.
