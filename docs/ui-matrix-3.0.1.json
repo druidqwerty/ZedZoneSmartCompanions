@@ -1,0 +1,26 @@
+{
+  "passed": 300,
+  "failures": 0,
+  "cases": 300,
+  "dll_sha256": "849a81cde93e07559d455f9e80342ece00292c5dbef30e7fe04b9295fa913e9c",
+  "version": "3.0.1",
+  "evidence": "backups/ui301-20261114-030840",
+  "restoration": {
+    "save_files": 8386,
+    "gamedata_identical": true,
+    "original_files_restored": true,
+    "screen_preferences_restored": true,
+    "screenshots": 300
+  },
+  "live": {
+    "returncode": 0,
+    "version_verified": "3.0.1",
+    "has_fail_in_log": false,
+    "pre_file_count": 8386,
+    "post_file_count": 8386,
+    "gamedata_identical": true,
+    "zlivesmoke_removed": true,
+    "installs_restored": true,
+    "steam_appid_removed": true
+  }
+}

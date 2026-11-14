@@ -1,15 +1,15 @@
-title=ZED ZONE: Smart Companions 3.0.0 — 智能队友
+title=ZED ZONE: Smart Companions 3.0.1 — 智能队友
 visibility=public
-description=[h1]智能队友 3.0.0[/h1]
+description=[h1]智能队友 3.0.1[/h1]
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=喜欢这个模组吗？欢迎在 Boosty 支持开发。
 description=打造可靠的幸存者小队：智能战术战斗、真实走位搜刮与基地搬运，以及中英俄三语共 1,179 条实时台词。
-description=[h2]3.0.0 里程碑更新：载具乘员、跨楼层地堡与宠物协同[/h2]
-description=[list][*]载具乘员与超员分配：重伤员、医疗兵与战斗员优先乘车，超员队友原地留守不挤车门。[*]物理跨楼层与地堡通行（zLevel）：步行前往楼梯与地堡入口，绝不穿天花板瞬移。[*]宠物协同：队伍页宠物状态、协助乘车、防误伤保护与自动投喂。[*]完整包含 2.7.0 发电熔炉、2.6.0 防毒面具与轮班睡眠、2.5.0 野战战术及 2.4.0 营地驻守。[/list]
+description=[h2]3.0.1 热修：彻底清理原生左上角队伍栏与走廊撞墙修复[/h2]
+description=[list][*]修复解雇队友后仍残留在游戏左上角原生队伍面板（TeamNPCPanel）的问题。[*]修复狭窄走廊与门框反复撞墙：0.36米肩宽 A* 绕障、走廊自动单列循迹与战斗 7 向探路。[*]包含完整 3.0.0 远征系统（载具乘员调度、跨层地堡通行、宠物协同、发电熔炉、防毒面具与营地驻守）。[/list]
 description=[h2]小队与基地[/h2]
 description=六种战术学说、最高 15 人队伍、战地急救与弹药支援、自主物资搜刮及 12 类储物规则。队友亲自走到物品旁拾取，并在玩家标记的箱子间搬运，绝不瞬间隔空传物。兼容现有存档，无需重开。
 description=[h2]安装与快捷键[/h2]
-description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次其 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 3.0.0。
+description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次其 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 3.0.1。
 description=F8：小队/工作/基地/语录/设置 · Esc：关闭 F8 · F7：走位整理基地 · F6（与 AVO 共用时 Alt+F6）：分享口粮 · F9：战吼。
 description=[h2]联机限制[/h2]
 description=1.9.0 由主机校验并协调每条队友指令，规则已在游戏内通过 13 项决策测试。真实双人主机 + 客户端会话（包括人类 NPC 可见性）仍待实测确认。联机问题请在讨论区反馈。

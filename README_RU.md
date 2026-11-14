@@ -7,12 +7,18 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.0"><strong>Скачать релиз v3.0.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.1"><strong>Скачать релиз v3.0.1 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v3.0.1 — Хотфикс: чистое удаление из меню игры и движение в узких коридорах
+
+- **Чистое увольнение из отряда в обоих меню (`TeamNPCPanel`):** исправлена ошибка, из-за которой отпущенный напарник исчезал из меню мода `F8`, но оставался в нативной игровой панели отряда слева сверху (`TeamNPCPanel`), а также починен нативный пункт «Покинуть отряд».
+- **Плавное движение в узких коридорах и дверных проёмах (`CorridorNavigationHelper`):** расширен внутренний луч `MoveTo` с `0.10 м` до реальной ширины плеч `0.36 м` (двери и углы обходятся по A*, а не напролом в стену), широкие построения в коридорах перестраиваются в колонну по следам игрока, а при кайте и отходе в бою проверяются 7 свободных направлений.
+- **Проверено:** живой прогон в здании супермаркета + прямая проверка очистки `TeamNPCPanel` + 300/300 графических случаев; все 8 386 файлов сохранений без изменений. [Отчёт и границы](docs/verification-3.0.1.md).
 
 ## Новое в v3.0.0 — Рубеж «Экспедиции»: экипажи транспорта, бункеры/этажи (zLevel) и питомцы
 
@@ -257,7 +263,7 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-3.0.0.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-3.0.1.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
 

@@ -7,12 +7,18 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.0"><strong>下载 v3.0.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.1"><strong>下载 v3.0.1 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v3.0.1 热修 — 原生左上角队伍栏清理与狭窄走廊寻路修复
+
+- **彻底清理原生左上角队伍面板（`TeamNPCPanel`）：** 修复解雇队友后在模组菜单消失但仍残留在原生左上角队伍 UI 的问题，并同步修复原生“离队”指令。
+- **狭窄走廊与门框顺畅通行（`CorridorNavigationHelper`）：** 将 `MoveTo` 内部 `0.10米` 射线扩展为 `0.36米` 肩宽检测以启用 A* 绕过门框与墙角，在走廊内自动切换单列跟随玩家轨迹，并在战斗风筝/走位前检测 7 个无障碍方向，消除反复撞墙。
+- **已验证：** 室内超市实测战斗、搬运、原生队伍栏清理与走廊轨迹 + 300/300 图形测试；8,386 个存档文件均未改变。[测试范围与限制](docs/verification-3.0.1.md)。
 
 ## v3.0.0 里程碑更新 — 远征系统：载具乘员调度、跨楼层/地堡导航与宠物协同
 
@@ -231,7 +237,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-3.0.0.zip` 解压至 `<ZED ZONE>`）。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-3.0.1.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

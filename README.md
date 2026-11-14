@@ -7,12 +7,18 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.0"><strong>Release v3.0.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.1"><strong>Release v3.0.1 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v3.0.1 — Dismissal HUD & corridor navigation hotfix
+
+- **Clean dismissal in both Mod & Game UI (`TeamNPCPanel`):** fixed dismissed companions remaining in ZED ZONE's top-left native team UI (`TeamNPCPanel`) after pressing **Dismiss**, and fixed native `QuitTeam` menu dismissal by letting `OneTime.QuitTeam` run before clearing `leaderCharacterGUID` and explicitly purging `TeamNPCPanel`, `TeamNPCOverheadUI`, and `SyncTeamUI()`.
+- **Smooth narrow-corridor & doorway movement (`CorridorNavigationHelper`):** widened `GOAPAgent.MoveTo`'s internal `0.10 m` ray check to `0.36 m` shoulder clearance so doorways and corners route through A* waypoints instead of bumping into walls, collapsed wide formations into single-file leader trails inside narrow passages, and added 7-angle wall checks before combat kiting/strafing.
+- **Verified:** indoor supermarket live combat + physical carry + `TeamNPCPanel` dismissal purge + corridor trail checks; 300/300 graphical cases; all 8,386 save files unchanged. [Scope and limits](docs/verification-3.0.1.md).
 
 ## New in v3.0.0 — Expeditions milestone: vehicle crews, multi-floor (zLevel) navigation & pet synergy
 
@@ -276,7 +282,7 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-3.0.0.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-3.0.1.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
 
