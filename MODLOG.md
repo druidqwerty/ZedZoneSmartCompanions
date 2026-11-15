@@ -328,4 +328,5 @@
   8. **Reset All Settings:** added two-step `Reset All Settings to Default` button at the bottom of `F8 -> Settings` (`preserveContainerRules: true`).
 - DLL `293f821e034ea0996a4c822e8e838d447a27d59c8d428ce0992293d9992206f8`, ZIP `b2b9b468e448bf754c72aed26fb2ba6956a40a46b861e445cc313c0c044d4070` (`4,198,405` bytes).
 - Live gameplay acceptance PASS (`backups/live-20261115-214409`) + 300/300 graphical UI matrix & 10 deterministic regression suites PASS (`backups/ui302-20261115-214748`); 8,386/8,386 real `GameData` save files SHA-256 identical.
+- Published to GitHub `v3.0.2` (commit `3b9136da0f450160916dcc13e6fab533769843ea`, public asset SHA-256 verified), Steam Workshop `3836613312` (`result=1`, `visibility=0`, `file_size=1096944`, `time_updated=1794769123`, EN/RU/ZH pages & 2 pinned discussions verified, both local Workshop cache DLL copies + `Mods\SmartCompanions\SmartCompanions.dll` verified), and `BOOSTY_3.0.2.md` queued in `queue.txt` (superseded `BOOSTY_3.0.1.md` removed).
 - Open verification boundaries: real two-machine / two-account host + client session and automated hardware mouse-wheel injection.
