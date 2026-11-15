@@ -293,12 +293,15 @@ namespace ZedZone.SmartCompanions
             foreach (var ag in targets)
             {
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter)) continue;
+                if (!fromAutoShare && MultiplayerSyncSystem.IsMultiplayerOnline && !MultiplayerSyncSystem.CanLocalPlayerCommand(ag.npcData)) continue;
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
                 if (now - st.LastRationTime < 30f) continue;
 
                 float distToPlayer = Il2CppSafe.IsAliveUnity(player)
                     ? Vector2.Distance(ag.humanCharacter.transform.position, player.transform.position)
                     : 0f;
+                if (!Il2CppSafe.IsAliveUnity(specificAgent) && st.RosterMode == CompanionRosterMode.CampGarrison && distToPlayer > 3.2f)
+                    continue;
 
                 if (!fromAutoShare && Il2CppSafe.IsAliveUnity(player) && distToPlayer > 3.2f && !st.IsSortingActive && !st.IsLootingActive)
                 {

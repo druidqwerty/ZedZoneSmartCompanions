@@ -90,6 +90,13 @@ namespace ZedZone.SmartCompanions
                 var gc = GameController.instance;
                 if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter)) return 0;
 
+                Vector2 playerPos = gc.playerCharacter.transform.position;
+                sbyte playerFloor = gc.playerCharacter.characterData != null ? gc.playerCharacter.characterData.zLevel : (sbyte)0;
+                bool usePinnedZone = !explicitSearchCenter.HasValue &&
+                    CompanionConfigStore.LootZonePinned &&
+                    CompanionConfigStore.LootZoneFloor == playerFloor &&
+                    Vector2.Distance(playerPos, CompanionConfigStore.LootZoneCenter) <= 75f;
+
                 var workers = new List<GOAPAgent>();
                 if (Il2CppSafe.IsAliveUnity(specificAgent))
                 {
@@ -97,27 +104,30 @@ namespace ZedZone.SmartCompanions
                 }
                 else
                 {
+                    Vector2 approxCenter = explicitSearchCenter ?? (usePinnedZone ? CompanionConfigStore.LootZoneCenter : playerPos);
                     foreach (var mate in SmartChatterSystem.GetActiveTeammateAgents())
                     {
                         if (!Il2CppSafe.IsAliveUnity(mate) || !Il2CppSafe.IsAlive(mate.npcData) ||
                             !Il2CppSafe.IsAliveUnity(mate.humanCharacter) || mate.humanCharacter.deadFlag)
                             continue;
+                        if (MultiplayerSyncSystem.IsMultiplayerOnline && !MultiplayerSyncSystem.CanLocalPlayerCommand(mate.npcData))
+                            continue;
                         if (Il2CppSafe.IsAliveUnity(mate.mostThreateningCharacter) && !mate.mostThreateningCharacter.deadFlag)
                             continue;
                         var mst = CompanionConfigStore.GetOrCreateCompanion(mate.npcData.npcGUID);
                         if (mst.IsSortingActive) continue;
+                        // Never yank CampGarrison guards across the map for a distant raid loot sweep!
+                        if (mst.RosterMode == CompanionRosterMode.CampGarrison)
+                        {
+                            Vector2 guardAnchor = mst.HasHomeAnchor ? mst.HomeAnchorPos : (Vector2)mate.humanCharacter.transform.position;
+                            if (mate.npcData.zLevel != playerFloor || Vector2.Distance(guardAnchor, approxCenter) > 28f)
+                                continue;
+                        }
                         workers.Add(mate);
                     }
                 }
 
                 if (workers.Count == 0) return 0;
-
-                Vector2 playerPos = gc.playerCharacter.transform.position;
-                sbyte playerFloor = gc.playerCharacter.characterData != null ? gc.playerCharacter.characterData.zLevel : (sbyte)0;
-                bool usePinnedZone = !explicitSearchCenter.HasValue &&
-                    CompanionConfigStore.LootZonePinned &&
-                    CompanionConfigStore.LootZoneFloor == playerFloor &&
-                    Vector2.Distance(playerPos, CompanionConfigStore.LootZoneCenter) <= 75f;
 
                 Vector2 center = explicitSearchCenter ?? (usePinnedZone
                     ? CompanionConfigStore.LootZoneCenter

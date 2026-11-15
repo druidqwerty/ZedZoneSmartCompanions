@@ -343,7 +343,7 @@ namespace ZedZone.SmartCompanions
                 for (int i = 0; i < containers.Count; i++)
                 {
                     var c = containers[i];
-                    if (c?.Rule != null && c.Rule.IsMarkedByPlayer && c.Rule.Categories != StorageCategory.None && !c.Rule.IsDropoffSource)
+                    if (c?.Rule != null && c.Rule.IsMarkedByPlayer && (c.Rule.Categories != StorageCategory.None || c.Rule.IsDropoffSource))
                     {
                         hasMarkedDest = true;
                         break;

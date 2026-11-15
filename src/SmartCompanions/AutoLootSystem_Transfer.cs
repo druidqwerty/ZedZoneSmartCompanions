@@ -226,16 +226,18 @@ namespace ZedZone.SmartCompanions
             var destinations = new[] { agent.npcData.GetOrCreateSharedInventory(), agent.npcData.characterData?.inventoryData };
             foreach (var destination in destinations)
             {
-                ItemData added = null;
+                if (!Il2CppSafe.IsAlive(destination)) continue;
+                Action rollback = null;
                 try
                 {
-                    if (!InventoryTransfers.TryAddWholeCopy(destination, item, out added)) continue;
+                    if (!InventoryTransfers.TryAddWholeWithStacking(destination, item, out _, out rollback, notify: true))
+                        continue;
                     gc.RemoveItemDataFromGround(item, true);
                     return true;
                 }
                 catch
                 {
-                    if (added != null && InventoryTransfers.Contains(destination, added)) destination.RemoveItem(added, true);
+                    try { rollback?.Invoke(); } catch { }
                     return false;
                 }
             }

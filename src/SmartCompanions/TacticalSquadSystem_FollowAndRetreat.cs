@@ -25,12 +25,24 @@ namespace ZedZone.SmartCompanions
                 : GameController.instance?.playerCharacter;
             if (!Il2CppSafe.IsAliveUnity(leader) || leader.deadFlag) return false;
 
+            var hc = agent.humanCharacter;
+            // Yield to native vehicle boarding / seated state whenever leader or companion is in a vehicle!
+            if (leader.isDriving || Il2CppSafe.IsAliveUnity(leader.drivingVehicle) ||
+                hc.isDriving || Il2CppSafe.IsAliveUnity(hc.drivingVehicle))
+                return false;
+
             if (Il2CppSafe.IsAlive(leader.characterData) && leader.characterData.zLevel != agent.npcData.zLevel &&
-                (st == null || st.RosterMode != CompanionRosterMode.CampGarrison))
+                (st == null || (st.RosterMode != CompanionRosterMode.CampGarrison && !st.IsTransientVehicleOverflow)))
             {
                 if (ExpeditionSystems.TryStepMultiFloorTransition(agent, st, leader.characterData.zLevel))
                     return true;
             }
+
+            Vector2 selfPos = hc.transform.position;
+            Vector2 leaderPos = leader.transform.position;
+            // Beyond 22m, let native long-range FollowLeader pathfinding/catch-up run unimpeded
+            if (Vector2.Distance(selfPos, leaderPos) > 22f)
+                return false;
 
             bool customFormation = CompanionConfigStore.ActiveFormation != SquadFormation.Free;
             bool customDist = CompanionConfigStore.FollowDistance != FollowDistanceMode.Normal;
@@ -42,25 +54,28 @@ namespace ZedZone.SmartCompanions
             if (count == 0) return false;
 
             int myIdx = 0;
+            for (int i = 0; i < count; i++)
+            {
+                var mate = squad[i];
+                if (Il2CppSafe.IsAliveUnity(mate) && mate.Pointer == agent.Pointer)
+                {
+                    myIdx = i;
+                    break;
+                }
+            }
+
             ScratchAllyPos.Clear();
             ScratchAheadPos.Clear();
             for (int i = 0; i < count; i++)
             {
                 var mate = squad[i];
                 if (!Il2CppSafe.IsAliveUnity(mate) || !Il2CppSafe.IsAliveUnity(mate.humanCharacter)) continue;
-                if (mate.Pointer == agent.Pointer)
-                {
-                    myIdx = i;
-                    continue;
-                }
+                if (mate.Pointer == agent.Pointer) continue;
                 Vector2 mPos = mate.humanCharacter.transform.position;
                 ScratchAllyPos.Add(mPos);
                 if (i < myIdx) ScratchAheadPos.Add(mPos);
             }
 
-            var hc = agent.humanCharacter;
-            Vector2 selfPos = hc.transform.position;
-            Vector2 leaderPos = leader.transform.position;
             CorridorNavigationHelper.RecordLeaderBreadcrumb(leaderPos, leader.characterData?.zLevel ?? 0);
             float followDist = GetFollowDistanceMeters(CompanionConfigStore.FollowDistance);
             Vector2 fwd = ResolveLeaderForward(leader);
@@ -77,7 +92,9 @@ namespace ZedZone.SmartCompanions
                 if (!inCorridor)
                     desired = ComputeAllySeparatedPoint(desired, selfPos, ScratchAllyPos, 1.25f);
 
-                if (ScratchAheadPos.Count > 0)
+                float now = Time.time;
+                bool yieldOnCooldown = st != null && now < st.NarrowYieldCooldownUntil;
+                if (!yieldOnCooldown && ScratchAheadPos.Count > 0)
                 {
                     Vector2 toTarget = desired - selfPos;
                     if (toTarget.sqrMagnitude > 1.2f)
@@ -94,8 +111,27 @@ namespace ZedZone.SmartCompanions
 
                         if (ShouldYieldInNarrowPassage(myIdx, selfPos, desired, ScratchAheadPos, clearL, clearR))
                         {
-                            hc.movementInput = Vector2.zero;
-                            return true;
+                            if (st != null)
+                            {
+                                if (st.NarrowYieldStartedAt < 0f || now - st.NarrowYieldStartedAt > 2.5f)
+                                    st.NarrowYieldStartedAt = now;
+                                if (now - st.NarrowYieldStartedAt <= 0.75f)
+                                {
+                                    hc.movementInput = Vector2.zero;
+                                    return true;
+                                }
+                                st.NarrowYieldStartedAt = -999f;
+                                st.NarrowYieldCooldownUntil = now + 2.0f;
+                            }
+                            else
+                            {
+                                hc.movementInput = Vector2.zero;
+                                return true;
+                            }
+                        }
+                        else if (st != null)
+                        {
+                            st.NarrowYieldStartedAt = -999f;
                         }
                     }
                 }

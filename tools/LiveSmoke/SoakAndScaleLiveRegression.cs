@@ -101,9 +101,9 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 {
                     ContainerId = inv.inventoryId,
                     IsMarkedByPlayer = true,
-                    IsDropoffSource = (c == 0),
+                    IsDropoffSource = (c <= 1), // c=0 pure Drop-off (Categories=None), c=1 hybrid [Drop-off + Category]
                     Priority = (c % 5) + 1,
-                    Categories = ItemCategorizer.AllCategories[c % ItemCategorizer.AllCategories.Length]
+                    Categories = (c == 0) ? StorageCategory.None : ItemCategorizer.AllCategories[c % ItemCategorizer.AllCategories.Length]
                 };
                 syntheticWarehouse.Add(new DiscoveredContainer
                 {

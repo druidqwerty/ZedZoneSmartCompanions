@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.1"><strong>下载 v3.0.1 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.2"><strong>下载 v3.0.2 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v3.0.2 更新 — 按键锁死、载具上下车、百米远程驻守、联机倒地救援与叠堆合并修复
+
+- **修复读档后 WASD / Esc / UI 失灵锁死（`LootInventoryPanel._instance`）：** 将所有 `LootInventoryPanel.instance` 懒加载调用替换为底层 `_instance` 字段，彻底消除进存档瞬间误触发面板创建导致的按键锁死。
+- **修复载具上下车与超员留守恢复（`ExpeditionSystems`）：** 使用临时标记 `IsTransientVehicleOverflow` 替代永久修改驻守模式，下车瞬间立即恢复全队跟随，并修复车身旁卡顿与行车途中瞬移。
+- **修复 100 米外原地待命与营地驻守瞬移跟随：** 拦截 `isStayAtPositionOrder`、`IsStayingBehindOrder` 与 `TryCatchUpTeleport`，全距离压低跟随优先级且全队快捷键不再误召回基地守卫。
+- **修复联机队友空血直接死亡（`MultiplayerTeammateAidPatches`）：** 队友空血后正常进入跪地待救状态并通过 `NPC_DOWNED` 同步给客户端，靠近 `4.6米` 内可在 `F8 → 队伍` 点击 `[+]` 扶起救援。
+- **新增 `Alt+F` 搜刮快捷键、自动叠堆合并、混合卸货箱、椰子分类与恢复默认设置：** 新增 `Alt+F` 一键搜刮、同类物品自动叠堆合并、支持 `[卸货+分类]` 混合箱、自动清空载具后备箱、椰子（`230`）归入食物，以及 `F8 → 设置` 中的两步确认恢复默认设置按钮（保留已标记箱子与队友经验）。
+- **已验证：** 基于 `2026-11-15` 最新版游戏实测（`81` 项 Harmony 补丁）+ 300/300 图形测试 + 全部 10 组确定性回归测试；8,386 个存档文件均未改变。[测试范围与限制](docs/verification-3.0.2.md)。
 
 ## v3.0.1 热修 — 原生左上角队伍栏清理与狭窄走廊寻路修复
 
@@ -237,7 +246,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-3.0.1.zip` 解压至 `<ZED ZONE>`）。
-3. 快捷键：**`F8`** 打开三页智能队友与基地中心 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-3.0.2.zip` 解压至 `<ZED ZONE>`）。
+3. 快捷键：**`F8`** 打开智能队友与基地中心 · **`Alt+F`** 搜刮附近战利品 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

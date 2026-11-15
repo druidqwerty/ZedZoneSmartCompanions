@@ -850,7 +850,7 @@ namespace ZedZone.SmartCompanions
             try
             {
                 if (!__0) return true;
-                var lootPanel = LootInventoryPanel.instance;
+                var lootPanel = LootInventoryPanel._instance;
                 if (Il2CppSafe.IsAliveUnity(lootPanel) && lootPanel.gameObject.activeInHierarchy)
                 {
                     return false;
@@ -906,6 +906,12 @@ namespace ZedZone.SmartCompanions
                         __result = true;
                         return false;
                     }
+                    if (!st.HasAnyPhysicalTask && st.IsTransientVehicleOverflow &&
+                        CampGarrisonSystem.TickTransientVehicleOverflowFrame(agent, st))
+                    {
+                        __result = true;
+                        return false;
+                    }
                     if (!st.HasAnyPhysicalTask && TacticalSquadSystem.TryExecuteFollowFormationAndSpacing(agent))
                     {
                         __result = true;
@@ -937,13 +943,17 @@ namespace ZedZone.SmartCompanions
                     return;
                 }
 
+                if (st != null && st.IsTransientVehicleOverflow && !hasPhysicalTask &&
+                    agentState.npcData.zLevel == st.TransientVehicleHoldZ)
+                {
+                    if (__result > 0.35f) __result = 0.35f;
+                    return;
+                }
+
                 if (hasPositionalOrder && !hasPhysicalTask && agentState.npcData.zLevel == st.OrderAnchorZ)
                 {
-                    var leaderForOrder = GameController.instance?.playerCharacter;
-                    float distLeader = Il2CppSafe.IsAliveUnity(leaderForOrder)
-                        ? Vector2.Distance(agentState.agentPosition, leaderForOrder.transform.position) : 0f;
-                    if (distLeader <= 65f && __result > 0.5f)
-                        __result = 0.5f;
+                    if (__result > 0.35f)
+                        __result = 0.35f;
                     return;
                 }
 
@@ -1032,5 +1042,294 @@ namespace ZedZone.SmartCompanions
             }
             catch { }
         }
+
+        // 24. Prevent GOAPNPCManager.OnTimeUpdate / GatherCompanions / OnIslandChanged from offline-dragging or teleporting
+        // companions ordered to HoldPosition, CoverDirection, CampGarrison, or transient vehicle overflow when player walks out of chunk range!
+        [HarmonyPatch(typeof(GOAPNPCData), nameof(GOAPNPCData.isStayAtPositionOrder), MethodType.Getter)]
+        [HarmonyPostfix]
+        public static void GOAPNPCData_isStayAtPositionOrder_Postfix(GOAPNPCData __instance, ref bool __result)
+        {
+            try
+            {
+                if (!__result && CampGarrisonSystem.ShouldStayAnchoredBehind(__instance))
+                    __result = true;
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(GOAPNPCManager), nameof(GOAPNPCManager.IsStayingBehindOrder))]
+        [HarmonyPostfix]
+        public static void GOAPNPCManager_IsStayingBehindOrder_Postfix(GOAPNPCData __0, ref bool __result)
+        {
+            try
+            {
+                if (!__result && CampGarrisonSystem.ShouldStayAnchoredBehind(__0))
+                    __result = true;
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(GOAPAction_FollowLeader), nameof(GOAPAction_FollowLeader.TryCatchUpTeleport))]
+        [HarmonyPrefix]
+        public static bool FollowLeader_TryCatchUpTeleport_Prefix(GOAPAgent __0)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(__0) || !Il2CppSafe.IsAlive(__0.npcData))
+                    return true;
+                if (CampGarrisonSystem.ShouldStayAnchoredBehind(__0.npcData))
+                    return false;
+                if (CompanionConfigStore.CompanionStates.TryGetValue(__0.npcData.npcGUID ?? "", out var st) &&
+                    st != null && st.HasAnyPhysicalTask)
+                    return false;
+            }
+            catch { }
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// v3.0.2 Multiplayer Companion Kneeling Downed &amp; Revival:
+    /// Vanilla NetPlayerAid handles human players (isPlayer || NetSessionConfig.IsNetworkPlayer), while CharacterAidManager
+    /// and PlayerAidInteract early-return when NetworkManager.isOnline is true, causing non-player companions to die
+    /// instantly at 0 HP in co-op instead of kneeling for revival. Scoping a thread-local isOnline override strictly around
+    /// non-player NPC calls on the Host unlocks 100% native kneeling downed state, bleed-out timer, AI rescue, and [Hold E] revive
+    /// without ever touching local or remote human players.
+    /// </summary>
+    [HarmonyPatch]
+    public static class MultiplayerTeammateAidPatches
+    {
+        [ThreadStatic]
+        private static int _suppressIsOnlineDepth;
+
+        public static bool IsNonPlayerNpcForAid(BasicCharacterController ch)
+        {
+            if (!Il2CppSafe.IsAliveUnity(ch) || ch.isPlayer) return false;
+            try
+            {
+                if (ZedZone.Net.NetSessionConfig.IsNetworkPlayer(ch)) return false;
+            }
+            catch { return false; }
+            return ch.TryCast<HumanCharacterController>() != null;
+        }
+
+        private static void EnterNpcScope(BasicCharacterController ch, ref bool entered)
+        {
+            entered = false;
+            if (!MultiplayerSyncSystem.IsMultiplayerHost || !IsNonPlayerNpcForAid(ch)) return;
+            _suppressIsOnlineDepth++;
+            entered = true;
+        }
+
+        private static void EnterManagerScope(CharacterAidManager mgr, ref bool entered)
+        {
+            entered = false;
+            if (!MultiplayerSyncSystem.IsMultiplayerHost || !Il2CppSafe.IsAlive(mgr)) return;
+            try
+            {
+                if (mgr.downedCount <= 0) return;
+            }
+            catch { return; }
+            _suppressIsOnlineDepth++;
+            entered = true;
+        }
+
+        private static void ExitScope(bool entered)
+        {
+            if (entered && _suppressIsOnlineDepth > 0)
+                _suppressIsOnlineDepth--;
+        }
+
+        private static string ResolveNpcGuid(HumanCharacterController hc)
+        {
+            if (!Il2CppSafe.IsAliveUnity(hc)) return "";
+            try
+            {
+                var ag = hc.GetCachedGOAPAgent();
+                if (Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAlive(ag.npcData) && !string.IsNullOrEmpty(ag.npcData.npcGUID))
+                    return ag.npcData.npcGUID;
+                if (Il2CppSafe.IsAlive(hc.characterData) && !string.IsNullOrEmpty(hc.characterData.characterId))
+                    return hc.characterData.characterId;
+            }
+            catch { }
+            return "";
+        }
+
+        [HarmonyPatch(typeof(ZedZone.Net.NetworkManager), nameof(ZedZone.Net.NetworkManager.isOnline), MethodType.Getter)]
+        [HarmonyPostfix]
+        public static void NetworkManager_isOnline_Postfix(ref bool __result)
+        {
+            if (__result && _suppressIsOnlineDepth > 0)
+                __result = false;
+        }
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.TryBeginDowned))]
+        [HarmonyPrefix]
+        public static void Aid_TryBeginDowned_Prefix(HumanCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.TryBeginDowned))]
+        [HarmonyFinalizer]
+        public static void Aid_TryBeginDowned_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.OnDownedHit))]
+        [HarmonyPrefix]
+        public static void Aid_OnDownedHit_Prefix(HumanCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.OnDownedHit))]
+        [HarmonyFinalizer]
+        public static void Aid_OnDownedHit_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.TryClaimRescue))]
+        [HarmonyPrefix]
+        public static void Aid_TryClaimRescue_Prefix(HumanCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.TryClaimRescue))]
+        [HarmonyFinalizer]
+        public static void Aid_TryClaimRescue_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.TryRegisterResponder))]
+        [HarmonyPrefix]
+        public static void Aid_TryRegisterResponder_Prefix(HumanCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.TryRegisterResponder))]
+        [HarmonyFinalizer]
+        public static void Aid_TryRegisterResponder_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.TryGetAidProgress))]
+        [HarmonyPrefix]
+        public static void Aid_TryGetAidProgress_Prefix(BasicCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.TryGetAidProgress))]
+        [HarmonyFinalizer]
+        public static void Aid_TryGetAidProgress_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.ResolveSilently))]
+        [HarmonyPrefix]
+        public static void Aid_ResolveSilently_Prefix(HumanCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.ResolveSilently))]
+        [HarmonyFinalizer]
+        public static void Aid_ResolveSilently_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.OnCharacterUnloaded))]
+        [HarmonyPrefix]
+        public static void Aid_OnCharacterUnloaded_Prefix(HumanCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.OnCharacterUnloaded))]
+        [HarmonyFinalizer]
+        public static void Aid_OnCharacterUnloaded_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.NotifyRevived))]
+        [HarmonyPrefix]
+        public static void Aid_NotifyRevived_Prefix(HumanCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.NotifyRevived))]
+        [HarmonyFinalizer]
+        public static void Aid_NotifyRevived_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.Update))]
+        [HarmonyPrefix]
+        public static void Aid_Update_Prefix(CharacterAidManager __instance, ref bool __state) => EnterManagerScope(__instance, ref __state);
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.Update))]
+        [HarmonyFinalizer]
+        public static void Aid_Update_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.ResolveAllForSaveOrTransition))]
+        [HarmonyPrefix]
+        public static void Aid_ResolveAll_Prefix(CharacterAidManager __instance, ref bool __state) => EnterManagerScope(__instance, ref __state);
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.ResolveAllForSaveOrTransition))]
+        [HarmonyFinalizer]
+        public static void Aid_ResolveAll_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.BeginDowned))]
+        [HarmonyPostfix]
+        public static void Aid_BeginDowned_Postfix(HumanCharacterController __0)
+        {
+            try
+            {
+                if (!IsNonPlayerNpcForAid(__0)) return;
+                string guid = ResolveNpcGuid(__0);
+                if (!string.IsNullOrEmpty(guid))
+                    MultiplayerSyncSystem.BroadcastCompanionDownedState(guid, true);
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.ExitDowned))]
+        [HarmonyPostfix]
+        public static void Aid_ExitDowned_Postfix(HumanCharacterController __0)
+        {
+            try
+            {
+                if (!IsNonPlayerNpcForAid(__0)) return;
+                string guid = ResolveNpcGuid(__0);
+                if (!string.IsNullOrEmpty(guid))
+                    MultiplayerSyncSystem.BroadcastCompanionDownedState(guid, false);
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(CharacterAidManager), nameof(CharacterAidManager.ExpireDowned))]
+        [HarmonyPostfix]
+        public static void Aid_ExpireDowned_Postfix(HumanCharacterController __0)
+        {
+            try
+            {
+                if (!IsNonPlayerNpcForAid(__0)) return;
+                string guid = ResolveNpcGuid(__0);
+                if (!string.IsNullOrEmpty(guid))
+                    MultiplayerSyncSystem.BroadcastCompanionDownedState(guid, false);
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.ComputeKind))]
+        [HarmonyPrefix]
+        public static void Interact_ComputeKind_Prefix(HumanCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.ComputeKind))]
+        [HarmonyFinalizer]
+        public static void Interact_ComputeKind_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.IsTreatFoodTarget))]
+        [HarmonyPrefix]
+        public static void Interact_IsTreatFoodTarget_Prefix(HumanCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.IsTreatFoodTarget))]
+        [HarmonyFinalizer]
+        public static void Interact_IsTreatFoodTarget_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.BuildInteractData))]
+        [HarmonyPrefix]
+        public static void Interact_BuildInteractData_Prefix(HumanCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.BuildInteractData))]
+        [HarmonyFinalizer]
+        public static void Interact_BuildInteractData_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.OnEnterInteractRange))]
+        [HarmonyPrefix]
+        public static void Interact_OnEnterRange_Prefix(HumanCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.OnEnterInteractRange))]
+        [HarmonyFinalizer]
+        public static void Interact_OnEnterRange_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.NameOf))]
+        [HarmonyPrefix]
+        public static void Interact_NameOf_Prefix(BasicCharacterController __0, ref bool __state) => EnterNpcScope(__0, ref __state);
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.NameOf))]
+        [HarmonyFinalizer]
+        public static void Interact_NameOf_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.EndLocalAid))]
+        [HarmonyPrefix]
+        public static void Interact_EndLocalAid_Prefix(ref bool __state)
+        {
+            __state = false;
+            try { EnterNpcScope(PlayerAidInteract.s_target, ref __state); } catch { }
+        }
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.EndLocalAid))]
+        [HarmonyFinalizer]
+        public static void Interact_EndLocalAid_Finalizer(bool __state) => ExitScope(__state);
+
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.NotifyFailed))]
+        [HarmonyPrefix]
+        public static void Interact_NotifyFailed_Prefix(ref bool __state)
+        {
+            __state = false;
+            try { EnterNpcScope(PlayerAidInteract.s_target, ref __state); } catch { }
+        }
+        [HarmonyPatch(typeof(PlayerAidInteract), nameof(PlayerAidInteract.NotifyFailed))]
+        [HarmonyFinalizer]
+        public static void Interact_NotifyFailed_Finalizer(bool __state) => ExitScope(__state);
     }
 }

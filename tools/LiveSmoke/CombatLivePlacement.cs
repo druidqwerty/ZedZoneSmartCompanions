@@ -57,10 +57,19 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     float angle = i * Mathf.PI / 12f;
                     Vector2 axis = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
                     Vector2 origin = center - axis * distance;
+                    tries++;
+                    if (distance >= 10f && Mathf.Abs(axis.y) > 0.65f) continue;
+                    if (!_agent.IsPathClear(origin, center, 0.35f)) continue;
+                    Vector2 perp = new Vector2(-axis.y, axis.x);
+                    Vector2 leaderSpot = origin + perp * 5.0f;
+                    if (!_agent.IsPathClear(origin, leaderSpot, 0.30f))
+                        leaderSpot = origin - perp * 5.0f;
+                    if (!_agent.IsPathClear(origin, leaderSpot, 0.30f))
+                        leaderSpot = origin - axis * 4.5f;
                     human.TeleportTo(origin, false);
-                    // Keep the leader nearby but off the firing line; other squad
+                    // Keep the leader ~5m away and off the firing line; other squad
                     // members remain at the base instead of overlapping this actor.
-                    player.TeleportTo(origin + new Vector2(-axis.y, axis.x) * 5f, false);
+                    player.TeleportTo(leaderSpot, false);
                     _zombie.TeleportTo(center, false);
                     human.LookAtPosition(center, true);
                     Physics2D.SyncTransforms();
@@ -68,11 +77,9 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     Vector2 muzzle = human.GetProjectileAimOrigin();
                     Vector3 from = new Vector3(muzzle.x, muzzle.y, human.transform.position.z);
                     Vector3 to = _zombie.GetTorsePositionOrRoot();
-                    tries++;
                     if (!_agent.HasClearFireLine(from, to)) continue;
-                    if (distance >= 10f && Mathf.Abs(axis.y) > 0.65f) continue;
                     _placement = center;
-                    LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Native LOS clear: tries={tries}, origin={origin}, target={center}, muzzle={from}, aim={to}.");
+                    LiveSmokePlugin.Logger.LogInfo($"[CombatLive] Native LOS+Path clear: tries={tries}, origin={origin}, target={center}, leader={leaderSpot}, muzzle={from}, aim={to}.");
                     return true;
                 }
             }

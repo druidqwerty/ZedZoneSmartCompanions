@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.1"><strong>Скачать релиз v3.0.1 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.2"><strong>Скачать релиз v3.0.2 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v3.0.2 — Исправления управления, машин, дальнего гарнизона, реанимации в коопе и стаков
+
+- **Исправлена блокировка WASD, Esc и UI при входе в мир (`LootInventoryPanel._instance`):** все чтения ленивого геттера `LootInventoryPanel.instance` заменены на прямое чтение поля `_instance`, что устранило преждевременное создание панели лута и блокировку `stopAllInput` сразу после загрузки сохранения.
+- **Исправлена посадка, высадка и нехватка мест в транспорте (`ExpeditionSystems`):** временное переполнение мест (`IsTransientVehicleOverflow`) больше не переводит напарников навсегда в гарнизон и сбрасывается мгновенно при выходе из авто; исправлен учёт экипажа и навигация рядом с кузовом.
+- **Исправлен срыв «Держать позицию» и «Гарнизона базы» дальше 100 м:** перехвачены `GOAPNPCData.isStayAtPositionOrder`, `GOAPNPCManager.IsStayingBehindOrder` и `GOAPAction_FollowLeader.TryCatchUpTeleport`, приоритет `FollowLeader` зажат `<= 0.35f` на любой дистанции, а общие клавиши отряда не затрагивают охрану лагеря.
+- **Исправлена мгновенная смерть напарников в кооперативе (`MultiplayerTeammateAidPatches`):** павшие бойцы переходят в штатное состояние ожидания помощи на колене, статус синхронизируется с клиентами (`NPC_DOWNED`), а рядом с раненым (`<= 4.6 м`) во вкладке `F8 → Отряд` доступна кнопка реанимации `[+]`.
+- **Клавиша лута `Alt+F`, слияние стаков, гибридные ящики, кокосы и сброс настроек:** добавлены быстрый сбор лута по `Alt+F`, объединение неполных стаков (`TryAddWholeWithStacking`), поддержка гибридных ящиков `[Сброс + категория]`, разгрузка багажника авто, сортировка кокосов (`230`) в еду и двухшаговая кнопка **Сбросить все настройки** в `F8 → Настройки` (разметка ящиков и опыт сохраняются).
+- **Проверено:** живой прогон в обновлённом бинарнике игры от `2026-11-15` (`81` Harmony-патч) + 300/300 графических случаев + все 10 детерминированных наборов проверок; все 8 386 файлов сохранений без изменений. [Отчёт и границы](docs/verification-3.0.2.md).
 
 ## Новое в v3.0.1 — Хотфикс: чистое удаление из меню игры и движение в узких коридорах
 
@@ -263,8 +272,8 @@
 ## Установка и управление
 
 1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-3.0.1.zip` в `<ZED ZONE>`).
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-3.0.2.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
-4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, или **`F7`** для быстрого приказа отсортировать базу.
+4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы**, **`Alt+F`** для сбора лута рядом или **`F7`** для быстрого приказа отсортировать базу.
 
 © 2026 druidqwerty. Лицензия MIT. Бесплатный открытый мод; код с помощью ИИ, идея и тестирование — druid.

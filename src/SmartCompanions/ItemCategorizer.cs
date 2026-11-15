@@ -70,8 +70,7 @@ namespace ZedZone.SmartCompanions
         {
             200, // Coco-Cola
             206, // Fenda
-            207, // Sqrite
-            230  // Coconut
+            207  // Sqrite
         };
 
         private static readonly HashSet<int> AlcoholIds = new HashSet<int>
@@ -290,7 +289,8 @@ namespace ZedZone.SmartCompanions
 
             if (CannedIds.Contains(itemId) || DrinkIds.Contains(itemId) || AlcoholIds.Contains(itemId))
                 return StorageCategory.CannedAndDrinks;
-            if (SteakAndMeatIds.Contains(itemId) || RawOrBadFoodIds.Contains(itemId))
+            if (SteakAndMeatIds.Contains(itemId) || RawOrBadFoodIds.Contains(itemId) ||
+                itemId == 209 || itemId == 215 || itemId == 216 || itemId == 230 || itemId == 269 || itemId == 295)
                 return StorageCategory.FreshFood;
 
             return StorageCategory.MiscAndValuables;
@@ -368,7 +368,9 @@ namespace ZedZone.SmartCompanions
             if ((foodAttr != null && foodAttr.isFish) || (itemId >= 279 && itemId <= 293) || name.Contains("fish") || name.Contains("salmon") || name.Contains("tuna") || name.Contains("carp") || name.Contains("trout") || name.Contains("рыб") || name.Contains("лосос") || name.Contains("тунец") || name.Contains("окун") || name.Contains("карась"))
                 return FoodKind.FishDish;
 
-            if (itemId == 209 || itemId == 215 || itemId == 216 || itemId == 269 || itemId == 295 || name.Contains("gingerbread") || name.Contains("pie") || name.Contains("jam") || name.Contains("пряник") || name.Contains("пирог") || name.Contains("джем"))
+            if (itemId == 209 || itemId == 215 || itemId == 216 || itemId == 230 || itemId == 269 || itemId == 295 ||
+                name.Contains("coconut") || name.Contains("кокос") || name.Contains("椰") ||
+                name.Contains("gingerbread") || name.Contains("pie") || name.Contains("jam") || name.Contains("пряник") || name.Contains("пирог") || name.Contains("джем"))
                 return FoodKind.SweetAndSnack;
 
             if (foodAttr != null && foodAttr.thirst > foodAttr.hunger * 1.5f && foodAttr.hunger < 10f)

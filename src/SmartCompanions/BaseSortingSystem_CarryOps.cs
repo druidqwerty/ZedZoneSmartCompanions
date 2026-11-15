@@ -14,18 +14,19 @@ namespace ZedZone.SmartCompanions
             InventoryData extraSource,
             HashSet<IntPtr> claimedSources)
         {
-            if (destBoxes == null || destBoxes.Count == 0) return false;
+            var fallbackDropoffBoxes = GetPureDropoffDestinationBoxes(allContainers);
+            if ((destBoxes == null || destBoxes.Count == 0) && fallbackDropoffBoxes.Count == 0) return false;
             Vector2 selfPos = Il2CppSafe.IsAliveUnity(ag?.humanCharacter)
                 ? (Vector2)ag.humanCharacter.transform.position
                 : Vector2.zero;
 
-            var candidates = new List<(InventoryData inv, Vector2 pos, Transform anchor, bool ownBackpack, string id, string name, StorageCategory stayMask, float dist)>();
+            var candidates = new List<(InventoryData inv, Vector2 pos, Transform anchor, bool ownBackpack, bool allowDropoffFallback, string id, string name, StorageCategory stayMask, float dist)>();
 
             // 1. Companion's own sharedInventoryData (already physically on the companion's back -> 0m pickup, physical walk to deposit!)
             var shared = ag?.npcData?.sharedInventoryData;
             if (Il2CppSafe.IsAlive(shared) && shared.itemList != null && shared.itemList.Count > 0)
             {
-                candidates.Add((shared, selfPos, ag.humanCharacter.transform, true, "shared_" + ag.npcData.npcGUID,
+                candidates.Add((shared, selfPos, ag.humanCharacter.transform, true, true, "shared_" + ag.npcData.npcGUID,
                     CompanionConfigStore.L("Рюкзак напарника", "Companion Backpack", "队友背包"), StorageCategory.None, 0f));
             }
 
@@ -42,7 +43,7 @@ namespace ZedZone.SmartCompanions
                     ? extLbl
                     : (!string.IsNullOrEmpty(extraSource.inventoryTitleName) ? extraSource.inventoryTitleName : "Container");
                 if (!PhysicalMovementHelper.IsTargetTemporarilyUnreachable(id))
-                    candidates.Add((extraSource, pos, anchor, false, id, label, StorageCategory.None, Vector2.Distance(selfPos, pos)));
+                    candidates.Add((extraSource, pos, anchor, false, true, id, label, StorageCategory.None, Vector2.Distance(selfPos, pos)));
             }
 
             // 3. Player-marked Drop-off boxes first, then player-marked categorized boxes with misplaced items
@@ -59,11 +60,12 @@ namespace ZedZone.SmartCompanions
 
                     if (pass == 0 && c.Rule.IsDropoffSource)
                     {
-                        candidates.Add((c.Inventory, c.WorldPos, cAnchor, false, c.ContainerId, c.DisplayName, StorageCategory.None, Vector2.Distance(selfPos, c.WorldPos)));
+                        // If player marked BOTH [Drop-off] and specific Categories on this box, keep matching items here and sort non-matching items out!
+                        candidates.Add((c.Inventory, c.WorldPos, cAnchor, false, false, c.ContainerId, c.DisplayName, c.Rule.Categories, Vector2.Distance(selfPos, c.WorldPos)));
                     }
                     else if (pass == 1 && !c.Rule.IsDropoffSource && c.Rule.Categories != StorageCategory.None && c.Rule.Categories != StorageCategory.All)
                     {
-                        candidates.Add((c.Inventory, c.WorldPos, cAnchor, false, c.ContainerId, c.DisplayName, c.Rule.Categories, Vector2.Distance(selfPos, c.WorldPos)));
+                        candidates.Add((c.Inventory, c.WorldPos, cAnchor, false, false, c.ContainerId, c.DisplayName, c.Rule.Categories, Vector2.Distance(selfPos, c.WorldPos)));
                     }
                 }
             }
@@ -76,7 +78,8 @@ namespace ZedZone.SmartCompanions
                 HashSet<IntPtr> protectedPtrs = cand.ownBackpack
                     ? CompanionProfileSystem.BuildProtectedBackpackPointers(ag, st, cand.inv)
                     : null;
-                if (!HasMovableItemInSource(cand.inv, cand.stayMask, destBoxes, protectedPtrs))
+                var fallbackList = cand.allowDropoffFallback ? fallbackDropoffBoxes : null;
+                if (!HasMovableItemInSource(cand.inv, cand.stayMask, destBoxes, protectedPtrs, fallbackList))
                     continue;
 
                 if (claimedSources != null)
@@ -89,6 +92,7 @@ namespace ZedZone.SmartCompanions
                 st.SourceContainerInv = cand.inv;
                 st.SourceContainerAnchor = cand.anchor;
                 st.SourceIsOwnBackpack = cand.ownBackpack;
+                st.SourceAllowDropoffFallback = cand.allowDropoffFallback;
                 st.SourceAllowedStayMask = cand.stayMask;
                 st.TargetContainerGuid = cand.id;
                 st.TargetContainerName = cand.name;
@@ -108,7 +112,11 @@ namespace ZedZone.SmartCompanions
         }
 
         private static bool HasMovableItemInSource(
-            InventoryData srcInv, StorageCategory stayMask, List<DiscoveredContainer> destBoxes, HashSet<IntPtr> protectedPtrs = null)
+            InventoryData srcInv,
+            StorageCategory stayMask,
+            List<DiscoveredContainer> destBoxes,
+            HashSet<IntPtr> protectedPtrs = null,
+            List<DiscoveredContainer> fallbackDropoffBoxes = null)
         {
             if (!Il2CppSafe.IsAlive(srcInv) || srcInv.itemList == null) return false;
             for (int i = 0; i < srcInv.itemList.Count; i++)
@@ -119,22 +127,41 @@ namespace ZedZone.SmartCompanions
                 var cat = ItemCategorizer.ClassifyItem(item);
                 if (stayMask != StorageCategory.None && (stayMask & cat) != 0)
                     continue;
-                for (int d = 0; d < destBoxes.Count; d++)
+                if (destBoxes != null)
                 {
-                    var dest = destBoxes[d];
-                    if (dest?.Inventory == null || dest.Inventory.Pointer == srcInv.Pointer) continue;
-                    if ((dest.Rule.Categories & cat) == 0) continue;
-                    if (InventoryTransfers.CanAcceptWholeItem(dest.Inventory, item))
-                        return true;
+                    for (int d = 0; d < destBoxes.Count; d++)
+                    {
+                        var dest = destBoxes[d];
+                        if (dest?.Inventory == null || dest.Inventory.Pointer == srcInv.Pointer) continue;
+                        if ((dest.Rule.Categories & cat) == 0) continue;
+                        if (InventoryTransfers.CanAcceptWholeItem(dest.Inventory, item))
+                            return true;
+                    }
+                }
+                if (fallbackDropoffBoxes != null)
+                {
+                    for (int d = 0; d < fallbackDropoffBoxes.Count; d++)
+                    {
+                        var drop = fallbackDropoffBoxes[d];
+                        if (drop?.Inventory == null || drop.Inventory.Pointer == srcInv.Pointer) continue;
+                        if (InventoryTransfers.CanAcceptWholeItem(drop.Inventory, item))
+                            return true;
+                    }
                 }
             }
             return false;
         }
 
-        private static int PickupBatchIntoCarryBuffer(GOAPAgent ag, CompanionRuntimeState st, List<DiscoveredContainer> destBoxes)
+        private static int PickupBatchIntoCarryBuffer(
+            GOAPAgent ag,
+            CompanionRuntimeState st,
+            List<DiscoveredContainer> destBoxes,
+            List<DiscoveredContainer> fallbackDropoffBoxes = null)
         {
             var srcInv = st.SourceContainerInv;
-            if (!Il2CppSafe.IsAlive(srcInv) || srcInv.itemList == null || srcInv.itemList.Count == 0 || destBoxes == null || destBoxes.Count == 0)
+            bool allowDropFallback = st.SourceAllowDropoffFallback && fallbackDropoffBoxes != null && fallbackDropoffBoxes.Count > 0;
+            if (!Il2CppSafe.IsAlive(srcInv) || srcInv.itemList == null || srcInv.itemList.Count == 0 ||
+                ((destBoxes == null || destBoxes.Count == 0) && !allowDropFallback))
                 return 0;
 
             int picked = 0;
@@ -143,13 +170,28 @@ namespace ZedZone.SmartCompanions
                 // Track remaining free grid cells per destination chest across this batch
                 // so we never over-pick 10 items for a chest that only has 1-2 free cells!
                 var remainingFreeCells = new Dictionary<IntPtr, int>();
-                for (int d = 0; d < destBoxes.Count; d++)
+                if (destBoxes != null)
                 {
-                    var dest = destBoxes[d];
-                    if (dest?.Inventory != null && !remainingFreeCells.ContainsKey(dest.Inventory.Pointer))
+                    for (int d = 0; d < destBoxes.Count; d++)
                     {
-                        try { remainingFreeCells[dest.Inventory.Pointer] = dest.Inventory.CountFreeCells(); }
-                        catch { remainingFreeCells[dest.Inventory.Pointer] = 36; }
+                        var dest = destBoxes[d];
+                        if (dest?.Inventory != null && !remainingFreeCells.ContainsKey(dest.Inventory.Pointer))
+                        {
+                            try { remainingFreeCells[dest.Inventory.Pointer] = dest.Inventory.CountFreeCells(); }
+                            catch { remainingFreeCells[dest.Inventory.Pointer] = 36; }
+                        }
+                    }
+                }
+                if (allowDropFallback)
+                {
+                    for (int d = 0; d < fallbackDropoffBoxes.Count; d++)
+                    {
+                        var drop = fallbackDropoffBoxes[d];
+                        if (drop?.Inventory != null && !remainingFreeCells.ContainsKey(drop.Inventory.Pointer))
+                        {
+                            try { remainingFreeCells[drop.Inventory.Pointer] = drop.Inventory.CountFreeCells(); }
+                            catch { remainingFreeCells[drop.Inventory.Pointer] = 36; }
+                        }
                     }
                 }
 
@@ -178,26 +220,54 @@ namespace ZedZone.SmartCompanions
                     int neededCells = InventoryTransfers.EstimateItemCells(item);
                     DiscoveredContainer chosenDest = null;
 
-                    for (int d = 0; d < destBoxes.Count; d++)
+                    if (destBoxes != null)
                     {
-                        var dest = destBoxes[d];
-                        if (dest?.Inventory == null || dest.Inventory.Pointer == srcInv.Pointer) continue;
-                        if ((dest.Rule.Categories & cat) == 0) continue;
-
-                        if (InventoryTransfers.CanMergeCompletelyIntoExistingStack(dest.Inventory, item))
+                        for (int d = 0; d < destBoxes.Count; d++)
                         {
-                            chosenDest = dest;
-                            neededCells = 0;
-                            break;
+                            var dest = destBoxes[d];
+                            if (dest?.Inventory == null || dest.Inventory.Pointer == srcInv.Pointer) continue;
+                            if ((dest.Rule.Categories & cat) == 0) continue;
+
+                            if (InventoryTransfers.CanMergeCompletelyIntoExistingStack(dest.Inventory, item))
+                            {
+                                chosenDest = dest;
+                                neededCells = 0;
+                                break;
+                            }
+
+                            remainingFreeCells.TryGetValue(dest.Inventory.Pointer, out int availCells);
+                            if (availCells < neededCells) continue;
+
+                            if (InventoryTransfers.CanAcceptWholeItem(dest.Inventory, item))
+                            {
+                                chosenDest = dest;
+                                break;
+                            }
                         }
+                    }
 
-                        remainingFreeCells.TryGetValue(dest.Inventory.Pointer, out int availCells);
-                        if (availCells < neededCells) continue;
-
-                        if (InventoryTransfers.CanAcceptWholeItem(dest.Inventory, item))
+                    if (chosenDest == null && allowDropFallback)
+                    {
+                        for (int d = 0; d < fallbackDropoffBoxes.Count; d++)
                         {
-                            chosenDest = dest;
-                            break;
+                            var drop = fallbackDropoffBoxes[d];
+                            if (drop?.Inventory == null || drop.Inventory.Pointer == srcInv.Pointer) continue;
+
+                            if (InventoryTransfers.CanMergeCompletelyIntoExistingStack(drop.Inventory, item))
+                            {
+                                chosenDest = drop;
+                                neededCells = 0;
+                                break;
+                            }
+
+                            remainingFreeCells.TryGetValue(drop.Inventory.Pointer, out int availCells);
+                            if (availCells < neededCells) continue;
+
+                            if (InventoryTransfers.CanAcceptWholeItem(drop.Inventory, item))
+                            {
+                                chosenDest = drop;
+                                break;
+                            }
                         }
                     }
 
@@ -514,7 +584,7 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
-                var panel = LootInventoryPanel.instance;
+                var panel = LootInventoryPanel._instance;
                 if (Il2CppSafe.IsAliveUnity(panel) && panel.gameObject.activeInHierarchy &&
                     Il2CppSafe.IsAlive(LootInventoryPanel.CurrentOpenInventoryData))
                 {
@@ -552,19 +622,20 @@ namespace ZedZone.SmartCompanions
                 bool nearDropoffOrCatBox = false;
                 Vector2 selfPos = ag.humanCharacter.transform.position;
                 var destBoxes = GetCategorizedDestinationBoxes(containers);
+                var fallbackDropoff = GetPureDropoffDestinationBoxes(containers);
 
                 foreach (var c in containers)
                 {
                     if (c?.Rule == null || !c.Rule.IsMarkedByPlayer || !Il2CppSafe.IsAlive(c.Inventory)) continue;
                     if ((c.Rule.IsDropoffSource || c.Rule.Categories != StorageCategory.None) &&
-                        Vector2.Distance(selfPos, c.WorldPos) <= 8.5f)
+                        Vector2.Distance(selfPos, c.WorldPos) <= 14.0f)
                     {
                         nearDropoffOrCatBox = true;
                         break;
                     }
                 }
 
-                if (!nearDropoffOrCatBox || destBoxes.Count == 0) return;
+                if (!nearDropoffOrCatBox || (destBoxes.Count == 0 && fallbackDropoff.Count == 0)) return;
 
                 st.LastAutoDropoffTime = now;
                 if (TryAssignNextCarrySource(ag, st, containers, destBoxes, null, null))

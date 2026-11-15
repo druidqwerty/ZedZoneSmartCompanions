@@ -172,7 +172,8 @@ namespace ZedZone.SmartCompanions
                 }
 
                 // 3. Only include LootInventoryPanel.CurrentOpenInventoryData if LootInventoryPanel is ACTUALLY open!
-                var openPanel = LootInventoryPanel.instance;
+                // Never read LootInventoryPanel.instance (which instantiates the prefab when null); always read _instance!
+                var openPanel = LootInventoryPanel._instance;
                 var openInv = LootInventoryPanel.CurrentOpenInventoryData;
                 if (Il2CppSafe.IsAliveUnity(openPanel) && openPanel.gameObject.activeInHierarchy &&
                     Il2CppSafe.IsAlive(openInv) && !openInv.isPlayerInventory && seenInvs.Add(openInv.Pointer))

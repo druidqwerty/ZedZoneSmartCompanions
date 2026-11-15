@@ -208,6 +208,11 @@ namespace ZedZone.SmartCompanions
                     SendPacketToHost("REQ_SYNC|1");
             }
 
+            if (online && IsMultiplayerHost)
+            {
+                SyncRemoteLeaderPositionsEveryFrame();
+            }
+
             if (!IsMultiplayerClient && now >= _nextHostNpcScanTime)
             {
                 _nextHostNpcScanTime = now + 0.65f;

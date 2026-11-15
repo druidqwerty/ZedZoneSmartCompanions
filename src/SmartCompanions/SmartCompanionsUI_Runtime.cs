@@ -81,7 +81,7 @@ namespace ZedZone.SmartCompanions
             if (ShowMainWindow) return false; // Background chest controls are hidden by the modal hub.
             if (!ShowMainWindow && CompanionConfigStore.ShowHudBadge &&
                 _currentHudBadgeRect.width > 0f && _currentHudBadgeRect.Contains(position)) return true;
-            var panel = LootInventoryPanel.instance;
+            var panel = LootInventoryPanel._instance;
             var inventory = LootInventoryPanel.CurrentOpenInventoryData;
             if (!Il2CppSafe.IsAliveUnity(panel) || !Il2CppSafe.IsAlive(inventory) || inventory.isPlayerInventory ||
                 !panel.gameObject.activeInHierarchy) return false;

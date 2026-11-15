@@ -7,6 +7,27 @@ namespace ZedZone.SmartCompanions
 {
     public static partial class MultiplayerSyncSystem
     {
+        public static void SyncRemoteLeaderPositionsEveryFrame()
+        {
+            try
+            {
+                var playerSync = NetPlayerSync.instance;
+                if (!Il2CppSafe.IsAliveUnity(playerSync) || playerSync.m_remotes == null) return;
+                foreach (var kv in playerSync.m_remotes)
+                {
+                    var remote = kv.Value;
+                    if (!Il2CppSafe.IsAlive(remote) || !Il2CppSafe.IsAliveUnity(remote.controller) || remote.controller.deadFlag)
+                        continue;
+                    Vector2 pos = remote.controller.transform.position;
+                    if (Il2CppSafe.IsAlive(remote.controller.characterData))
+                        remote.controller.characterData.characterPosition = pos;
+                    if (Il2CppSafe.IsAlive(remote.characterData))
+                        remote.characterData.characterPosition = pos;
+                }
+            }
+            catch { }
+        }
+
         public static void TickHostNpcsAndRemoteLeaders()
         {
             try

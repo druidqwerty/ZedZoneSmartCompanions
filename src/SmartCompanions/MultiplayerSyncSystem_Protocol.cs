@@ -123,6 +123,90 @@ namespace ZedZone.SmartCompanions
             catch { }
         }
 
+        public static void BroadcastCompanionDownedState(string npcGuid, bool isDowned)
+        {
+            if (string.IsNullOrEmpty(npcGuid)) return;
+            try
+            {
+                var st = CompanionConfigStore.GetOrCreateCompanion(npcGuid);
+                st.IsDownedInMp = isDowned;
+                // Check IsMultiplayerHost directly (never suppressed by MultiplayerTeammateAidPatches)
+                if (IsMultiplayerHost)
+                {
+                    string safeGuid = npcGuid.Replace("|", "/");
+                    BroadcastPacketFromHost($"NPC_DOWNED|{safeGuid}|{(isDowned ? 1 : 0)}");
+                }
+            }
+            catch { }
+        }
+
+        public static bool RequestReviveCompanion(GOAPAgent ag, CompanionRuntimeState st)
+        {
+            if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || !Il2CppSafe.IsAlive(ag.npcData))
+                return false;
+            try
+            {
+                var localPlayer = GameController.instance?.playerCharacter;
+                if (!Il2CppSafe.IsAliveUnity(localPlayer) || localPlayer.deadFlag)
+                    return false;
+                float dist = Vector2.Distance(localPlayer.transform.position, ag.humanCharacter.transform.position);
+                if (dist > 4.6f)
+                    return false;
+
+                string guid = ag.npcData.npcGUID ?? st?.NpcGuid ?? "";
+                if (IsMultiplayerClient)
+                {
+                    if (string.IsNullOrEmpty(guid)) return false;
+                    string safeGuid = guid.Replace("|", "/");
+                    string safeCaller = (GetLocalPlayerCharacterId() ?? "").Replace("|", "/");
+                    SendPacketToHost($"REVIVE_NPC|{safeGuid}|{safeCaller}");
+                    BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                        $"Запрос на реанимацию {st?.LastKnownName ?? "напарника"} отправлен хосту...",
+                        $"Sent revive request for {st?.LastKnownName ?? "companion"} to host...",
+                        $"已向主机发送扶起 {st?.LastKnownName ?? "队友"} 的请求..."), 3.5f);
+                    return true;
+                }
+
+                return PerformHostOrLocalCompanionRevive(ag.humanCharacter, st, localPlayer);
+            }
+            catch { return false; }
+        }
+
+        internal static bool PerformHostOrLocalCompanionRevive(HumanCharacterController hc, CompanionRuntimeState st, HumanCharacterController rescuer)
+        {
+            if (!Il2CppSafe.IsAliveUnity(hc) || hc.deadFlag) return false;
+            try
+            {
+                var aidMgr = CharacterAidManager.instance;
+                float pct = 0.35f;
+                try { pct = Mathf.Max(0.35f, CharacterAidManager.revivePercent); } catch { }
+
+                if (Il2CppSafe.IsAlive(aidMgr) && CharacterAidManager.IsDowned(hc))
+                {
+                    aidMgr.ExitDowned(hc, pct, rescuer);
+                }
+                else
+                {
+                    if (hc.weaponHolsteredByDowned)
+                        hc.NetExitDowned(pct);
+                    var status = hc.characterData?.characterStatusData;
+                    if (Il2CppSafe.IsAlive(status))
+                    {
+                        float maxHp = status.maxhp > 0f ? status.maxhp : 100f;
+                        status.hp = Mathf.Max(status.hp, maxHp * pct);
+                        hc.hp = status.hp;
+                    }
+                }
+                if (st != null)
+                {
+                    st.IsDownedInMp = false;
+                    BroadcastCompanionDownedState(st.NpcGuid, false);
+                }
+                return true;
+            }
+            catch { return false; }
+        }
+
         public static long PacketsSent { get; private set; }
         public static long PacketsReceived { get; private set; }
 
@@ -241,6 +325,8 @@ namespace ZedZone.SmartCompanions
                 foreach (var kv in CompanionConfigStore.CompanionStates)
                 {
                     SyncCompanionStateChange(kv.Value, bumpRevision: false);
+                    if (kv.Value != null && kv.Value.IsDownedInMp && !string.IsNullOrEmpty(kv.Value.NpcGuid))
+                        BroadcastPacketFromHost($"NPC_DOWNED|{kv.Value.NpcGuid.Replace("|", "/")}|1");
                 }
             }
             catch { }
@@ -478,6 +564,58 @@ namespace ZedZone.SmartCompanions
                 if (cmd == "LOOT" && receivedOnHost)
                 {
                     AutoLootSystem.CommandSweepNearbyLoot(null, 20f);
+                    return true;
+                }
+
+                if (cmd == "NPC_DOWNED" && parts.Length >= 3)
+                {
+                    string guid = parts[1];
+                    bool downed = parts[2] == "1";
+                    if (!string.IsNullOrEmpty(guid))
+                    {
+                        var st = CompanionConfigStore.GetOrCreateCompanion(guid);
+                        st.IsDownedInMp = downed;
+                        if (!receivedOnHost)
+                        {
+                            var squad = SmartChatterSystem.GetActiveTeammateAgents();
+                            for (int i = 0; i < squad.Count; i++)
+                            {
+                                var ag = squad[i];
+                                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter))
+                                    continue;
+                                if (!string.Equals(ag.npcData.npcGUID, guid, StringComparison.OrdinalIgnoreCase))
+                                    continue;
+                                try
+                                {
+                                    if (downed && !ag.humanCharacter.weaponHolsteredByDowned)
+                                        ag.humanCharacter.NetEnterDowned();
+                                    else if (!downed && ag.humanCharacter.weaponHolsteredByDowned)
+                                        ag.humanCharacter.NetExitDowned(0.35f);
+                                }
+                                catch { }
+                                break;
+                            }
+                        }
+                    }
+                    return true;
+                }
+
+                if (cmd == "REVIVE_NPC" && parts.Length >= 2 && receivedOnHost)
+                {
+                    string guid = parts[1];
+                    string rescuerId = parts.Length >= 3 ? parts[2] : "";
+                    if (!string.IsNullOrEmpty(guid) && GOAPNPCManager.instance?.activeNPCs != null &&
+                        GOAPNPCManager.instance.activeNPCs.TryGetValue(guid, out var ag) &&
+                        Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAliveUnity(ag.humanCharacter))
+                    {
+                        var rescuer = ResolveLeaderController(rescuerId, out _);
+                        if (!Il2CppSafe.IsAliveUnity(rescuer) ||
+                            Vector2.Distance(rescuer.transform.position, ag.humanCharacter.transform.position) <= 6.5f)
+                        {
+                            var st = CompanionConfigStore.GetOrCreateCompanion(guid, ag.npcData?.characterData?.characterName);
+                            PerformHostOrLocalCompanionRevive(ag.humanCharacter, st, rescuer ?? GameController.instance?.playerCharacter);
+                        }
+                    }
                     return true;
                 }
             }

@@ -802,6 +802,9 @@ namespace ZedZone.SmartCompanions
                     continue;
                 if (MultiplayerSyncSystem.IsMultiplayerOnline && !MultiplayerSyncSystem.CanLocalPlayerCommand(ag.npcData))
                     continue;
+                if (CompanionConfigStore.CompanionStates.TryGetValue(ag.npcData.npcGUID ?? "", out var st) &&
+                    st != null && st.RosterMode == CompanionRosterMode.CampGarrison)
+                    continue;
                 result.Add(ag);
             }
             return result;

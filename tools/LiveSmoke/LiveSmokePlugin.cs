@@ -104,7 +104,11 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         Application.runInBackground=true;
                         GameController.UpdateFocusAutoPause(true);
                         InGameController.instance.ResumeGame();
-                        LiveSmokePlugin.Logger.LogInfo("[LiveLab] WORLD READY player="+gc.playerCharacter.transform.position);
+                        if (Il2CppSafe.IsAliveUnity(LootInventoryPanel._instance))
+                            throw new Exception("v3.0.2 regression: LootInventoryPanel._instance was prematurely instantiated on world boot!");
+                        if (Il2CppSafe.IsAliveUnity(CharacterInput.instance) && CharacterInput.instance.stopAllInput)
+                            throw new Exception("v3.0.2 regression: CharacterInput.instance.stopAllInput remained stuck true on world boot!");
+                        LiveSmokePlugin.Logger.LogInfo("[LiveLab] WORLD READY player="+gc.playerCharacter.transform.position+" (LootInventoryPanel._instance=null, stopAllInput=false verified)");
                     }
                     if (Time.realtimeSinceStartup >= _nextReport)
                     {

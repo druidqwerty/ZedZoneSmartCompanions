@@ -7,12 +7,21 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.1"><strong>Release v3.0.1 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.2"><strong>Release v3.0.2 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v3.0.2 — Input, vehicle, long-range garrison, co-op revival & stack-merging fixes
+
+- **Fixed startup WASD / Esc / UI input freeze (`LootInventoryPanel._instance`):** replaced all reads of ZED ZONE's lazy `LootInventoryPanel.instance` singleton getter with the raw backing field `_instance`, preventing premature `LootInventoryPanel.Awake()` instantiation and `stopAllInput` freeze on save load.
+- **Fixed vehicle boarding, exit & seat-overflow restore (`ExpeditionSystems`):** replaced permanent `RosterMode = CampGarrison` seat-overflow mutation with a transient `IsTransientVehicleOverflow` flag that clears immediately on vehicle exit, tracks `aboardCompanions` across `isDriving || drivingVehicle`, skips yield/formation/combat nudges while aboard, and preserves native `0.10 m` vehicle/room A* `IsPathClear` clearance.
+- **Fixed long-range Hold Position & Camp Garrison teleporting (>100 m):** patched `GOAPNPCData.isStayAtPositionOrder`, `GOAPNPCManager.IsStayingBehindOrder`, and `GOAPAction_FollowLeader.TryCatchUpTeleport`, clamped `GOAPGoal_FollowLeader.GetPriority <= 0.35f` at any distance, and made squad-wide hotkeys skip `CampGarrison` defenders.
+- **Fixed co-op companions dying immediately instead of kneeling (`MultiplayerTeammateAidPatches`):** scoped a thread-local `NetworkManager.isOnline` override strictly around non-player companion aid checks so zero-HP teammates enter ZED ZONE's native kneeling revival state on Host, broadcast `NPC_DOWNED` to clients, and expose a `[+] Revive` button in `F8 → Squad` within `4.6 m`.
+- **`Alt+F` loot sweep hotkey, stack merging, hybrid Drop-off chests, Coconut & Reset Settings:** added `Alt+F` quick loot sweep, `TryAddWholeWithStacking` stack merging in chests/backpacks, hybrid `[Drop-off + Category]` chest routing, vehicle trunk unloading into `[Drop-off]`, Coconut (`230`) food classification, and two-step **Reset All Settings to Default** in `F8 → Settings` (preserving marked chests and XP).
+- **Verified:** live acceptance against ZED ZONE's `2026-11-15` binary (`81` Harmony patches) + 300/300 graphical cases + all 10 deterministic regression suites; all 8,386 save files unchanged. [Scope and limits](docs/verification-3.0.2.md).
 
 ## New in v3.0.1 — Dismissal HUD & corridor navigation hotfix
 
@@ -282,9 +291,9 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-3.0.1.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-3.0.2.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
-4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, or **`F7`** to issue a quick Base Sort order.
+4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, **`Alt+F`** to sweep nearby loot, or **`F7`** to issue a quick Base Sort order.
 
 ## Building from Source
 

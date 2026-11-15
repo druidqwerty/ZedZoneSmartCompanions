@@ -71,13 +71,85 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 string rep = PerformanceAndDiagnostics.BuildPrivacySafeReport();
                 Assert(rep.Contains("Roster=CampGarrison") && !rep.Contains("55.5") && !rep.Contains("124.5"),
                     "diagnostic report leaked garrison HomeAnchorPos coordinates");
+
+                // 5. v3.0.2: ShouldStayAnchoredBehind covers CampGarrison, HoldPosition, CoverDirection & IsTransientVehicleOverflow (unless physical task active)
+                var mockNpc = new GOAPNPCData { npcGUID = testGuid };
+                loaded.RosterMode = CompanionRosterMode.CampGarrison;
+                loaded.ActiveOrder = TacticalOrderKind.Follow;
+                loaded.IsTransientVehicleOverflow = false;
+                Assert(CampGarrisonSystem.ShouldStayAnchoredBehind(mockNpc), "ShouldStayAnchoredBehind false for CampGarrison");
+
+                loaded.RosterMode = CompanionRosterMode.ActiveSquad;
+                Assert(!CampGarrisonSystem.ShouldStayAnchoredBehind(mockNpc), "ShouldStayAnchoredBehind true for ActiveSquad + Follow");
+
+                loaded.ActiveOrder = TacticalOrderKind.HoldPosition;
+                Assert(CampGarrisonSystem.ShouldStayAnchoredBehind(mockNpc), "ShouldStayAnchoredBehind false for HoldPosition");
+
+                loaded.ActiveOrder = TacticalOrderKind.CoverDirection;
+                Assert(CampGarrisonSystem.ShouldStayAnchoredBehind(mockNpc), "ShouldStayAnchoredBehind false for CoverDirection");
+
+                loaded.ActiveOrder = TacticalOrderKind.Follow;
+                loaded.IsTransientVehicleOverflow = true;
+                Assert(CampGarrisonSystem.ShouldStayAnchoredBehind(mockNpc), "ShouldStayAnchoredBehind false for IsTransientVehicleOverflow");
+
+                loaded.IsSortingActive = true;
+                Assert(!CampGarrisonSystem.ShouldStayAnchoredBehind(mockNpc), "ShouldStayAnchoredBehind failed to yield to active physical task");
+                loaded.IsSortingActive = false;
+
+                // 6. v3.0.2: ClearAllTransientVehicleOverflow clears transient flag without mutating RosterMode
+                ExpeditionSystems.ClearAllTransientVehicleOverflow();
+                Assert(!loaded.IsTransientVehicleOverflow && loaded.RosterMode == CompanionRosterMode.ActiveSquad,
+                    "ClearAllTransientVehicleOverflow failed or mutated RosterMode");
+
+                // 7. v3.0.2: Client NPC_DOWNED packet updates IsDownedInMp cleanly
+                var downedMsg = new ZedZone.Net.MsgChat
+                {
+                    senderId = 1,
+                    senderName = "Host",
+                    text = MultiplayerSyncSystem.PacketPrefix + $"NPC_DOWNED|{testGuid}|1"
+                };
+                MultiplayerSyncSystem.TryHandleIncomingChatPacket(downedMsg, null, receivedOnHost: false);
+                Assert(loaded.IsDownedInMp, "NPC_DOWNED|1 did not set IsDownedInMp on client");
+                downedMsg.text = MultiplayerSyncSystem.PacketPrefix + $"NPC_DOWNED|{testGuid}|0";
+                MultiplayerSyncSystem.TryHandleIncomingChatPacket(downedMsg, null, receivedOnHost: false);
+                Assert(!loaded.IsDownedInMp, "NPC_DOWNED|0 did not clear IsDownedInMp on client");
+
+                // 8. v3.0.2: ResetAllSettingsToDefault(preserveContainerRules: true) resets settings & doctrines while preserving marked chests and XP
+                const string testBoxId = "sc_v302_reset_box";
+                CompanionConfigStore.ContainerRules[testBoxId] = new ContainerRuleProfile
+                {
+                    ContainerId = testBoxId,
+                    IsMarkedByPlayer = true,
+                    Categories = StorageCategory.Medicine
+                };
+                loaded.ExperiencePoints = 180;
+                loaded.Doctrine = TacticalDoctrine.SniperKite;
+                loaded.RosterMode = CompanionRosterMode.CampGarrison;
+                loaded.ActiveOrder = TacticalOrderKind.HoldPosition;
+                CompanionConfigStore.ActiveFormation = SquadFormation.Line;
+                CompanionConfigStore.FollowDistance = FollowDistanceMode.Scout;
+                CompanionConfigStore.EnableSmartCombat = false;
+
+                CompanionConfigStore.ResetAllSettingsToDefault(preserveContainerRules: true);
+                bool boxPreserved = CompanionConfigStore.ContainerRules.ContainsKey(testBoxId);
+                CompanionConfigStore.ContainerRules.Remove(testBoxId);
+
+                Assert(boxPreserved, "ResetAllSettingsToDefault(true) erased marked container rules");
+                Assert(loaded.ExperiencePoints == 180, "ResetAllSettingsToDefault altered companion XP");
+                Assert(loaded.Doctrine == TacticalDoctrine.Balanced &&
+                       loaded.RosterMode == CompanionRosterMode.ActiveSquad &&
+                       loaded.ActiveOrder == TacticalOrderKind.Follow &&
+                       CompanionConfigStore.ActiveFormation == SquadFormation.Free &&
+                       CompanionConfigStore.FollowDistance == FollowDistanceMode.Normal &&
+                       CompanionConfigStore.EnableSmartCombat,
+                       "ResetAllSettingsToDefault did not restore expected defaults");
             }
             finally
             {
                 CompanionConfigStore.CompanionStates.Remove(testGuid);
             }
 
-            UiSmokePlugin.Logger.LogInfo("[UiSmoke] PASS v2.4.0 camp garrison persistence, host-checked sync & telemetry privacy (8/8).");
+            UiSmokePlugin.Logger.LogInfo("[UiSmoke] PASS v2.4.0–v3.0.2 camp garrison, anchor stay-behind, transient overflow, NPC_DOWNED sync & settings reset.");
         }
     }
 }

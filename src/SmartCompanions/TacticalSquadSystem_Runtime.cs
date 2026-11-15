@@ -26,9 +26,24 @@ namespace ZedZone.SmartCompanions
 
             var targets = new List<GOAPAgent>();
             if (Il2CppSafe.IsAliveUnity(specificAgent))
+            {
                 targets.Add(specificAgent);
+            }
             else
-                targets.AddRange(SmartChatterSystem.GetActiveTeammateAgents());
+            {
+                var squad = SmartChatterSystem.GetActiveTeammateAgents();
+                for (int i = 0; i < squad.Count; i++)
+                {
+                    var cand = squad[i];
+                    if (Il2CppSafe.IsAliveUnity(cand) && Il2CppSafe.IsAlive(cand.npcData) &&
+                        CompanionConfigStore.CompanionStates.TryGetValue(cand.npcData.npcGUID ?? "", out var candSt) &&
+                        candSt != null && candSt.RosterMode == CompanionRosterMode.CampGarrison)
+                    {
+                        continue;
+                    }
+                    targets.Add(cand);
+                }
+            }
 
             if (targets.Count == 0) return 0;
 
@@ -148,7 +163,11 @@ namespace ZedZone.SmartCompanions
             }
 
             Vector2 selfPos = hc.transform.position;
+            if (st.OrderAnchorPos.sqrMagnitude < 0.001f && Vector2.Distance(selfPos, Vector2.zero) > 120f)
+                st.OrderAnchorPos = selfPos;
             float distToAnchor = Vector2.Distance(selfPos, st.OrderAnchorPos);
+            if (st.ActiveOrder == TacticalOrderKind.HoldPosition || st.ActiveOrder == TacticalOrderKind.CoverDirection)
+                CampGarrisonSystem.SyncAnchoredNpcDataPosition(agent, st.OrderAnchorPos, st.OrderAnchorZ);
             var threat = agent.mostThreateningCharacter;
             bool hasThreat = Il2CppSafe.IsAliveUnity(threat) && !threat.deadFlag;
 

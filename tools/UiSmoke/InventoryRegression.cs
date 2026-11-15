@@ -18,7 +18,56 @@ namespace ZedZone.SmartCompanions.UiSmoke
             if (!RationSharing.TryConsumePortion(empty) || Total(empty) != 0f)
                 throw new Exception("Final food portion was not removed.");
             if (RationSharing.TryConsumePortion(empty)) throw new Exception("Exhausted rations remained usable.");
-            UiSmokePlugin.Logger.LogInfo("[InventoryRegression] PASS full-destination/retry conservation, whole-item transfer, exact food consumption and empty-food rejection.");
+
+            // v3.0.2: Coconut (230) classified as SweetAndSnack + FreshFood (never DrinkAndSoda / CannedAndDrinks)
+            var coconut = MakeItem(230, 1f);
+            if (ItemCategorizer.ClassifyFoodKind(coconut) != FoodKind.SweetAndSnack)
+                throw new Exception("Coconut (230) did not classify as FoodKind.SweetAndSnack: " + ItemCategorizer.ClassifyFoodKind(coconut));
+            if (ItemCategorizer.ClassifyItem(coconut) != StorageCategory.FreshFood)
+                throw new Exception("Coconut (230) did not classify as StorageCategory.FreshFood: " + ItemCategorizer.ClassifyItem(coconut));
+
+            // v3.0.2: Hybrid [Drop-off + Medicine] vs Pure [Drop-off] container routing
+            var hybridBox = new DiscoveredContainer
+            {
+                ContainerId = "v302_hybrid_med",
+                Inventory = MakeInventory(4, 4),
+                DistanceToPlayer = 2f,
+                Rule = new ContainerRuleProfile
+                {
+                    ContainerId = "v302_hybrid_med",
+                    IsMarkedByPlayer = true,
+                    IsDropoffSource = true,
+                    Categories = StorageCategory.Medicine,
+                    Priority = 4
+                }
+            };
+            AddFixture(hybridBox.Inventory, MakeItem(220, 1f)); // Bandage belongs in hybrid Medicine chest -> 0 remaining dropoff items!
+            var pureDropBox = new DiscoveredContainer
+            {
+                ContainerId = "v302_pure_drop",
+                Inventory = MakeInventory(4, 4),
+                DistanceToPlayer = 3f,
+                Rule = new ContainerRuleProfile
+                {
+                    ContainerId = "v302_pure_drop",
+                    IsMarkedByPlayer = true,
+                    IsDropoffSource = true,
+                    Categories = StorageCategory.None,
+                    Priority = 3
+                }
+            };
+            var boxList = new System.Collections.Generic.List<DiscoveredContainer> { hybridBox, pureDropBox };
+            var catDest = BaseSortingSystem.GetCategorizedDestinationBoxes(boxList);
+            var pureDest = BaseSortingSystem.GetPureDropoffDestinationBoxes(boxList);
+            int remDrop = BaseSortingSystem.InspectRemainingDropoffItems(boxList, out _);
+            if (catDest.Count != 1 || catDest[0].ContainerId != "v302_hybrid_med")
+                throw new Exception("Hybrid [Drop-off + Medicine] chest was excluded from GetCategorizedDestinationBoxes.");
+            if (pureDest.Count != 1 || pureDest[0].ContainerId != "v302_pure_drop")
+                throw new Exception("GetPureDropoffDestinationBoxes failed to isolate pure [Drop-off] chest.");
+            if (remDrop != 0)
+                throw new Exception("Hybrid [Drop-off + Medicine] chest reported its own Medicine item as unplaced Drop-off remainder.");
+
+            UiSmokePlugin.Logger.LogInfo("[InventoryRegression] PASS v3.0.2 stack merge + top-up, conservation, Coconut(230), hybrid Drop-off routing & rations.");
         }
 
         private static void VerifyItem(int itemId)
@@ -46,6 +95,33 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 throw new Exception("Successful transfer failed quantity conservation " + itemId);
             if (InventoryTransfers.TryMoveWhole(source, roomy, item))
                 throw new Exception("Already removed source item transferred twice.");
+
+            if (stack >= 2)
+            {
+                // v3.0.2: 1-piece stackable item merges cleanly into occupied 1-slot destination (0 free cells!)
+                var srcOne = MakeInventory(width * 2, height * 2);
+                var dstOne = MakeInventory(width, height);
+                var onePiece = MakeItem(itemId, 1f);
+                AddFixture(srcOne, onePiece);
+                AddFixture(dstOne, MakeItem(itemId, 1f));
+                if (!InventoryTransfers.TryMoveWhole(srcOne, dstOne, onePiece) ||
+                    Total(srcOne) != 0f || Mathf.Abs(Total(dstOne) - 2f) > 0.001f || dstOne.itemList.Count != 1)
+                {
+                    throw new Exception($"v3.0.2 full stack merge into occupied slot failed for item {itemId} (dstTotal={Total(dstOne)}, count={dstOne.itemList.Count}).");
+                }
+
+                // v3.0.2: Partial stack top-up + remainder into free slot preserves exact total & compacts stacks
+                var srcTwo = MakeInventory(width * 2, height * 2);
+                var dstTop = MakeInventory(width * 2, height);
+                var twoPieces = MakeItem(itemId, 2f);
+                AddFixture(srcTwo, twoPieces);
+                AddFixture(dstTop, MakeItem(itemId, stack - 1));
+                if (!InventoryTransfers.TryMoveWhole(srcTwo, dstTop, twoPieces) ||
+                    Total(srcTwo) != 0f || Mathf.Abs(Total(dstTop) - (stack + 1)) > 0.001f || dstTop.itemList.Count != 2)
+                {
+                    throw new Exception($"v3.0.2 partial stack top-up + remainder failed for item {itemId} (dstTotal={Total(dstTop)}, count={dstTop.itemList.Count}).");
+                }
+            }
 
             // Observe legacy merge semantics separately; do not let this mutate production state.
             var legacy = MakeInventory(width, height);

@@ -29,7 +29,7 @@ namespace ZedZone.SmartCompanions
         public static void OnMainWindowOpened()
         {
             var containers = BaseSortingSystem.ScanNearbyContainers(force: true);
-            var openPanel = LootInventoryPanel.instance;
+            var openPanel = LootInventoryPanel._instance;
             var openInv = LootInventoryPanel.CurrentOpenInventoryData;
             if (Il2CppSafe.IsAliveUnity(openPanel) && openPanel.gameObject.activeInHierarchy &&
                 Il2CppSafe.IsAlive(openInv) && !openInv.isPlayerInventory)
@@ -253,8 +253,12 @@ namespace ZedZone.SmartCompanions
             }
 
             // 3. Docked Container Category Bar whenever a non-player container is open in LootInventoryPanel!
+            // CRITICAL: Read LootInventoryPanel._instance (never .instance!), because get_instance instantiates
+            // the active empty UI/LootInventoryPanel prefab at top-center and locks CharacterInput.stopAllInput!
+            var openPanel = LootInventoryPanel._instance;
             var openInv = LootInventoryPanel.CurrentOpenInventoryData;
-            if (!ShowMainWindow && openInv != null && !openInv.isPlayerInventory && LootInventoryPanel.instance != null && LootInventoryPanel.instance.gameObject.activeInHierarchy)
+            if (!ShowMainWindow && Il2CppSafe.IsAlive(openInv) && !openInv.isPlayerInventory &&
+                Il2CppSafe.IsAliveUnity(openPanel) && openPanel.gameObject.activeInHierarchy)
             {
                 DrawOpenContainerCategoryPanel(openInv);
             }
@@ -320,7 +324,9 @@ namespace ZedZone.SmartCompanions
             {
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
             }
-            if (GUI.Button(new Rect(pos.x + 248f, pos.y + 3f, 66f, 26f), CompanionConfigStore.L(" Лут", " Loot", " 搜刮"), _btnStyle))
+            if (GUI.Button(new Rect(pos.x + 248f, pos.y + 3f, 66f, 26f),
+                UiTip(CompanionConfigStore.L(" Лут", " Loot", " 搜刮"),
+                    CompanionConfigStore.L("Собрать лут вокруг [Alt+F]", "Sweep nearby loot [Alt+F]", "搜刮周围物资 [Alt+F]")), _btnStyle))
             {
                 AutoLootSystem.CommandSweepNearbyLoot(null, 20f);
             }
@@ -340,8 +346,9 @@ namespace ZedZone.SmartCompanions
         {
             var lang = CompanionConfigStore.EffectiveLanguage;
             string boxId = BaseSortingSystem.GetContainerStableId(openInv);
-            string boxTitle = LootInventoryPanel.instance != null && !string.IsNullOrEmpty(LootInventoryPanel.instance.lootObjectName)
-                ? LootInventoryPanel.instance.lootObjectName
+            var existingPanel = LootInventoryPanel._instance;
+            string boxTitle = Il2CppSafe.IsAliveUnity(existingPanel) && !string.IsNullOrEmpty(existingPanel.lootObjectName)
+                ? existingPanel.lootObjectName
                 : (!string.IsNullOrEmpty(openInv.inventoryTitleName)
                     ? openInv.inventoryTitleName
                     : CompanionConfigStore.L(lang, "Открытый ящик", "Open Container", "当前储物箱"));

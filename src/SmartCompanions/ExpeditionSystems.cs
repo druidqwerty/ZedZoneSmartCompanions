@@ -16,7 +16,6 @@ namespace ZedZone.SmartCompanions
         public const float PetFeedReachRadius = 2.45f;
 
         private static readonly HashSet<string> PlannedBoardGuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private static readonly HashSet<string> OverflowGarrisonHoldGuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, float> LastFloorTransitionAt = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
         public static readonly Dictionary<string, string> PetEscortCompanionByPet = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, float> LastPetFedAt = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
@@ -143,51 +142,118 @@ namespace ZedZone.SmartCompanions
             return true;
         }
 
+        public static void ClearAllTransientVehicleOverflow()
+        {
+            foreach (var kv in CompanionConfigStore.CompanionStates)
+            {
+                if (kv.Value != null)
+                    kv.Value.IsTransientVehicleOverflow = false;
+            }
+        }
+
         public static void TickVehicleExpedition(float now)
         {
-            if (MultiplayerSyncSystem.IsMultiplayerClient || now - _lastVehicleTickAt < 1.0f) return;
-            _lastVehicleTickAt = now;
+            if (MultiplayerSyncSystem.IsMultiplayerClient) return;
             var gc = GameController.instance;
-            if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter)) return;
+            if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter))
+            {
+                if (_wasPlayerDriving)
+                {
+                    _wasPlayerDriving = false;
+                    _activeDrivenVehiclePtr = IntPtr.Zero;
+                    PlannedBoardGuids.Clear();
+                    ClearAllTransientVehicleOverflow();
+                }
+                return;
+            }
 
             var player = gc.playerCharacter;
             BasicVehicle driven = (player.isDriving && Il2CppSafe.IsAliveUnity(player.drivingVehicle)) ? player.drivingVehicle : null;
+
+            // Clear transient overflow immediately on the exact frame the player exits a vehicle (never throttled or distance-gated)
+            if (!Il2CppSafe.IsAliveUnity(driven) && _wasPlayerDriving)
+            {
+                _wasPlayerDriving = false;
+                _activeDrivenVehiclePtr = IntPtr.Zero;
+                PlannedBoardGuids.Clear();
+                ClearAllTransientVehicleOverflow();
+            }
+
+            if (now - _lastVehicleTickAt < 1.0f) return;
+            _lastVehicleTickAt = now;
+
             var squad = SmartChatterSystem.GetActiveTeammateAgents();
 
             if (Il2CppSafe.IsAliveUnity(driven))
             {
                 if (!_wasPlayerDriving || _activeDrivenVehiclePtr != driven.Pointer)
                 {
-                    RestoreOverflowGarrison(player.transform.position, forceAll: true);
-                    _wasPlayerDriving = true; _activeDrivenVehiclePtr = driven.Pointer;
-                    int freeSeats = driven.HasFreePassengerSeat() ? Mathf.Max(0, driven.passengerSeatLimit) : 0;
+                    ClearAllTransientVehicleOverflow();
+                    _wasPlayerDriving = true;
+                    _activeDrivenVehiclePtr = driven.Pointer;
+                    int aboardCompanions = 0;
                     var entries = new List<(string, float, CompanionSpecialization, CompanionRosterMode)>(squad.Count);
                     for (int i = 0; i < squad.Count; i++)
                     {
                         var ag = squad[i];
                         if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag) continue;
                         var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                        bool isAboard = ag.humanCharacter.isDriving ||
+                                        (Il2CppSafe.IsAliveUnity(ag.humanCharacter.drivingVehicle) && ag.humanCharacter.drivingVehicle.Pointer == driven.Pointer);
+                        if (isAboard)
+                        {
+                            st.IsTransientVehicleOverflow = false;
+                            aboardCompanions++;
+                            continue;
+                        }
                         var sd = ag.npcData.characterData?.characterStatusData;
                         float hp = (Il2CppSafe.IsAlive(sd) && sd.maxhp > 0.01f) ? (sd.hp / sd.maxhp) : 1f;
                         entries.Add((ag.npcData.npcGUID ?? "", hp, InferSpecialization(st), st.RosterMode));
                     }
+                    int freeSeats = driven.HasFreePassengerSeat() ? Mathf.Max(0, driven.passengerSeatLimit - aboardCompanions) : 0;
                     var (board, overflow) = PlanVehicleSeatAllocation(entries, freeSeats);
                     PlannedBoardGuids.Clear();
                     for (int i = 0; i < board.Count; i++) PlannedBoardGuids.Add(board[i]);
                     for (int i = 0; i < overflow.Count; i++)
                     {
                         if (!CompanionConfigStore.CompanionStates.TryGetValue(overflow[i], out var ovSt) || ovSt == null) continue;
-                        ovSt.RosterMode = CompanionRosterMode.CampGarrison;
-                        CampGarrisonSystem.ResolveAndPinHomeAnchor(FindAgent(squad, overflow[i]), ovSt);
-                        OverflowGarrisonHoldGuids.Add(overflow[i]);
+                        ovSt.IsTransientVehicleOverflow = true;
+                        var ovAg = FindAgent(squad, overflow[i]);
+                        if (Il2CppSafe.IsAliveUnity(ovAg) && Il2CppSafe.IsAliveUnity(ovAg.humanCharacter))
+                        {
+                            ovSt.TransientVehicleHoldPos = ovAg.humanCharacter.transform.position;
+                            ovSt.TransientVehicleHoldZ = Il2CppSafe.IsAlive(ovAg.npcData) ? ovAg.npcData.zLevel : 0;
+                        }
+                    }
+                }
+                else
+                {
+                    // Keep seated companions cleared, and if seats filled up before a planned companion reached the car, hold overflow cleanly without touching RosterMode
+                    bool anyFreeSeat = driven.HasFreePassengerSeat();
+                    for (int i = 0; i < squad.Count; i++)
+                    {
+                        var ag = squad[i];
+                        if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag) continue;
+                        if (!CompanionConfigStore.CompanionStates.TryGetValue(ag.npcData.npcGUID ?? "", out var st) || st == null) continue;
+                        bool isAboard = ag.humanCharacter.isDriving ||
+                                        (Il2CppSafe.IsAliveUnity(ag.humanCharacter.drivingVehicle) && ag.humanCharacter.drivingVehicle.Pointer == driven.Pointer);
+                        if (isAboard)
+                        {
+                            st.IsTransientVehicleOverflow = false;
+                        }
+                        else if (!anyFreeSeat && st.RosterMode == CompanionRosterMode.ActiveSquad && !st.IsTransientVehicleOverflow)
+                        {
+                            st.IsTransientVehicleOverflow = true;
+                            st.TransientVehicleHoldPos = ag.humanCharacter.transform.position;
+                            st.TransientVehicleHoldZ = ag.npcData.zLevel;
+                        }
                     }
                 }
                 GuideCrewAndPetsToBoard(driven, squad);
                 return;
             }
 
-            if (_wasPlayerDriving) { _wasPlayerDriving = false; _activeDrivenVehiclePtr = IntPtr.Zero; PlannedBoardGuids.Clear(); }
-            RestoreOverflowGarrison(player.transform.position, forceAll: false);
+            ClearAllTransientVehicleOverflow();
             if (!gc.isPlayerInCombat && CompanionConfigStore.EnableBaseChores && !BaseWorkManager.Paused && now - _lastVehicleMaintainAt >= 6f)
             {
                 _lastVehicleMaintainAt = now;
@@ -287,19 +353,6 @@ namespace ZedZone.SmartCompanions
                 if (Il2CppSafe.IsAliveUnity(squad[i]) && Il2CppSafe.IsAlive(squad[i].npcData) && string.Equals(squad[i].npcData.npcGUID, guid, StringComparison.OrdinalIgnoreCase))
                     return squad[i];
             return null;
-        }
-
-        private static void RestoreOverflowGarrison(Vector2 playerPos, bool forceAll)
-        {
-            if (OverflowGarrisonHoldGuids.Count == 0) return;
-            var restored = new List<string>();
-            foreach (var guid in OverflowGarrisonHoldGuids)
-            {
-                if (!CompanionConfigStore.CompanionStates.TryGetValue(guid, out var st) || st == null) { restored.Add(guid); continue; }
-                if (forceAll || Vector2.Distance(playerPos, st.HomeAnchorPos) <= 45f)
-                { st.RosterMode = CompanionRosterMode.ActiveSquad; st.GarrisonAnchorSettled = false; restored.Add(guid); }
-            }
-            for (int i = 0; i < restored.Count; i++) OverflowGarrisonHoldGuids.Remove(restored[i]);
         }
 
         private static void GuideCrewAndPetsToBoard(BasicVehicle vehicle, IReadOnlyList<GOAPAgent> squad)

@@ -32,13 +32,16 @@ namespace ZedZone.SmartCompanions.LiveSmoke
         internal static bool AllowArenaThreat(GOAPAgent instance, BasicCharacterController character, ref GOAPAgent.ThreatData result)
         {
             if (PhysicalCarryLiveRegression.ArenaActive && !PhysicalCarryLiveRegression.Finished &&
-                Il2CppSafe.IsAliveUnity(PhysicalCarryLiveRegression.ActiveAgent) &&
-                instance.Pointer == PhysicalCarryLiveRegression.ActiveAgent.Pointer)
+                Il2CppSafe.IsAliveUnity(instance) && instance.IsPlayerTeammate())
             {
                 if (Il2CppSafe.IsAliveUnity(character) && !character.isPlayer && character.gameObject.activeSelf)
                 {
-                    ParkedEnemies.Add(character.gameObject);
-                    character.gameObject.SetActive(false);
+                    var candAg = character.GetCachedGOAPAgent();
+                    if (!Il2CppSafe.IsAliveUnity(candAg) || !candAg.IsPlayerTeammate())
+                    {
+                        ParkedEnemies.Add(character.gameObject);
+                        character.gameObject.SetActive(false);
+                    }
                 }
                 result = null;
                 return false;
@@ -68,11 +71,13 @@ namespace ZedZone.SmartCompanions.LiveSmoke
 
         internal static void ParkIfUnexpectedHostile(BasicCharacterController character)
         {
-            if (!_arenaActive || Finished) return;
+            bool combatActive = _arenaActive && !Finished;
+            bool logisticsActive = PhysicalCarryLiveRegression.ArenaActive && !PhysicalCarryLiveRegression.Finished;
+            if (!combatActive && !logisticsActive) return;
             if (!Il2CppSafe.IsAliveUnity(character) || character.isPlayer ||
-                (Il2CppSafe.IsAliveUnity(_agent) && character.Pointer == _agent.humanCharacter.Pointer) ||
-                (Il2CppSafe.IsAliveUnity(_zombie) && character.Pointer == _zombie.Pointer) ||
-                (Il2CppSafe.IsAliveUnity(_hostileHuman) && character.Pointer == _hostileHuman.Pointer) ||
+                (combatActive && Il2CppSafe.IsAliveUnity(_agent) && character.Pointer == _agent.humanCharacter.Pointer) ||
+                (combatActive && Il2CppSafe.IsAliveUnity(_zombie) && character.Pointer == _zombie.Pointer) ||
+                (combatActive && Il2CppSafe.IsAliveUnity(_hostileHuman) && character.Pointer == _hostileHuman.Pointer) ||
                 character.deadFlag || !character.gameObject.activeSelf)
                 return;
             var ag = character.GetCachedGOAPAgent();
@@ -127,6 +132,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 if (Il2CppSafe.IsAliveUnity(ag) && ag.IsPlayerTeammate()) continue;
                 bool isHostile = character.TryCast<ZombieController>() != null ||
                     character.TryCast<HordeZombieController>() != null ||
+                    (Il2CppSafe.IsAliveUnity(_hostileHuman) && character.Pointer == _hostileHuman.Pointer) ||
+                    (Il2CppSafe.IsAliveUnity(logisticsAgent) && SmartCombatAI.IsActualHostileCharacter(logisticsAgent, character, 2)) ||
                     (Il2CppSafe.IsAlive(character.characterData) && BasicCharacterController.IsHostileCamp(character.characterData));
                 if (!isHostile) continue;
                 ParkedEnemies.Add(character.gameObject);
@@ -138,6 +145,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 logisticsAgent.threatDataDic?.Clear();
             }
         }
+
+        internal static void RestoreLogisticsArena() => RestoreArena();
 
         private static void RestoreArena()
         {

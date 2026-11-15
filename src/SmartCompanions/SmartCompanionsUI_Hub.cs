@@ -136,8 +136,9 @@ namespace ZedZone.SmartCompanions
             if (GUI.Button(new Rect(bx + (actionW + 6f), by, actionW, 30f),
                 CompanionConfigStore.L(lang, "Багажник", "Unload Car", "卸后备箱"), _btnStyle))
                 BaseChoreSystem.CommandUnloadVehiclesToBase(null, silentIfEmpty: false);
-            if (GUI.Button(new Rect(bx + (actionW + 6f) * 2f, by, actionW, 30f),
-                CompanionConfigStore.L(lang, "Собрать лут", "Sweep Loot", "搜刮物资"), _btnStyle))
+            if (GUI.Button(new Rect(bx + (actionW + 6f) * 2f, by, actionW, 30f), UiTip(
+                CompanionConfigStore.L(lang, "Лут [Alt+F]", "Loot [Alt+F]", "搜刮 [Alt+F]"),
+                CompanionConfigStore.L(lang, "Собрать лут вокруг отрядом [Alt+F]", "Sweep nearby loot with squad [Alt+F]", "命令小队搜刮附近物资 [Alt+F]")), _btnStyle))
                 AutoLootSystem.CommandSweepNearbyLoot(null, 24f);
             string rationKey = CompanionConfigStore.ShouldUseAltForRationHotkey() ? "Alt+F6" : "F6";
             if (GUI.Button(new Rect(bx + (actionW + 6f) * 3f, by, actionW, 30f),
@@ -331,9 +332,41 @@ namespace ZedZone.SmartCompanions
                     CompanionConfigStore.Save();
                 }
 
-                // Row 4: Direct Companion Orders, Garrison & Two-Step Safe Dismiss (2.4.0)
+                // Row 4: Direct Companion Orders, Downed Revival, Garrison & Two-Step Safe Dismiss (2.4.0 / 3.0.2)
                 cy += 30f;
-                if (CampGarrisonSystem.PendingDismissConfirmGuid == st.NpcGuid)
+                bool isDowned = st.IsDownedInMp;
+                float distToLocal = 999f;
+                try
+                {
+                    if (Il2CppSafe.IsAliveUnity(ag.humanCharacter))
+                    {
+                        if (CharacterAidManager.IsDowned(ag.humanCharacter) || ag.humanCharacter.weaponHolsteredByDowned)
+                            isDowned = true;
+                        var localPl = GameController.instance?.playerCharacter;
+                        if (Il2CppSafe.IsAliveUnity(localPl))
+                            distToLocal = Vector2.Distance(localPl.transform.position, ag.humanCharacter.transform.position);
+                    }
+                }
+                catch { }
+
+                if (isDowned && distToLocal <= 4.6f)
+                {
+                    bool prevEn = GUI.enabled;
+                    GUI.enabled = baseGuiEnabled;
+                    try
+                    {
+                        if (GUI.Button(new Rect(cx, cy, innerW, 28f), UiTip(
+                            CompanionConfigStore.L(lang, "[+] Поднять раненого напарника (рядом)", "[+] Revive Downed Companion (Nearby)", "[+] 扶起身边濒死队友"),
+                            CompanionConfigStore.L(lang, "Поднять напарника с колен (работает и для хоста, и для клиента в коопе)",
+                                "Bring kneeling companion back to their feet (works for Host and Co-op Clients)",
+                                "扶起跪地濒死的队友（单机与联机主客机通用）")), _catOnStyle))
+                        {
+                            MultiplayerSyncSystem.RequestReviveCompanion(ag, st);
+                        }
+                    }
+                    finally { GUI.enabled = prevEn; }
+                }
+                else if (CampGarrisonSystem.PendingDismissConfirmGuid == st.NpcGuid)
                 {
                     float toggleW = innerW * 0.48f;
                     float confirmW = (innerW - toggleW - 12f) * 0.54f;
@@ -491,7 +524,7 @@ namespace ZedZone.SmartCompanions
             }
 
             if (GUI.Button(new Rect(bx + (commandW + 6f) * 3f, by, commandW, 30f),
-                CompanionConfigStore.L(lang, "Собрать лут вокруг", "Sweep Nearby Loot", "搜刮周围物资"), _btnStyle))
+                CompanionConfigStore.L(lang, "Собрать лут [Alt+F]", "Sweep Loot [Alt+F]", "搜刮周围物资 [Alt+F]"), _btnStyle))
             {
                 AutoLootSystem.CommandSweepNearbyLoot(null, 24f);
             }
@@ -704,7 +737,8 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        private static float _settingsContentHeight = 1310f;
+        private static float _settingsContentHeight = 1350f;
+        private static bool _confirmResetAllSettings = false;
 
         private static float DrawSettingsHeading(float x, float y, float width, string title)
         {
@@ -864,6 +898,41 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.L(lang, "Сбросить позиции UI", "Reset UI Positions", "重置所有窗口位置"), _btnStyle))
             {
                 CompanionConfigStore.ResetUiPositions();
+            }
+            ly += 36f;
+
+            if (!_confirmResetAllSettings)
+            {
+                if (GUI.Button(new Rect(lx, ly, lw, 30f), UiTip(
+                    CompanionConfigStore.L(lang,
+                        "Сбросить все настройки по умолчанию (разметка ящиков базы сохранится)",
+                        "Reset All Settings to Default (preserves marked base chests)",
+                        "恢复全部默认设置（保留已标记的基地储物箱）"),
+                    CompanionConfigStore.L(lang,
+                        "Возвращает все переключатели, формацию, доктрины, резервы и позиции окон к заводским настройкам мода",
+                        "Restores all toggles, formation, doctrines, reserves and window positions to factory defaults",
+                        "将所有开关、阵型、战术学说、物资保留线与窗口位置恢复为默认设置")), _btnStyle))
+                {
+                    _confirmResetAllSettings = true;
+                }
+            }
+            else
+            {
+                if (GUI.Button(new Rect(lx, ly, uiBtnW, 30f),
+                    CompanionConfigStore.L(lang, "Подтвердить сброс настроек", "Confirm Reset to Default", "确认恢复默认设置"), _catOnStyle))
+                {
+                    CompanionConfigStore.ResetAllSettingsToDefault(preserveContainerRules: true);
+                    _confirmResetAllSettings = false;
+                    BaseSortingSystem.SetBanner(CompanionConfigStore.L(lang,
+                        "Все настройки мода и доктрины напарников сброшены по умолчанию (разметка ящиков сохранена).",
+                        "All mod settings and companion doctrines reset to default (marked base chests preserved).",
+                        "已将所有模组设置与队友学说恢复为默认值（基地储物箱标记已保留）。"), 5f);
+                }
+                if (GUI.Button(new Rect(lx + uiBtnW + 6f, ly, uiBtnW, 30f),
+                    CompanionConfigStore.L(lang, "Отмена", "Cancel", "取消"), _btnStyle))
+                {
+                    _confirmResetAllSettings = false;
+                }
             }
             ly += 36f;
 

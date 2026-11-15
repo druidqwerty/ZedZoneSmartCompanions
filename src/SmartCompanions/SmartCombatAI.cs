@@ -272,8 +272,12 @@ namespace ZedZone.SmartCompanions
             {
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter))
                     continue;
+                if (MultiplayerSyncSystem.IsMultiplayerOnline && !MultiplayerSyncSystem.CanLocalPlayerCommand(ag.npcData))
+                    continue;
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                if (!Il2CppSafe.IsAliveUnity(specificAgent) && st.RosterMode == CompanionRosterMode.CampGarrison)
+                    continue;
                 st.BattleCryBuffUntil = now + 60f;
                 st.AddExperience(10, ag);
 
@@ -401,8 +405,10 @@ namespace ZedZone.SmartCompanions
             var leader = Il2CppSafe.IsAliveUnity(agent.leaderCharacter) && !agent.leaderCharacter.deadFlag
                 ? agent.leaderCharacter
                 : player;
+            bool selfInVehicle = hc.isDriving || Il2CppSafe.IsAliveUnity(hc.drivingVehicle);
+            bool leaderInVehicle = Il2CppSafe.IsAliveUnity(leader) && (leader.isDriving || Il2CppSafe.IsAliveUnity(leader.drivingVehicle));
 
-            if (Il2CppSafe.IsAliveUnity(leader) && !leader.deadFlag)
+            if (Il2CppSafe.IsAliveUnity(leader) && !leader.deadFlag && !selfInVehicle && !leaderInVehicle)
             {
                 // Anti-Friendly-Fire Corridor
                 if (CompanionConfigStore.EnableAntiFriendlyFire && leader.isRangedWeaponAiming)
@@ -459,7 +465,7 @@ namespace ZedZone.SmartCompanions
                 // Tactical Callouts
                 int nearbyEnemies = CountNearbyHostiles(agent, selfPos, 13f, hc.characterData?.camp ?? 1);
 
-                if (Il2CppSafe.IsAliveUnity(player) && Vector2.Distance(player.transform.position, targetPos) < 2.9f)
+                if (Il2CppSafe.IsAliveUnity(leader) && Vector2.Distance(leader.transform.position, targetPos) < 2.9f)
                 {
                     SmartChatterSystem.Speak(agent, ChatterTopic.CombatSavePlayer, minCooldown: 5.5f);
                 }
@@ -485,6 +491,8 @@ namespace ZedZone.SmartCompanions
                 }
             }
 
+            if (selfInVehicle) return;
+
             if (now - st.LastWeaponSwitchTime > 2.0f)
             {
                 TrySmartWeaponSwitch(agent, st, distToTarget, now);
@@ -505,11 +513,11 @@ namespace ZedZone.SmartCompanions
                 {
                     st.LastKiteStepTime = now;
                     Vector2 awayDir = (selfPos - targetPos).normalized;
-                    if (Il2CppSafe.IsAliveUnity(player))
+                    if (Il2CppSafe.IsAliveUnity(leader))
                     {
-                        Vector2 toPlayer = ((Vector2)player.transform.position - selfPos);
-                        if (toPlayer.magnitude > 9f)
-                            awayDir = (awayDir + toPlayer.normalized * 0.45f).normalized;
+                        Vector2 toLeader = ((Vector2)leader.transform.position - selfPos);
+                        if (toLeader.magnitude > 9f)
+                            awayDir = (awayDir + toLeader.normalized * 0.45f).normalized;
                     }
 
                     try

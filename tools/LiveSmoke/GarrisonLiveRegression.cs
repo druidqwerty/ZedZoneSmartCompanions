@@ -189,7 +189,61 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         if (string.IsNullOrEmpty(petSum))
                             return End(false, "FAIL [v3.0.0 Pets]: empty pet summary!");
 
-                        return End(true, $"PASS v2.4–v3.0.1 Live Suite: Garrison, SafeDismiss + Native TeamNPCPanel Purge (walked={_walkedDismiss:F2}m, 0 teleports), CorridorNav, GrenadeSafetyGate, SavedMask, FuelWhitelist, VehicleSeats & Pets.");
+                        // v3.0.2 Live check #1: No hidden LootInventoryPanel / input lock
+                        if (Il2CppSafe.IsAliveUnity(LootInventoryPanel._instance) && LootInventoryPanel._instance.gameObject.activeInHierarchy)
+                            return End(false, "FAIL [v3.0.2 InputFreeze]: LootInventoryPanel._instance became unexpectedly active!");
+                        if (Il2CppSafe.IsAliveUnity(CharacterInput.instance) && CharacterInput.instance.stopAllInput)
+                            return End(false, "FAIL [v3.0.2 InputFreeze]: CharacterInput.instance.stopAllInput stuck true!");
+
+                        // v3.0.2 Live check #2: Long-range (>100m) stay-behind Harmony hooks + FollowLeader priority clamp + CampGarrison skip on squad IssueOrder
+                        _agent.npcData.leaderCharacterGUID = _origLeaderGuid;
+                        _agent.leaderCharacter = player;
+                        if (!player.characterData.teamNPCGuids.Contains(dGuid))
+                            player.characterData.teamNPCGuids.Add(dGuid);
+                        if (GOAPNPCManager.instance?.teammateNPCs != null && !GOAPNPCManager.instance.teammateNPCs.Contains(_agent.npcData))
+                            GOAPNPCManager.instance.teammateNPCs.Add(_agent.npcData);
+                        SmartChatterSystem.InvalidateSquadCache();
+
+                        _state.IsDismissedOrNotInTeam = false;
+                        _state.RosterMode = CompanionRosterMode.CampGarrison;
+                        _state.HomeAnchorPos = _campSpot;
+                        _state.HomeAnchorZ = _agent.npcData.zLevel;
+                        _state.HasHomeAnchor = true;
+                        _state.ActiveOrder = TacticalOrderKind.Follow;
+
+                        if (!_agent.npcData.isStayAtPositionOrder || !GOAPNPCManager.IsStayingBehindOrder(_agent.npcData))
+                            return End(false, "FAIL [v3.0.2 StayBehind]: native isStayAtPositionOrder / IsStayingBehindOrder returned false for CampGarrison!");
+
+                        TacticalSquadSystem.IssueOrder(null, TacticalOrderKind.FallBackHere, quiet: true);
+                        if (_state.ActiveOrder != TacticalOrderKind.Follow)
+                            return End(false, "FAIL [v3.0.2 SquadOrder]: IssueOrder(null, ...) overrode CampGarrison companion!");
+
+                        _state.RosterMode = CompanionRosterMode.ActiveSquad;
+                        int appliedHold = TacticalSquadSystem.IssueOrder(null, TacticalOrderKind.HoldPosition, explicitAnchor: _campSpot, quiet: true);
+                        if (appliedHold < 1 || _state.ActiveOrder != TacticalOrderKind.HoldPosition)
+                            return End(false, "FAIL [v3.0.2 SquadOrder]: IssueOrder(null, HoldPosition) failed to apply to ActiveSquad companion!");
+                        if (!_agent.npcData.isStayAtPositionOrder || !GOAPNPCManager.IsStayingBehindOrder(_agent.npcData))
+                            return End(false, "FAIL [v3.0.2 StayBehind]: native isStayAtPositionOrder / IsStayingBehindOrder returned false for HoldPosition!");
+
+                        var simState = new GOAPAgentState
+                        {
+                            npcData = _agent.npcData,
+                            agentPosition = _campSpot,
+                            basicCommand = "Follow"
+                        };
+                        float simPrio = 99f;
+                        HarmonyPatches.FollowLeader_GetPriority_Postfix(simState, ref simPrio);
+                        _state.ActiveOrder = TacticalOrderKind.Follow;
+                        if (simPrio > 0.351f)
+                            return End(false, $"FAIL [v3.0.2 LongRangeClamp]: FollowLeader priority was not clamped ({simPrio:F2})!");
+
+                        // v3.0.2 Live check #3: Co-op kneeling downed aid selector distinguishes human player vs non-player companion
+                        if (MultiplayerTeammateAidPatches.IsNonPlayerNpcForAid(player))
+                            return End(false, "FAIL [v3.0.2 MpAid]: IsNonPlayerNpcForAid returned true for human player!");
+                        if (!MultiplayerTeammateAidPatches.IsNonPlayerNpcForAid(_agent.humanCharacter))
+                            return End(false, "FAIL [v3.0.2 MpAid]: IsNonPlayerNpcForAid returned false for companion NPC!");
+
+                        return End(true, $"PASS v2.4–v3.0.2 Live Suite: Garrison, SafeDismiss + Native TeamNPCPanel Purge (walked={_walkedDismiss:F2}m, 0 teleports), InputFreeze=false, LongRangeStayBehind, MpAidSelector, CorridorNav, GrenadeSafetyGate, SavedMask, FuelWhitelist, VehicleSeats & Pets.");
                     }
 
                     if (now - _phaseStart > 16f)

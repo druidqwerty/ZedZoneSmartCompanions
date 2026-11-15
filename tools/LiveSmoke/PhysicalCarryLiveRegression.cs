@@ -75,7 +75,10 @@ namespace ZedZone.SmartCompanions.LiveSmoke
 
                 if (_phase == 0)
                 {
-                    float dist = PhysicalMovementHelper.ComputeSurfaceDistance(curPos, _lootTargetPos,
+                    Vector2 itemWorldPos = Il2CppSafe.IsAliveUnity(_spawnedGroundBasicItem)
+                        ? (Vector2)_spawnedGroundBasicItem.transform.position
+                        : _lootTargetPos;
+                    float dist = PhysicalMovementHelper.ComputeSurfaceDistance(curPos, itemWorldPos,
                         Il2CppSafe.IsAliveUnity(_spawnedGroundBasicItem) ? _spawnedGroundBasicItem.transform : null);
                     if (dist < _minDistObserved) _minDistObserved = dist;
 
@@ -187,6 +190,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 return End(false, "BLOCKED: no active teammate for PhysicalCarryLiveRegression.");
 
             _agent = squad[0];
+            _origAgentPos = _agent.humanCharacter.transform.position;
+            _origPlayerPos = gc.playerCharacter.transform.position;
             for (int i = 1; i < squad.Count; i++)
             {
                 var other = squad[i];
@@ -208,8 +213,6 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             _agent.mostThreateningCharacter = null;
             _agent.threatDataDic?.Clear();
             CombatLiveRegression.SuppressAllNearbyHostilesForLogistics(_agent);
-            _origAgentPos = _agent.humanCharacter.transform.position;
-            _origPlayerPos = gc.playerCharacter.transform.position;
             ArenaActive = true;
 
             // Find an 8.0m open walkable line near the player
@@ -236,18 +239,24 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             Physics2D.SyncTransforms();
 
             sbyte z = _agent.npcData.zLevel;
-            _lootTargetPos = targetPos;
-            var droppedGo = gc.DropItem(_groundTestItem, _lootTargetPos, 0f, 0f, false, 0f, z, 0);
+            var droppedGo = gc.DropItem(_groundTestItem, targetPos, 0f, 0f, false, 0f, z, 0);
             _spawnedGroundBasicItem = Il2CppSafe.IsAliveUnity(droppedGo) ? droppedGo.GetComponent<BasicItem>() : null;
             if (!Il2CppSafe.IsAliveUnity(_spawnedGroundBasicItem))
                 return End(false, "BLOCKED: GameController.DropItem did not produce an active BasicItem.");
+            _lootTargetPos = _spawnedGroundBasicItem.transform.position;
 
             _baseSharedCount = CountTotalItemsOnCompanion(_agent);
             _lastPos = _agent.humanCharacter.transform.position;
             _walkedMeters = 0f;
             _minDistObserved = Vector2.Distance(_lastPos, _lootTargetPos);
 
-            int assigned = AutoLootSystem.CommandSweepNearbyLoot(_agent, 2.2f, silentIfEmpty: false, explicitSearchCenter: _lootTargetPos);
+            int assigned = AutoLootSystem.CommandSweepNearbyLoot(_agent, 0.75f, silentIfEmpty: false, explicitSearchCenter: _lootTargetPos);
+            if (_state.LootQueue.Count > 1)
+            {
+                _state.LootQueue.RemoveAll(s => s == null || s.Kind != PhysicalLootKind.GroundCluster);
+                if (_state.LootQueue.Count > 0)
+                    PhysicalMovementHelper.BeginLeg(_state, _lastPos, _state.LootQueue[0].WorldPos, _state.LootQueue[0].TargetTransform);
+            }
             bool stillOnGroundAtT0 = Il2CppSafe.IsAliveUnity(_spawnedGroundBasicItem) && _spawnedGroundBasicItem.gameObject.activeInHierarchy;
             if (assigned <= 0 || !stillOnGroundAtT0 || CountTotalItemsOnCompanion(_agent) > _baseSharedCount)
                 return End(false, $"FAIL [Phase A t=0]: assigned={assigned}, stillOnGroundAtT0={stillOnGroundAtT0} (instant teleport or no assignment).");
@@ -267,7 +276,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
 
             var containers = BaseSortingSystem.ScanNearbyContainers(force: true);
             DiscoveredContainer bestSrc = null, bestDest = null;
-            for (int pass = 0; pass < 2 && bestSrc == null; pass++)
+            for (int pass = 0; pass < 3 && bestSrc == null; pass++)
             {
                 for (int i = 0; i < containers.Count; i++)
                 {
@@ -275,7 +284,9 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     if (a?.Inventory == null || !Il2CppSafe.IsAliveUnity(a.TerrainObj)) continue;
                     if (a.DistanceToPlayer > 11f) continue;
                     if (a.Inventory.inventorySizeX < 3 || a.Inventory.inventorySizeY < 3) continue;
-                    if (pass == 0 && !_agent.IsPathClear(_origPlayerPos, a.WorldPos, 0.15f)) continue;
+                    Vector2 aStand = Vector2.MoveTowards(a.WorldPos, _origPlayerPos, 1.1f);
+                    if (pass == 0 && (Mathf.Abs(a.WorldPos.y - _origPlayerPos.y) > 1.8f || !_agent.IsPathClear(_origPlayerPos, aStand, 0.25f))) continue;
+                    if (pass == 1 && !_agent.IsPathClear(_origPlayerPos, aStand, 0.20f)) continue;
                     for (int j = 0; j < containers.Count; j++)
                     {
                         if (i == j) continue;
@@ -284,8 +295,10 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         if (b.DistanceToPlayer > 11f) continue;
                         if (b.Inventory.inventorySizeX < 3 || b.Inventory.inventorySizeY < 3) continue;
                         float sep = Vector2.Distance(a.WorldPos, b.WorldPos);
-                        if (sep < 5.2f || sep > 12f) continue;
-                        if (pass == 0 && !_agent.IsPathClear(a.WorldPos, b.WorldPos, 0.15f)) continue;
+                        if (sep < 5.0f || sep > 12f) continue;
+                        Vector2 bStand = Vector2.MoveTowards(b.WorldPos, _origPlayerPos, 1.1f);
+                        if (pass == 0 && (Mathf.Abs(b.WorldPos.y - _origPlayerPos.y) > 1.8f || !_agent.IsPathClear(aStand, bStand, 0.25f))) continue;
+                        if (pass == 1 && !_agent.IsPathClear(aStand, bStand, 0.20f)) continue;
                         bestSrc = a;
                         bestDest = b;
                         break;
@@ -340,7 +353,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             // Start companion at _origPlayerPos so companion walks to srcChest and then to destChest (walked >= 1.4m)
             Vector2 startSpot = _origPlayerPos;
             _agent.humanCharacter.TeleportTo(startSpot, false);
-            gc.playerCharacter.TeleportTo(_destChest.WorldPos + new Vector2(1.2f, -1.2f), false);
+            gc.playerCharacter.TeleportTo(_origPlayerPos + new Vector2(0.8f, 0f), false);
             Physics2D.SyncTransforms();
 
             _lastPos = _agent.humanCharacter.transform.position;
@@ -435,9 +448,19 @@ namespace ZedZone.SmartCompanions.LiveSmoke
         {
             int n = 0;
             var s = ag?.npcData?.sharedInventoryData;
-            if (Il2CppSafe.IsAlive(s) && s.itemList != null) n += s.itemList.Count;
+            if (Il2CppSafe.IsAlive(s) && s.itemList != null)
+            {
+                for (int i = 0; i < s.itemList.Count; i++)
+                    if (Il2CppSafe.IsAlive(s.itemList[i]))
+                        n += Mathf.Max(1, Mathf.RoundToInt(s.itemList[i].itemNumberFloat));
+            }
             var inv = ag?.npcData?.characterData?.inventoryData;
-            if (Il2CppSafe.IsAlive(inv) && inv.itemList != null) n += inv.itemList.Count;
+            if (Il2CppSafe.IsAlive(inv) && inv.itemList != null)
+            {
+                for (int i = 0; i < inv.itemList.Count; i++)
+                    if (Il2CppSafe.IsAlive(inv.itemList[i]))
+                        n += Mathf.Max(1, Mathf.RoundToInt(inv.itemList[i].itemNumberFloat));
+            }
             return n;
         }
 
@@ -465,6 +488,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     _agent.humanCharacter.TeleportTo(_origAgentPos, false);
                 if (Il2CppSafe.IsAliveUnity(GameController.instance?.playerCharacter))
                     GameController.instance.playerCharacter.TeleportTo(_origPlayerPos, false);
+                CombatLiveRegression.RestoreLogisticsArena();
             }
             catch { }
             return true;

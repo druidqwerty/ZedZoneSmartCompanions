@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 1.7.0 VERIFIED / Locally Installed / Released on GitHub, Steam Workshop & Boosty
+## Status: 3.0.2 VERIFIED / Locally Installed / Released on GitHub, Steam Workshop & Boosty Queue
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -315,3 +315,17 @@
 - Fixed Bug #1 (dismissed companion disappearing from F8 mod hub while remaining in native TeamNPCPanel): removed premature OnCompanionDismissed in ExecuteNPCCommand_Prefix that cleared leaderCharacterGUID before native OneTime.QuitTeam ran, and added explicit TeamNPCPanel.RemoveNPC + npcUIDic + RefreshHeaderCount + TeamNPCOverheadUI + SyncTeamUI cleanup.
 - Fixed Bug #2 (companions bumping repeatedly into corridor/doorway walls): widened GOAPAgent.MoveTo internal 0.10m IsPathClear ray to 0.36m shoulder clearance (via bool IsPathClear prefix — never detour Il2CppSystem.ValueTuple-returning MoveTo directly!), added single-file LeaderTrail collapse in narrow corridors, and 7-angle wall-checked combat kiting/strafing/fire-line step-aside.
 - DLL 849a81cde93e07559d455f9e80342ece00292c5dbef30e7fe04b9295fa913e9c, ZIP 673043616f40db58d09c5ab8d8454e6954687acd7297d05030b91aec4c9a13ce. Live acceptance PASS (backups/live-20261114-030555) + 300/300 UI matrix PASS (backups/ui301-20261114-030840). Published to GitHub v3.0.1, Steam 3836613312 (public, both local Workshop DLL copies verified), local Mods/SmartCompanions updated to 3.0.1, BOOSTY_3.0.1.md queued.
+
+## 3.0.2 Steam Workshop community bugfix & QoL release published (2026-11-15)
+- Audited all 28 Steam Workshop comments + 2 discussions + screenshot 3839760705 on item 3836613312 and resolved all 8 reported issues against ZED ZONE's 2026-11-15 regenerated `Assembly-CSharp.dll` (81 Harmony patches):
+  1. **Startup WASD/Esc/UI input freeze:** replaced every read of ZED ZONE's lazy `LootInventoryPanel.instance` singleton getter (which instantiated `LootInventoryPanel` on frame 1 and locked `CharacterInput.instance.stopAllInput`) with `LootInventoryPanel._instance`.
+  2. **Vehicle boarding, exit & seat-overflow restore:** replaced permanent `RosterMode = CampGarrison` mutation on seat overflow with transient `IsTransientVehicleOverflow` cleared unthrottled on exit, counted passengers across `isDriving || drivingVehicle`, skipped formation/yield/combat movement nudges while driving, and restored native `0.10m` `IsPathClear` clearance around vehicle hulls.
+  3. **Long-range Hold Position & Camp Garrison (>100m):** patched `GOAPNPCData.isStayAtPositionOrder`, `GOAPNPCManager.IsStayingBehindOrder`, and `GOAPAction_FollowLeader.TryCatchUpTeleport`, clamped `GOAPGoal_FollowLeader.GetPriority <= 0.35f` at all distances, guarded `(0,0)` anchors, and made squad-wide hotkeys (`Alt+G`, `Alt+F`, `F6`, `F9`) skip `CampGarrison` defenders.
+  4. **Co-op companion kneeling & revival:** scoped thread-local `NetworkManager.isOnline -> false` strictly around `IsNonPlayerNpcForAid` in `CharacterAidManager` & `PlayerAidInteract` on Host so zero-HP companions kneel instead of dying immediately, synced `NPC_DOWNED|<guid>|1/0` to clients, synced remote leader positions per frame, and added `[+] Revive` (`REVIVE_NPC`, `<= 4.6m`) in `F8 -> Squad`.
+  5. **Loot hotkey:** added `Alt+F` world hotkey + RU/EN/ZH labels.
+  6. **Stack merging:** added `InventoryTransfers.TryAddWholeWithStacking` (full merge in 0 new cells, partial top-up + remainder placement, `SafeCompactInventory` retry via `TryAutoSortingWithoutOverflow`, atomic rollback).
+  7. **Hybrid `[Drop-off + Category]` chests, Coconut (`230`), & vehicle trunk unloading:** enabled marked `[Drop-off + Category]` chests as category destinations while keeping pure `[Drop-off]` chests (`14.0m` auto-dropoff radius) for raid drop-offs & vehicle trunk unloading (`BaseChoreSystem`), and classified Coconut (`230`) into `FreshFood`.
+  8. **Reset All Settings:** added two-step `Reset All Settings to Default` button at the bottom of `F8 -> Settings` (`preserveContainerRules: true`).
+- DLL `293f821e034ea0996a4c822e8e838d447a27d59c8d428ce0992293d9992206f8`, ZIP `b2b9b468e448bf754c72aed26fb2ba6956a40a46b861e445cc313c0c044d4070` (`4,198,405` bytes).
+- Live gameplay acceptance PASS (`backups/live-20261115-214409`) + 300/300 graphical UI matrix & 10 deterministic regression suites PASS (`backups/ui302-20261115-214748`); 8,386/8,386 real `GameData` save files SHA-256 identical.
+- Open verification boundaries: real two-machine / two-account host + client session and automated hardware mouse-wheel injection.

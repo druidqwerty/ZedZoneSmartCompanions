@@ -110,7 +110,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 CompanionConfigStore.ContainerRules.Remove(secretBoxId);
             }
 
-            Assert(report.Contains("ModVersion: 3.0.1"), "report missing ModVersion 3.0.1");
+            string expectedVer = "ModVersion: " + SmartCompanionsPlugin.PluginVersion;
+            Assert(report.Contains(expectedVer), "report missing " + expectedVer);
             Assert(!report.Contains(secretGuid) && !report.Contains(secretNpcName) &&
                    !report.Contains(secretOwnerName) && !report.Contains(secretBoxId) &&
                    !report.Contains(secretBoxName) && !report.Contains("-2275"),

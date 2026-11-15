@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "3.0.1";
+        public const string PluginVersion = "3.0.2";
 
         internal static ManualLogSource Logs;
 
@@ -131,14 +131,16 @@ namespace ZedZone.SmartCompanions
                 var steakKind = ItemCategorizer.ClassifyFoodKind(248, null, null);
                 var rawKind = ItemCategorizer.ClassifyFoodKind(204, null, null);
                 var canKind = ItemCategorizer.ClassifyFoodKind(232, null, null);
+                var coconutKind = ItemCategorizer.ClassifyFoodKind(230, null, null);
                 var medCat = ItemCategorizer.ClassifyItem(220, null, null);
                 var foodCat = ItemCategorizer.ClassifyItem(248, null, null);
                 var canCat = ItemCategorizer.ClassifyItem(232, null, null);
+                var coconutCat = ItemCategorizer.ClassifyItem(230, null, null);
 
-                if (steakKind != FoodKind.SteakAndRoastMeat || rawKind != FoodKind.RawMeat || canKind != FoodKind.CannedFood)
-                    throw new Exception($"FoodKind check failed: steak={steakKind}, raw={rawKind}, can={canKind}");
-                if (medCat != StorageCategory.Medicine || foodCat != StorageCategory.FreshFood || canCat != StorageCategory.CannedAndDrinks)
-                    throw new Exception($"StorageCategory check failed: med={medCat}, food={foodCat}, can={canCat}");
+                if (steakKind != FoodKind.SteakAndRoastMeat || rawKind != FoodKind.RawMeat || canKind != FoodKind.CannedFood || coconutKind != FoodKind.SweetAndSnack)
+                    throw new Exception($"FoodKind check failed: steak={steakKind}, raw={rawKind}, can={canKind}, coconut={coconutKind}");
+                if (medCat != StorageCategory.Medicine || foodCat != StorageCategory.FreshFood || canCat != StorageCategory.CannedAndDrinks || coconutCat != StorageCategory.FreshFood)
+                    throw new Exception($"StorageCategory check failed: med={medCat}, food={foodCat}, can={canCat}, coconut={coconutCat}");
 
                 // Verify CustomNpcCommands in all 3 languages
                 foreach (var cmd in CustomNpcCommands.AllCustomCommands)
@@ -245,8 +247,12 @@ namespace ZedZone.SmartCompanions
                         SmartCombatAI.CommandSquadBattleCry(null);
                     }
 
-                    // Hotkeys Alt+G / Alt+H (2.5.0): Tactical Move-To-Cursor Fan & Tactical Healing Smoke
+                    // Hotkeys Alt+F / Alt+G / Alt+H: Sweep Nearby Loot, Tactical Move-To-Cursor Fan & Tactical Healing Smoke
                     bool altMod = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+                    if (altMod && Input.GetKeyDown(KeyCode.F))
+                    {
+                        AutoLootSystem.CommandSweepNearbyLoot(null, CompanionConfigStore.LootSweepRadius);
+                    }
                     if (altMod && Input.GetKeyDown(KeyCode.G))
                     {
                         FieldTacticsSystem.IssueMoveToCursorOrder(null);

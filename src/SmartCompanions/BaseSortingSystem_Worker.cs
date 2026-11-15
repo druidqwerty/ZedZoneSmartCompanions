@@ -23,8 +23,9 @@ namespace ZedZone.SmartCompanions
 
             var containers = ScanNearbyContainers(force: true);
             var destBoxes = GetCategorizedDestinationBoxes(containers);
+            var fallbackDropoffBoxes = GetPureDropoffDestinationBoxes(containers);
 
-            if (destBoxes.Count == 0)
+            if (destBoxes.Count == 0 && fallbackDropoffBoxes.Count == 0)
             {
                 foreach (var idle in SmartChatterSystem.GetActiveTeammateAgents())
                     if (Il2CppSafe.IsAliveUnity(idle) && Il2CppSafe.IsAlive(idle.npcData))
@@ -124,22 +125,27 @@ namespace ZedZone.SmartCompanions
 
                 for (int j = 0; j < c.Inventory.itemList.Count; j++)
                 {
-                    var it = c.Inventory.itemList[j];
+                var it = c.Inventory.itemList[j];
                     if (!Il2CppSafe.IsAlive(it)) continue;
+                    var itemCat = ItemCategorizer.ClassifyItem(it);
+                    // Items already matching a hybrid [Drop-off + Category] box's own categories belong there!
+                    if (c.Rule.Categories != StorageCategory.None && (c.Rule.Categories & itemCat) != 0)
+                        continue;
                     count++;
-                    remainingCategoriesMask |= ItemCategorizer.ClassifyItem(it);
+                    remainingCategoriesMask |= itemCat;
                 }
             }
             return count;
         }
 
-        private static List<DiscoveredContainer> GetCategorizedDestinationBoxes(List<DiscoveredContainer> containers)
+        public static List<DiscoveredContainer> GetCategorizedDestinationBoxes(List<DiscoveredContainer> containers)
         {
             var destBoxes = new List<DiscoveredContainer>();
+            if (containers == null) return destBoxes;
             foreach (var c in containers)
             {
                 if (c?.Rule != null && c.Rule.IsMarkedByPlayer && c.Rule.Categories != StorageCategory.None &&
-                    !c.Rule.IsDropoffSource && Il2CppSafe.IsAlive(c.Inventory) &&
+                    Il2CppSafe.IsAlive(c.Inventory) &&
                     !PhysicalMovementHelper.IsTargetTemporarilyUnreachable(c.ContainerId))
                 {
                     destBoxes.Add(c);
@@ -151,6 +157,27 @@ namespace ZedZone.SmartCompanions
                 return cmp != 0 ? cmp : a.DistanceToPlayer.CompareTo(b.DistanceToPlayer);
             });
             return destBoxes;
+        }
+
+        public static List<DiscoveredContainer> GetPureDropoffDestinationBoxes(List<DiscoveredContainer> containers)
+        {
+            var dropBoxes = new List<DiscoveredContainer>();
+            if (containers == null) return dropBoxes;
+            foreach (var c in containers)
+            {
+                if (c?.Rule != null && c.Rule.IsMarkedByPlayer && c.Rule.IsDropoffSource &&
+                    c.Rule.Categories == StorageCategory.None && Il2CppSafe.IsAlive(c.Inventory) &&
+                    !PhysicalMovementHelper.IsTargetTemporarilyUnreachable(c.ContainerId))
+                {
+                    dropBoxes.Add(c);
+                }
+            }
+            dropBoxes.Sort((a, b) =>
+            {
+                int cmp = b.Rule.Priority.CompareTo(a.Rule.Priority);
+                return cmp != 0 ? cmp : a.DistanceToPlayer.CompareTo(b.DistanceToPlayer);
+            });
+            return dropBoxes;
         }
 
         public static void TickActiveSortingMovementEveryFrame()
@@ -236,7 +263,8 @@ namespace ZedZone.SmartCompanions
 
                 var containers = ScanNearbyContainers(force: true);
                 var destBoxes = GetCategorizedDestinationBoxes(containers);
-                int picked = PickupBatchIntoCarryBuffer(ag, st, destBoxes);
+                var fallbackDropoff = GetPureDropoffDestinationBoxes(containers);
+                int picked = PickupBatchIntoCarryBuffer(ag, st, destBoxes, fallbackDropoff);
 
                 if (picked > 0 && st.CarryBuffer.Count > 0)
                 {

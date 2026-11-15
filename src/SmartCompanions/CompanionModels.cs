@@ -409,6 +409,7 @@ namespace ZedZone.SmartCompanions
         public InventoryData SourceContainerInv = null;
         public Transform SourceContainerAnchor = null;
         public bool SourceIsOwnBackpack = false;
+        public bool SourceAllowDropoffFallback = false;
         public StorageCategory SourceAllowedStayMask = StorageCategory.None;
         public string TargetContainerGuid = "";
         public string TargetContainerName = "";
@@ -437,6 +438,14 @@ namespace ZedZone.SmartCompanions
         public int HomeAnchorZ = 0;
         public bool HasHomeAnchor = false;
         public bool GarrisonAnchorSettled = false;
+
+        // 3.0.2: Transient vehicle seat-overflow hold, MP downed flag, and bounded narrow-passage yield
+        public bool IsTransientVehicleOverflow = false;
+        public Vector2 TransientVehicleHoldPos = Vector2.zero;
+        public int TransientVehicleHoldZ = 0;
+        public bool IsDownedInMp = false;
+        public float NarrowYieldStartedAt = -999f;
+        public float NarrowYieldCooldownUntil = -999f;
 
         public bool IsSafeDismissActive = false;
         public bool SafeDismissReturnGear = false;
@@ -767,6 +776,89 @@ namespace ZedZone.SmartCompanions
             HudBadgePosY = -1f;
             SmartCompanionsUI.ResetWindowRectsToDefault();
             Save();
+        }
+
+        public static void ResetAllSettingsToDefault(bool preserveContainerRules = true)
+        {
+            EnableChatter = true;
+            Profanity = ProfanityMode.HardcoreRude;
+            ChatterIntervalMultiplier = 1.0f;
+            EnableSmartCombat = true;
+            EnableAntiFriendlyFire = true;
+            EnableKiting = true;
+            ActiveFormation = SquadFormation.Free;
+            FollowDistance = FollowDistanceMode.Normal;
+            EnableNarrowPassageYield = true;
+            RetreatHpThresholdPercent = 30;
+            LowAmmoRetreat = LowAmmoRetreatMode.EmptyOnly;
+            EnableFieldMedic = true;
+            EnableAmmoShare = true;
+            AutoShareFoodOnEat = false;
+            EnableBaseAutoDropoff = true;
+            EnableWorldNpcChatter = true;
+            EnableBaseChores = true;
+            BaseWorkPaused = false;
+            BasePriorityMode = BaseWorkPriority.SortFirst;
+            LootSweepRadius = 24f;
+            LootZonePinned = false;
+            LootZoneCenter = Vector2.zero;
+            LootZoneFloor = 0;
+            AllowSpendRareFood = false;
+            AllowSpendRareMeds = false;
+            AllowSpendRareAmmo = true;
+            EnableSmartFlashlight = true;
+            EnablePlayerRescue = true;
+            EnableAutoBioAndSleep = true;
+            EnableBaseIndustry = true;
+            BaseScanRadius = 48f;
+            MaxTeamSize = 0;
+            RequireAltForRationHotkey = false;
+            UiScale = 0f;
+            try { if (!IsAvoExpandedLoaded()) CharacterData.maxTeamNPCNumber = 3; } catch { }
+
+            if (!preserveContainerRules)
+                ContainerRules.Clear();
+
+            var activeNpcs = GOAPNPCManager.instance?.activeNPCs;
+            foreach (var kv in CompanionStates)
+            {
+                var st = kv.Value;
+                if (st == null) continue;
+                st.Doctrine = TacticalDoctrine.Balanced;
+                st.Archetype = CompanionArchetype.Auto;
+                st.AllowAutoSortBase = true;
+                st.AllowAutoLootNearby = false;
+                st.AllowFieldMedic = true;
+                st.AllowAmmoShare = true;
+                st.AllowAutoDropoffAtBase = true;
+                st.AllowBaseChores = true;
+                st.WorkRole = CompanionWorkRole.Any;
+                st.Specialization = CompanionSpecialization.Custom;
+                st.Loadout = PreferredLoadout.Auto;
+                st.ReserveAmmoMin = 24;
+                st.ReserveFoodMin = 2;
+                st.ReserveMedMin = 1;
+                if (!st.IsDismissedOrNotInTeam)
+                    st.RosterMode = CompanionRosterMode.ActiveSquad;
+                st.GarrisonAnchorSettled = false;
+                st.IsTransientVehicleOverflow = false;
+                st.ActiveOrder = TacticalOrderKind.Follow;
+                st.OrderAnchorPos = Vector2.zero;
+                st.OrderBlockReason = TacticalOrderBlockReason.None;
+
+                try
+                {
+                    if (activeNpcs != null && !string.IsNullOrEmpty(st.NpcGuid) &&
+                        activeNpcs.TryGetValue(st.NpcGuid, out var ag) && Il2CppSafe.IsAliveUnity(ag))
+                    {
+                        SmartCombatAI.ApplyDoctrineToNpcData(ag, st);
+                    }
+                }
+                catch { }
+            }
+
+            ResetUiPositions();
+            MultiplayerSyncSystem.SyncSquadTacticsConfig();
         }
 
         public static CompanionArchetype ResolveArchetypeFromGuid(string guid)

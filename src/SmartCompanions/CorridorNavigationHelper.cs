@@ -136,7 +136,7 @@ namespace ZedZone.SmartCompanions
                 else if (dt >= 0.12f)
                 {
                     float moved = Vector2.Distance(selfPos, tr.LastPos);
-                    if (moved < 0.05f) tr.StuckSeconds += dt;
+                    if (moved < 0.04f) tr.StuckSeconds += dt;
                     else tr.StuckSeconds = 0f;
                     tr.LastPos = selfPos;
                     tr.LastSampleAt = now;
@@ -144,8 +144,8 @@ namespace ZedZone.SmartCompanions
             }
             else { tr.LastPos = selfPos; tr.LastSampleAt = now; }
 
-            // Active corner-unwedge slide if bumping a doorframe/wall (>0.36s motionless)
-            if (tr.StuckSeconds >= 0.36f && now >= tr.UnwedgeUntil)
+            // Active corner-unwedge slide only after genuinely wedged against a doorframe/wall (>=1.15s motionless)
+            if (tr.StuckSeconds >= 1.15f && now >= tr.UnwedgeUntil)
             {
                 tr.StuckSeconds = 0f;
                 Vector2 toGoal = (targetPos - selfPos).normalized;
@@ -227,25 +227,5 @@ namespace ZedZone.SmartCompanions
 
         private static bool IsFinite(Vector2 v) =>
             !float.IsNaN(v.x) && !float.IsNaN(v.y) && !float.IsInfinity(v.x) && !float.IsInfinity(v.y);
-    }
-
-    /// <summary>
-    /// Native GOAPAgent.MoveTo checks IsPathClear(self, target, 0.10f) — an exact 0.10f literal (0x3dcccccd)!
-    /// Do NOT patch GOAPAgent.MoveTo itself (it returns Il2CppSystem.ValueTuple`2 which breaks IL2CPP Harmony ABI).
-    /// Patching ONLY bool IsPathClear when distanceOffset == 0.10f on player teammates widens MoveTo's wall-corner
-    /// check to 0.36m human shoulder width so native MoveTo automatically routes via A* waypoints around doorframes!
-    /// </summary>
-    [HarmonyLib.HarmonyPatch(typeof(GOAPAgent), nameof(GOAPAgent.IsPathClear))]
-    internal static class CorridorBodyWidthIsPathClearPatch
-    {
-        [HarmonyLib.HarmonyPrefix]
-        private static void Prefix(GOAPAgent __instance, ref float distanceOffset)
-        {
-            if (Mathf.Abs(distanceOffset - 0.10f) < 0.005f &&
-                Il2CppSafe.IsAliveUnity(__instance) && __instance.IsPlayerTeammate())
-            {
-                distanceOffset = 0.36f;
-            }
-        }
     }
 }
