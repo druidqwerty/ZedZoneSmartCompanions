@@ -268,6 +268,24 @@ namespace ZedZone.SmartCompanions
             {
                 DrawMainHubWindow();
             }
+
+            // 5. Crisp software pointer fallback if Unity/OS hides the hardware cursor over our UI
+            if ((ShowMainWindow || IsPointerOverOverlay(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y))) &&
+                !Cursor.visible && Event.current != null && Event.current.type == EventType.Repaint)
+            {
+                Vector2 mp = Event.current.mousePosition;
+                var prevColor = GUI.color;
+                try
+                {
+                    GUI.color = Color.white;
+                    GUI.Box(new Rect(mp.x, mp.y, 10f, 14f), GUIContent.none, _winStyle);
+                    GUI.Box(new Rect(mp.x + 2f, mp.y + 2f, 6f, 10f), GUIContent.none, _catOnStyle);
+                }
+                finally
+                {
+                    GUI.color = prevColor;
+                }
+            }
         }
 
         private static void DrawHudBadge()

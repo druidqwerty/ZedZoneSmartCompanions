@@ -25,7 +25,12 @@ namespace ZedZone.SmartCompanions
 
             if (unreachable)
             {
+                if (!string.IsNullOrEmpty(st.ChoreTargetKey))
+                    PhysicalMovementHelper.MarkTargetTemporarilyUnreachable(st.ChoreTargetKey, 45f);
+                if (st.CarryBuffer.Count > 0)
+                    BaseSortingSystem.ReturnCarryBufferWithoutTeleport(ag, st);
                 st.IsChoreWalkActive = false;
+                st.ChoreTargetKey = "";
                 st.PendingChoreArrivalAction = null;
                 st.CurrentTaskText = "";
                 return;
@@ -35,6 +40,7 @@ namespace ZedZone.SmartCompanions
 
             var act = st.PendingChoreArrivalAction;
             st.IsChoreWalkActive = false;
+            st.ChoreTargetKey = "";
             st.PendingChoreArrivalAction = null;
             st.ArrivalInteractStarted = false;
             try { act?.Invoke(); } catch { }
@@ -47,9 +53,11 @@ namespace ZedZone.SmartCompanions
             Transform anchor,
             string walkTaskText,
             int propItemId,
-            Action onArrived)
+            Action onArrived,
+            string targetKey = "")
         {
             st.IsChoreWalkActive = true;
+            st.ChoreTargetKey = targetKey ?? "";
             st.ChoreTargetPos = targetPos;
             st.ChoreTargetAnchor = anchor;
             st.ChoreDisplayText = walkTaskText;
@@ -58,6 +66,10 @@ namespace ZedZone.SmartCompanions
             st.CurrentTaskText = walkTaskText;
             PhysicalMovementHelper.BeginLeg(st, ag.humanCharacter.transform.position, targetPos, anchor);
         }
+
+        public static bool AllowsCampChoresOrGarrison(CompanionRuntimeState st) =>
+            !BaseWorkManager.Paused && st != null &&
+            (st.RosterMode == CompanionRosterMode.CampGarrison || (st.AllowBaseChores && BaseWorkManager.AllowsChores(st)));
 
         public static void TickBaseChoresAndCampLife()
         {
@@ -96,14 +108,14 @@ namespace ZedZone.SmartCompanions
                     continue;
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
-                if (!st.AllowBaseChores || st.HasAnyPhysicalTask ||
-                    !BaseWorkManager.MayStartAutomaticWork(st, BaseWorkManager.AllowsChores)) continue;
+                if (st.HasAnyPhysicalTask || !AllowsCampChoresOrGarrison(st)) continue;
                 if (now - st.LastChoreTime < 22f) continue;
 
-                if (TryPerformCampfireChore(ag, st, gc, now)) continue;
-                if (TryPerformGardeningChore(ag, st, gc, now)) continue;
+                bool atBase = CompanionSurvivalSystem.IsAtCampOrPlayerBase(ag.humanCharacter.transform.position, st);
+                if (atBase && TryPerformCampfireChore(ag, st, gc, now)) continue;
+                if (atBase && TryPerformGardeningChore(ag, st, gc, now)) continue;
                 if (TryPerformWeaponAndArmorMaintenance(ag, st, player, now)) continue;
-                if (TryPerformVehicleCheckAndUnload(ag, st, player, now)) continue;
+                if (atBase && TryPerformVehicleCheckAndUnload(ag, st, player, now)) continue;
             }
         }
 
@@ -122,6 +134,7 @@ namespace ZedZone.SmartCompanions
                 {
                     var fp = fires[i];
                     if (!Il2CppSafe.IsAliveUnity(fp) || !fp.gameObject.activeInHierarchy) continue;
+                    if (Il2CppSafe.IsAlive(fp.objectData) && fp.objectData.zLayer != ag.npcData.zLevel) continue;
 
                     Vector2 firePos = fp.transform.position;
                     float dist = Vector2.Distance(selfPos, firePos);
@@ -151,7 +164,8 @@ namespace ZedZone.SmartCompanions
                                         st.CurrentTaskText = CompanionConfigStore.L("🔥 Разжёг костёр в лагере", "🔥 Lit the camp fire", "🔥 已点燃营地篝火");
                                         SmartChatterSystem.Speak(ag, ChatterTopic.CampfireStory, minCooldown: 5f, bubbleDuration: 6f);
                                     }
-                                });
+                                },
+                                fireKey);
                             return true;
                         }
                     }
@@ -188,42 +202,213 @@ namespace ZedZone.SmartCompanions
             try
             {
                 Vector2 selfPos = ag.humanCharacter.transform.position;
-                var worldObjs = BaseSortingSystem.CollectWorldTerrainObjects(selfPos, 15f);
+                Vector2 scanOrigin = (st.RosterMode == CompanionRosterMode.CampGarrison && st.HasHomeAnchor)
+                    ? st.HomeAnchorPos
+                    : selfPos;
+                sbyte selfZ = ag.npcData.zLevel;
+                var worldObjs = BaseSortingSystem.CollectWorldTerrainObjects(scanOrigin, 32f);
+
+                TerrainObject_PlantingPot carePot = null;
 
                 for (int i = 0; i < worldObjs.Count; i++)
                 {
                     var tobj = worldObjs[i];
-                    var pot = Il2CppSafe.IsAliveUnity(tobj) ? tobj.TryCast<TerrainObject_PlantingPot>() : null;
-                    if (!Il2CppSafe.IsAliveUnity(pot) || pot.currentDef == null || pot.IsHarvested())
+                    if (!Il2CppSafe.IsAliveUnity(tobj) || !tobj.gameObject.activeInHierarchy) continue;
+                    if (Il2CppSafe.IsAlive(tobj.objectData) && tobj.objectData.zLayer != selfZ) continue;
+
+                    var pot = tobj.TryCast<TerrainObject_PlantingPot>();
+                    if (Il2CppSafe.IsAliveUnity(pot))
+                    {
+                        if (!Il2CppSafe.IsAlive(pot.currentDef) || pot.IsHarvested())
+                            continue;
+                        Vector2 potPos = pot.transform.position;
+                        if (!AutoLootSystem.IsPositionNearPlayerBase(potPos, 24f) &&
+                            (!Il2CppSafe.IsAlive(pot.objectData) || !pot.objectData.isPlayerBuilt))
+                            continue;
+                        string potKey = $"pot_{pot.Pointer.ToInt64():X}";
+                        if (PhysicalMovementHelper.IsTargetTemporarilyUnreachable(potKey))
+                            continue;
+
+                        bool isRipePot = CompanionConfigStore.AutoHarvestCrops &&
+                                         pot.currentDef.cropStageLengthAry != null &&
+                                         pot.currentDef.cropStageLengthAry.Length > 0;
+                        if (isRipePot)
+                        {
+                            float growth = pot.ParseProp(TerrainObject_PlantingPot.PROP_GROWTH, 0f);
+                            float matureTime = pot.currentDef.CumulativeStageTime(pot.currentDef.cropStageLengthAry.Length - 1);
+                            if (matureTime > 0.01f && growth >= matureTime)
+                            {
+                                st.LastChoreTime = now;
+                                StartPhysicalChoreWalk(
+                                    ag, st, potPos, pot.transform,
+                                    CompanionConfigStore.L("🌾 Идёт собирать урожай...", "🌾 Walking to harvest crop...", "🌾 前往收获成熟作物..."),
+                                    0,
+                                    () =>
+                                    {
+                                        if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
+                                            !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag ||
+                                            !Il2CppSafe.IsAliveUnity(pot) || !Il2CppSafe.IsAlive(pot.currentDef) || pot.IsHarvested() ||
+                                            pot.currentDef.cropStageLengthAry == null || pot.currentDef.cropStageLengthAry.Length == 0)
+                                            return;
+
+                                        float curGrowth = pot.ParseProp(TerrainObject_PlantingPot.PROP_GROWTH, 0f);
+                                        float curMature = pot.currentDef.CumulativeStageTime(pot.currentDef.cropStageLengthAry.Length - 1);
+                                        if (curMature <= 0.01f || curGrowth < curMature) return;
+
+                                        var ids = new Il2CppSystem.Collections.Generic.List<int>();
+                                        var nums = new Il2CppSystem.Collections.Generic.List<int>();
+                                        bool harvested = MultiplayerSyncSystem.IsMultiplayerHost
+                                            ? pot.NetHostHarvest(ids, nums)
+                                            : pot.HarvestCore(ids, nums);
+                                        if (harvested)
+                                            CompleteCropHarvest(ag, st, GameController.instance, ids, nums, pot.transform.position);
+                                    },
+                                    potKey);
+                                return true;
+                            }
+                        }
+
+                        if (!Il2CppSafe.IsAliveUnity(carePot))
+                        {
+                            float wateredUntil = pot.ParseProp(TerrainObject_PlantingPot.PROP_WATERED_UNTIL, 0f);
+                            bool needsWater = gc.gameData.inGameTime >= wateredUntil;
+                            bool needsFert = !pot.IsFertilized();
+                            if (needsWater || needsFert)
+                                carePot = pot;
+                        }
                         continue;
+                    }
 
-                    float wateredUntil = pot.ParseProp(TerrainObject_PlantingPot.PROP_WATERED_UNTIL, 0f);
-                    bool needsWater = gc.gameData.inGameTime >= wateredUntil;
-                    bool needsFert = !pot.IsFertilized();
-                    if (!needsWater && !needsFert) continue;
+                    if (!CompanionConfigStore.AutoHarvestCrops) continue;
+                    var crop = tobj.TryCast<TerrainObject_Crop>();
+                    if (!Il2CppSafe.IsAliveUnity(crop) || crop.harvested ||
+                        crop.cropStageLengthAry == null || crop.cropStageLengthAry.Length == 0 ||
+                        crop.cropCurrentStage < crop.cropStageLengthAry.Length)
+                        continue;
+                    Vector2 cropPos = crop.transform.position;
+                    if (!AutoLootSystem.IsPositionNearPlayerBase(cropPos, 24f)) continue;
+                    string cropKey = $"crop_{crop.Pointer.ToInt64():X}";
+                    if (PhysicalMovementHelper.IsTargetTemporarilyUnreachable(cropKey)) continue;
 
-                    Vector2 potPos = pot.transform.position;
                     st.LastChoreTime = now;
                     StartPhysicalChoreWalk(
-                        ag, st, potPos, pot.transform,
+                        ag, st, cropPos, crop.transform,
+                        CompanionConfigStore.L("🌾 Идёт собирать урожай...", "🌾 Walking to harvest crop...", "🌾 前往收获成熟作物..."),
+                        0,
+                        () =>
+                        {
+                            if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
+                                !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag ||
+                                !Il2CppSafe.IsAliveUnity(crop) || crop.harvested ||
+                                crop.cropStageLengthAry == null || crop.cropStageLengthAry.Length == 0 ||
+                                crop.cropCurrentStage < crop.cropStageLengthAry.Length)
+                                return;
+
+                            var ids = new Il2CppSystem.Collections.Generic.List<int>();
+                            var nums = new Il2CppSystem.Collections.Generic.List<int>();
+                            bool harvested = MultiplayerSyncSystem.IsMultiplayerHost
+                                ? crop.NetHostHarvest(ids, nums)
+                                : crop.HarvestCore(ids, nums);
+                            if (harvested)
+                                CompleteCropHarvest(ag, st, GameController.instance, ids, nums, crop.transform.position);
+                        },
+                        cropKey);
+                    return true;
+                }
+
+                if (Il2CppSafe.IsAliveUnity(carePot))
+                {
+                    Vector2 potPos = carePot.transform.position;
+                    st.LastChoreTime = now;
+                    StartPhysicalChoreWalk(
+                        ag, st, potPos, carePot.transform,
                         CompanionConfigStore.L("Идёт ухаживать за грядкой...", "Walking to tend crop pot...", "正前往照料农作物..."),
                         0,
                         () =>
                         {
-                            if (!Il2CppSafe.IsAliveUnity(pot) || pot.currentDef == null || pot.IsHarvested()) return;
-                            float wu = pot.ParseProp(TerrainObject_PlantingPot.PROP_WATERED_UNTIL, 0f);
-                            if (gc.gameData.inGameTime >= wu) pot.ApplyWatering();
-                            if (!pot.IsFertilized()) pot.ApplyFertilizer(1.25f, 1, 0);
+                            var curGc = GameController.instance;
+                            if (!Il2CppSafe.IsAliveUnity(carePot) || !Il2CppSafe.IsAlive(carePot.currentDef) ||
+                                carePot.IsHarvested() || !Il2CppSafe.IsAliveUnity(curGc) || !Il2CppSafe.IsAlive(curGc.gameData))
+                                return;
+
+                            float wu = carePot.ParseProp(TerrainObject_PlantingPot.PROP_WATERED_UNTIL, 0f);
+                            if (curGc.gameData.inGameTime >= wu)
+                            {
+                                if (MultiplayerSyncSystem.IsMultiplayerHost) carePot.NetHostWater();
+                                else carePot.ApplyWatering();
+                            }
+                            if (!carePot.IsFertilized()) carePot.ApplyFertilizer(1.25f, 1, 0);
                             st.ChoresDoneThisSession++;
                             st.AddExperience(8, ag);
                             st.CurrentTaskText = CompanionConfigStore.L("🌱 Полил и удобрил грядку", "🌱 Watered & fertilized crop", "🌱 已为农作物浇水施肥");
                             SmartChatterSystem.Speak(ag, ChatterTopic.ChoreGardening, minCooldown: 8f, bubbleDuration: 6f);
-                        });
+                        },
+                        $"pot_{carePot.Pointer.ToInt64():X}");
                     return true;
                 }
             }
             catch { }
             return false;
+        }
+
+        private static void CompleteCropHarvest(
+            GOAPAgent ag, CompanionRuntimeState st, GameController gc,
+            Il2CppSystem.Collections.Generic.List<int> ids,
+            Il2CppSystem.Collections.Generic.List<int> nums,
+            Vector2 dropPos)
+        {
+            try
+            {
+                var im = ItemManager.instance;
+                var sharedInv = ag.npcData.GetOrCreateSharedInventory();
+                var cdInv = ag.npcData.characterData?.inventoryData;
+
+                if (Il2CppSafe.IsAlive(im) && ids != null && nums != null)
+                {
+                    int pairCount = Mathf.Min(ids.Count, nums.Count);
+                    for (int k = 0; k < pairCount; k++)
+                    {
+                        int itemId = ids[k];
+                        int remaining = nums[k];
+                        if (itemId <= 0 || remaining <= 0) continue;
+
+                        var attr = im.GetItemAttrById(itemId);
+                        if (!Il2CppSafe.IsAliveUnity(attr)) continue;
+                        int maxStack = attr.stackNumber > 0 ? attr.stackNumber : remaining;
+
+                        while (remaining > 0)
+                        {
+                            int batch = Mathf.Min(remaining, maxStack);
+                            remaining -= batch;
+                            var itemData = im.GetRandomDataByAttr(attr, false, false);
+                            if (!Il2CppSafe.IsAlive(itemData)) continue;
+                            itemData.itemNumberFloat = batch;
+
+                            if (Il2CppSafe.IsAlive(sharedInv) && InventoryTransfers.TryDepositOrStackWhole(sharedInv, itemData))
+                                continue;
+                            if (Il2CppSafe.IsAlive(cdInv) && InventoryTransfers.TryDepositOrStackWhole(cdInv, itemData))
+                                continue;
+
+                            if (Il2CppSafe.IsAliveUnity(gc))
+                            {
+                                var dropped = gc.DropItem(itemData, dropPos, 0f, 0f, false, 0f, ag.npcData.zLevel, ag.humanCharacter.standVz);
+                                if (!Il2CppSafe.IsAliveUnity(dropped))
+                                    gc.AddItemToPlayer(itemData, true);
+                            }
+                        }
+                    }
+                }
+
+                st.LastAutoDropoffTime = -999f;
+                st.ChoresDoneThisSession++;
+                st.AddExperience(10, ag);
+                st.CurrentTaskText = CompanionConfigStore.L(
+                    "🌾 Собрал урожай с грядки",
+                    "🌾 Harvested ripe crop",
+                    "🌾 收获了成熟作物");
+                SmartChatterSystem.Speak(ag, ChatterTopic.ChoreGardening, minCooldown: 8f, bubbleDuration: 6f);
+            }
+            catch { }
         }
 
         private static bool TryPerformWeaponAndArmorMaintenance(GOAPAgent ag, CompanionRuntimeState st, HumanCharacterController player, float now)
@@ -293,7 +478,7 @@ namespace ZedZone.SmartCompanions
             try
             {
                 if (!CompanionConfigStore.EnableBaseAutoDropoff || !st.AllowAutoDropoffAtBase) return false;
-                if (!BaseWorkManager.MayStartAutomaticWork(st, BaseWorkManager.AllowsChores)) return false;
+                if (!AllowsCampChoresOrGarrison(st)) return false;
                 if (player.isDriving) return false;
 
                 int started = CommandUnloadVehiclesToBase(ag, silentIfEmpty: true);

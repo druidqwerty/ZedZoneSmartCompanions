@@ -276,7 +276,7 @@ namespace ZedZone.SmartCompanions
                     continue;
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
-                if (!Il2CppSafe.IsAliveUnity(specificAgent) && st.RosterMode == CompanionRosterMode.CampGarrison)
+                if (!Il2CppSafe.IsAliveUnity(specificAgent) && !CompanionConfigStore.MatchesActiveCommandChannel(st))
                     continue;
                 st.BattleCryBuffUntil = now + 60f;
                 st.AddExperience(10, ag);
@@ -462,32 +462,39 @@ namespace ZedZone.SmartCompanions
             if (now - st.LastCombatCalloutTime > 7.0f)
             {
                 st.LastCombatCalloutTime = now;
-                // Tactical Callouts
-                int nearbyEnemies = CountNearbyHostiles(agent, selfPos, 13f, hc.characterData?.camp ?? 1);
-
-                if (Il2CppSafe.IsAliveUnity(leader) && Vector2.Distance(leader.transform.position, targetPos) < 2.9f)
+                if (selfInVehicle || leaderInVehicle)
                 {
-                    SmartChatterSystem.Speak(agent, ChatterTopic.CombatSavePlayer, minCooldown: 5.5f);
-                }
-                else if (hc.FullHP > 1f && (hc.hp / hc.FullHP) < 0.35f)
-                {
-                    SmartChatterSystem.Speak(agent, ChatterTopic.CombatWounded, minCooldown: 7.5f);
-                }
-                else if (target.FullHP >= 400f || target.TryCast<GiantZombieController>() != null || target.TryCast<CorpsewheelController>() != null)
-                {
-                    SmartChatterSystem.Speak(agent, ChatterTopic.CombatSpotBoss, minCooldown: 9f);
-                }
-                else if (target.TryCast<HumanCharacterController>() != null)
-                {
-                    SmartChatterSystem.Speak(agent, ChatterTopic.CombatSpotBandit, minCooldown: 7.5f);
-                }
-                else if (nearbyEnemies >= 5)
-                {
-                    SmartChatterSystem.Speak(agent, ChatterTopic.CombatSpotHorde, minCooldown: 8.5f);
+                    SmartChatterSystem.Speak(agent, ChatterTopic.VehicleCombatCallout, minCooldown: 8.5f);
                 }
                 else
                 {
-                    SmartChatterSystem.Speak(agent, ChatterTopic.CombatSpotZombie, minCooldown: 9.5f);
+                    // Tactical Callouts
+                    int nearbyEnemies = CountNearbyHostiles(agent, selfPos, 13f, hc.characterData?.camp ?? 1);
+
+                    if (Il2CppSafe.IsAliveUnity(leader) && Vector2.Distance(leader.transform.position, targetPos) < 2.9f)
+                    {
+                        SmartChatterSystem.Speak(agent, ChatterTopic.CombatSavePlayer, minCooldown: 5.5f);
+                    }
+                    else if (hc.FullHP > 1f && (hc.hp / hc.FullHP) < 0.35f)
+                    {
+                        SmartChatterSystem.Speak(agent, ChatterTopic.CombatWounded, minCooldown: 7.5f);
+                    }
+                    else if (target.FullHP >= 400f || target.TryCast<GiantZombieController>() != null || target.TryCast<CorpsewheelController>() != null)
+                    {
+                        SmartChatterSystem.Speak(agent, ChatterTopic.CombatSpotBoss, minCooldown: 9f);
+                    }
+                    else if (target.TryCast<HumanCharacterController>() != null)
+                    {
+                        SmartChatterSystem.Speak(agent, ChatterTopic.CombatSpotBandit, minCooldown: 7.5f);
+                    }
+                    else if (nearbyEnemies >= 5)
+                    {
+                        SmartChatterSystem.Speak(agent, ChatterTopic.CombatSpotHorde, minCooldown: 8.5f);
+                    }
+                    else
+                    {
+                        SmartChatterSystem.Speak(agent, ChatterTopic.CombatSpotZombie, minCooldown: 9.5f);
+                    }
                 }
             }
 
@@ -529,7 +536,8 @@ namespace ZedZone.SmartCompanions
 
                     SmartChatterSystem.Speak(agent, ChatterTopic.CombatKiting, minCooldown: 7.5f);
                 }
-                else if (target.TryCast<HumanCharacterController>() != null && distToTarget < 11.5f &&
+                else if (usingRanged && target.TryCast<HumanCharacterController>() != null &&
+                    (distToTarget < 7.2f || (hc.reloadingMagazineFlag && distToTarget < 11.5f)) &&
                     !CombatResponse.HasNativeRangedAction(agent) && now - st.LastKiteStepTime > 1.5f)
                 {
                     st.LastKiteStepTime = now;

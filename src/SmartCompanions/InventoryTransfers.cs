@@ -271,10 +271,37 @@ namespace ZedZone.SmartCompanions
             {
                 if (CanMergeCompletelyIntoExistingStack(destination, item))
                     return true;
+
+                float spare = GetTotalMergeSpareCapacity(destination, item, out var attr);
+                if (spare >= 0.999f && spare + 0.001f < item.itemNumberFloat && Il2CppSafe.IsAliveUnity(attr))
+                {
+                    var remProbe = item.CopyItemData(null);
+                    if (Il2CppSafe.IsAlive(remProbe))
+                    {
+                        remProbe.itemNumberFloat = item.itemNumberFloat - spare;
+                        if (TryAddWholeCopy(destination, remProbe, out var placedRem, notify: false))
+                        {
+                            destination.RemoveItem(placedRem, false);
+                            return true;
+                        }
+                    }
+                }
+
                 if (TryAddWholeCopy(destination, item, out var probe, notify: false))
                 {
                     destination.RemoveItem(probe, false);
                     return true;
+                }
+
+                if (destination.CountFreeCells() >= EstimateItemCells(item) &&
+                    destination.itemList != null && destination.itemList.Count > 1)
+                {
+                    SafeCompactInventory(destination);
+                    if (TryAddWholeCopy(destination, item, out var probe2, notify: false))
+                    {
+                        destination.RemoveItem(probe2, false);
+                        return true;
+                    }
                 }
             }
             catch { }

@@ -6,6 +6,8 @@ namespace ZedZone.SmartCompanions
 {
     public static partial class BaseSortingSystem
     {
+        private static readonly HashSet<string> _ownBackpackOnlyJobs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         public static void CommandSortBase(GOAPAgent specificAgent = null, InventoryData extraSourceContainer = null, bool instant = false)
         {
             // A direct whole-squad order ends a base-work pause.
@@ -23,9 +25,9 @@ namespace ZedZone.SmartCompanions
 
             var containers = ScanNearbyContainers(force: true);
             var destBoxes = GetCategorizedDestinationBoxes(containers);
-            var fallbackDropoffBoxes = GetPureDropoffDestinationBoxes(containers);
+            var allDropoffFallbackBoxes = GetAllDropoffFallbackBoxes(containers);
 
-            if (destBoxes.Count == 0 && fallbackDropoffBoxes.Count == 0)
+            if (destBoxes.Count == 0 && allDropoffFallbackBoxes.Count == 0)
             {
                 foreach (var idle in SmartChatterSystem.GetActiveTeammateAgents())
                     if (Il2CppSafe.IsAliveUnity(idle) && Il2CppSafe.IsAlive(idle.npcData))
@@ -38,16 +40,29 @@ namespace ZedZone.SmartCompanions
                 return;
             }
 
-            var workers = new List<GOAPAgent>();
+            var workers = new List<(GOAPAgent agent, bool onlyOwnBackpack)>();
             if (Il2CppSafe.IsAliveUnity(specificAgent))
-                workers.Add(specificAgent);
+                workers.Add((specificAgent, false));
             else
             {
+                var player = GameController.instance?.playerCharacter;
+                bool hasPlayer = Il2CppSafe.IsAliveUnity(player);
+                Vector2 playerPos = hasPlayer ? (Vector2)player.transform.position : Vector2.zero;
+
                 foreach (var candidate in SmartChatterSystem.GetActiveTeammateAgents())
                 {
                     if (!Il2CppSafe.IsAliveUnity(candidate) || !Il2CppSafe.IsAlive(candidate.npcData)) continue;
                     var candidateState = CompanionConfigStore.GetOrCreateCompanion(candidate.npcData.npcGUID, candidate.npcData.characterData?.characterName);
-                    if (BaseWorkManager.AllowsSorting(candidateState)) workers.Add(candidate);
+                    if (candidateState.RosterMode == CompanionRosterMode.CampGarrison)
+                    {
+                        if (!hasPlayer || !candidateState.HasHomeAnchor || Vector2.Distance(playerPos, candidateState.HomeAnchorPos) > 32f)
+                            continue;
+                    }
+                    bool channelOk = CompanionConfigStore.ActiveCommandGroup == SquadFireteam.None ||
+                                     CompanionConfigStore.MatchesActiveCommandChannel(candidateState);
+                    if (!channelOk) continue;
+
+                    workers.Add((candidate, !BaseWorkManager.AllowsSorting(candidateState)));
                 }
             }
 
@@ -62,7 +77,7 @@ namespace ZedZone.SmartCompanions
 
             int assignedWorkers = 0;
             var claimedSourcePointers = new HashSet<IntPtr>();
-            foreach (var ag in workers)
+            foreach (var (ag, onlyOwnBackpack) in workers)
             {
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData)) continue;
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
@@ -70,11 +85,20 @@ namespace ZedZone.SmartCompanions
                 st.LootQueue.Clear();
                 st.IsLootingActive = false;
                 st.IsChoreWalkActive = false;
+                st.ChoreTargetKey = "";
+                st.PendingChoreArrivalAction = null;
 
-                if (TryAssignNextCarrySource(ag, st, containers, destBoxes, extraSourceContainer, claimedSourcePointers))
+                if (onlyOwnBackpack) _ownBackpackOnlyJobs.Add(st.NpcGuid);
+                else _ownBackpackOnlyJobs.Remove(st.NpcGuid);
+
+                if (TryAssignNextCarrySource(ag, st, containers, destBoxes, extraSourceContainer, claimedSourcePointers, onlyOwnBackpack))
                 {
                     assignedWorkers++;
                     SmartChatterSystem.Speak(ag, ChatterTopic.SortStart, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
+                }
+                else
+                {
+                    _ownBackpackOnlyJobs.Remove(st.NpcGuid);
                 }
             }
 
@@ -89,7 +113,7 @@ namespace ZedZone.SmartCompanions
             {
                 int remDrop = InspectRemainingDropoffItems(containers, out var remMask);
                 string remCatsForNote = remDrop > 0 ? ItemCategorizer.FormatCategoriesSummary(remMask, false) : "";
-                foreach (var ag in workers)
+                foreach (var (ag, _) in workers)
                     if (Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAlive(ag.npcData))
                         CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName)
                             .NoteBlocked(remDrop > 0 ? CompanionBlockReason.NoStorageSpace : CompanionBlockReason.NothingToDo, remCatsForNote);
@@ -180,6 +204,30 @@ namespace ZedZone.SmartCompanions
             return dropBoxes;
         }
 
+        public static List<DiscoveredContainer> GetAllDropoffFallbackBoxes(List<DiscoveredContainer> containers)
+        {
+            var dropBoxes = new List<DiscoveredContainer>();
+            if (containers == null) return dropBoxes;
+            foreach (var c in containers)
+            {
+                if (c?.Rule != null && c.Rule.IsMarkedByPlayer && c.Rule.IsDropoffSource &&
+                    Il2CppSafe.IsAlive(c.Inventory) &&
+                    !PhysicalMovementHelper.IsTargetTemporarilyUnreachable(c.ContainerId))
+                {
+                    dropBoxes.Add(c);
+                }
+            }
+            dropBoxes.Sort((a, b) =>
+            {
+                bool aPure = a.Rule.Categories == StorageCategory.None;
+                bool bPure = b.Rule.Categories == StorageCategory.None;
+                if (aPure != bPure) return aPure ? -1 : 1;
+                int cmp = b.Rule.Priority.CompareTo(a.Rule.Priority);
+                return cmp != 0 ? cmp : a.DistanceToPlayer.CompareTo(b.DistanceToPlayer);
+            });
+            return dropBoxes;
+        }
+
         public static void TickActiveSortingMovementEveryFrame()
         {
             // Movement and arrival interactions are now driven authoritatively via
@@ -205,7 +253,7 @@ namespace ZedZone.SmartCompanions
                 // Automatic Base Drop-off when returning near marked base chests out of combat (walks to each chest!)
                 if (!st.HasAnyPhysicalTask && CompanionConfigStore.EnableBaseAutoDropoff && st.AllowAutoDropoffAtBase &&
                     BaseWorkManager.MayStartAutomaticWork(st, BaseWorkManager.AllowsAutoDropoff) &&
-                    !Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && now - st.LastAutoDropoffTime > 20f)
+                    !Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && now - st.LastAutoDropoffTime > 3.5f)
                 {
                     TryAutoDropoffAtBase(ag, st, now);
                 }
@@ -263,7 +311,7 @@ namespace ZedZone.SmartCompanions
 
                 var containers = ScanNearbyContainers(force: true);
                 var destBoxes = GetCategorizedDestinationBoxes(containers);
-                var fallbackDropoff = GetPureDropoffDestinationBoxes(containers);
+                var fallbackDropoff = GetAllDropoffFallbackBoxes(containers);
                 int picked = PickupBatchIntoCarryBuffer(ag, st, destBoxes, fallbackDropoff);
 
                 if (picked > 0 && st.CarryBuffer.Count > 0)
@@ -321,7 +369,8 @@ namespace ZedZone.SmartCompanions
 
                 var containers = ScanNearbyContainers(force: true);
                 var destBoxes = GetCategorizedDestinationBoxes(containers);
-                int deposited = DepositBatchAtCurrentDestination(ag, st, destBoxes, out var domCat);
+                var fallbackDropoff = st.SourceAllowDropoffFallback ? GetAllDropoffFallbackBoxes(containers) : null;
+                int deposited = DepositBatchAtCurrentDestination(ag, st, destBoxes, out var domCat, fallbackDropoff);
 
                 if (deposited > 0)
                 {
@@ -345,7 +394,8 @@ namespace ZedZone.SmartCompanions
         {
             containers ??= ScanNearbyContainers(force: true);
             destBoxes ??= GetCategorizedDestinationBoxes(containers);
-            if (!TryAssignNextCarrySource(ag, st, containers, destBoxes, null, null))
+            bool onlyOwnBackpack = st != null && !string.IsNullOrEmpty(st.NpcGuid) && _ownBackpackOnlyJobs.Contains(st.NpcGuid);
+            if (!TryAssignNextCarrySource(ag, st, containers, destBoxes, null, null, onlyOwnBackpack))
             {
                 FinishCompanionSorting(ag, st, containers);
             }

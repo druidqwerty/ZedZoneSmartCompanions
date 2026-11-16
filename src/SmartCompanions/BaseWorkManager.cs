@@ -20,7 +20,7 @@ namespace ZedZone.SmartCompanions
             st != null && (st.WorkRole == CompanionWorkRole.Any || st.WorkRole == CompanionWorkRole.Camp);
 
         public static bool AllowsAutoDropoff(CompanionRuntimeState st) =>
-            st != null && st.WorkRole != CompanionWorkRole.Off;
+            st != null && st.AllowAutoDropoffAtBase;
 
         /// <summary>Automatic (not player-ordered) work may start only when not paused and the role allows it.</summary>
         public static bool MayStartAutomaticWork(CompanionRuntimeState st, Func<CompanionRuntimeState, bool> roleCheck) =>

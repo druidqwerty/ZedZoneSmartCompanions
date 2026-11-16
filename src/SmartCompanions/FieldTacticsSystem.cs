@@ -601,6 +601,14 @@ namespace ZedZone.SmartCompanions
             if (distSq < 2.1f * 2.1f || distSq > 34.0f * 34.0f)
                 return false;
 
+            var hc = agent.humanCharacter;
+            bool wounded = TryGetCharacterHealth(hc, out float curHp, out float maxHp) && maxHp > 1f && (curHp / maxHp) < 0.65f;
+            bool reloading = hc.reloadingMagazineFlag || (Il2CppSafe.IsAliveUnity(hc.rangedWeapon) && hc.rangedWeapon.isReloading);
+            if (!shooter.isRangedWeaponAiming && !reloading && !wounded)
+                return false;
+            if (CombatResponse.HasNativeRangedAction(agent) && !reloading && !wounded)
+                return false;
+
             string key = GetAgentKey(agent);
             if (LastCoverTriggerByCompanion.TryGetValue(key, out float lastCoverAt) &&
                 !IsCooldownReady(lastCoverAt, now, TakeCoverCooldownSeconds))
@@ -802,8 +810,8 @@ namespace ZedZone.SmartCompanions
                     continue;
                 if (MultiplayerSyncSystem.IsMultiplayerOnline && !MultiplayerSyncSystem.CanLocalPlayerCommand(ag.npcData))
                     continue;
-                if (CompanionConfigStore.CompanionStates.TryGetValue(ag.npcData.npcGUID ?? "", out var st) &&
-                    st != null && st.RosterMode == CompanionRosterMode.CampGarrison)
+                var candSt = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                if (!CompanionConfigStore.MatchesActiveCommandChannel(candSt))
                     continue;
                 result.Add(ag);
             }
@@ -1260,6 +1268,19 @@ namespace ZedZone.SmartCompanions
 
             try
             {
+                var sd = Il2CppSafe.IsAlive(ch.characterData) ? ch.characterData.characterStatusData : null;
+                if (Il2CppSafe.IsAlive(sd) && sd.maxhp > 0.01f)
+                {
+                    hp = sd.hp;
+                    maxHp = sd.maxhp;
+                    return true;
+                }
+                if (ch.FullHP > 0.01f)
+                {
+                    hp = ch.hp;
+                    maxHp = ch.FullHP;
+                    return true;
+                }
                 if (Il2CppSafe.IsAlive(ch.characterData) &&
                     TryReadHpPair(ch.characterData, out hp, out maxHp))
                 {
@@ -1294,7 +1315,7 @@ namespace ZedZone.SmartCompanions
             {
                 maxHpMember = FindNamedNumericMember(t, new[]
                 {
-                    "maxHp", "maxHP", "maxHealth", "hpMax", "healthMax", "m_maxHp", "m_maxHealth"
+                    "maxHp", "maxHP", "FullHP", "maxHealth", "hpMax", "healthMax", "m_maxHp", "m_maxHealth"
                 });
                 CachedMaxHpMembers[t] = maxHpMember;
             }
@@ -1318,26 +1339,48 @@ namespace ZedZone.SmartCompanions
 
             try
             {
-                object holder = Il2CppSafe.IsAlive(patient.characterData) ? (object)patient.characterData : patient;
-                if (!TryReadHpPair(holder, out float hp, out float maxHp) || hp >= maxHp)
+                if (!TryGetCharacterHealth(patient, out float hp, out float maxHp) || hp >= maxHp)
                     return false;
 
                 float delta = Mathf.Max(minFlatHeal, maxHp * healFraction);
                 float nextHp = Mathf.Min(maxHp, hp + delta);
+                float appliedGain = nextHp - hp;
+                if (appliedGain <= 0.001f)
+                    return false;
 
-                if (CachedHpMembers.TryGetValue(holder.GetType(), out MemberInfo hpMember) && hpMember != null)
+                var sd = Il2CppSafe.IsAlive(patient.characterData) ? patient.characterData.characterStatusData : null;
+                if (Il2CppSafe.IsAlive(sd))
+                    sd.hp = nextHp;
+
+                patient.hp = nextHp;
+
+                var mgr = GOAPNPCManager.instance;
+                if (Il2CppSafe.IsAlive(mgr) && mgr.activeNPCs != null)
                 {
-                    if (hpMember is PropertyInfo pi && pi.CanWrite)
+                    foreach (var kv in mgr.activeNPCs)
                     {
-                        pi.SetValue(holder, ConvertToMemberNumericType(nextHp, pi.PropertyType));
-                        return true;
-                    }
-                    if (hpMember is FieldInfo fi && !fi.IsInitOnly)
-                    {
-                        fi.SetValue(holder, ConvertToMemberNumericType(nextHp, fi.FieldType));
-                        return true;
+                        var ag = kv.Value;
+                        if (Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAliveUnity(ag.humanCharacter) &&
+                            ag.humanCharacter.Pointer == patient.Pointer && Il2CppSafe.IsAlive(ag.npcData))
+                        {
+                            ag.npcData.health = nextHp;
+                            break;
+                        }
                     }
                 }
+
+                if (MultiplayerSyncSystem.IsMultiplayerOnline &&
+                    ZedZone.Net.NetSessionConfig.IsNetworkPlayer(patient) &&
+                    (!Il2CppSafe.IsAliveUnity(GameController.instance?.playerCharacter) ||
+                     patient.Pointer != GameController.instance.playerCharacter.Pointer))
+                {
+                    string healerName = Il2CppSafe.IsAliveUnity(healer) && Il2CppSafe.IsAlive(healer.npcData?.characterData)
+                        ? healer.npcData.characterData.characterName
+                        : "NPC";
+                    MultiplayerSyncSystem.SendCrossPlayerHeal(patient, appliedGain, clearWounds: false, healerName);
+                }
+
+                return true;
             }
             catch { }
 

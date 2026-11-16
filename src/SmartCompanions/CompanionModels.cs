@@ -151,7 +151,8 @@ namespace ZedZone.SmartCompanions
         CombatStealthLightsOff,
         LevelUpRank,
         PlayerDrivingRide,
-        SquadBattleCry
+        SquadBattleCry,
+        VehicleCombatCallout
     }
 
     /// <summary>
@@ -287,6 +288,13 @@ namespace ZedZone.SmartCompanions
     {
         ActiveSquad = 0,
         CampGarrison = 1
+    }
+
+    public enum SquadFireteam
+    {
+        None = 0,
+        Alpha = 1,
+        Bravo = 2
     }
 
     public enum CompanionBlockReason
@@ -426,6 +434,7 @@ namespace ZedZone.SmartCompanions
         public readonly List<PhysicalLootStop> LootQueue = new List<PhysicalLootStop>();
 
         public bool IsChoreWalkActive = false;
+        public string ChoreTargetKey = "";
         public Vector2 ChoreTargetPos;
         public Transform ChoreTargetAnchor = null;
         public string ChoreDisplayText = "";
@@ -434,6 +443,7 @@ namespace ZedZone.SmartCompanions
 
         // 2.4.0: Camp Garrison & physical zero-teleport Safe Dismissal
         public CompanionRosterMode RosterMode = CompanionRosterMode.ActiveSquad;
+        public SquadFireteam Fireteam = SquadFireteam.None;
         public Vector2 HomeAnchorPos = Vector2.zero;
         public int HomeAnchorZ = 0;
         public bool HasHomeAnchor = false;
@@ -682,6 +692,9 @@ namespace ZedZone.SmartCompanions
         public static bool EnablePlayerRescue = true;
         public static bool EnableAutoBioAndSleep = true;
         public static bool EnableBaseIndustry = true;
+        public static bool AutoHarvestCrops = true;
+        public static SquadFireteam ActiveCommandGroup = SquadFireteam.None;
+        public static bool ShowQuickGuide = false;
         public static bool ShowHudBadge = true;
         public static bool HudBadgeCollapsed = false;
         public static float BaseScanRadius = 48f;
@@ -810,6 +823,11 @@ namespace ZedZone.SmartCompanions
             EnablePlayerRescue = true;
             EnableAutoBioAndSleep = true;
             EnableBaseIndustry = true;
+            BaseIndustrySystem.EnablePowerGridAutomation = EnableBaseIndustry;
+            BaseIndustrySystem.EnableFurnaceAndKitchenAutomation = EnableBaseIndustry;
+            AutoHarvestCrops = true;
+            ActiveCommandGroup = SquadFireteam.None;
+            ShowQuickGuide = false;
             BaseScanRadius = 48f;
             MaxTeamSize = 0;
             RequireAltForRationHotkey = false;
@@ -840,6 +858,7 @@ namespace ZedZone.SmartCompanions
                 st.ReserveMedMin = 1;
                 if (!st.IsDismissedOrNotInTeam)
                     st.RosterMode = CompanionRosterMode.ActiveSquad;
+                st.Fireteam = SquadFireteam.None;
                 st.GarrisonAnchorSettled = false;
                 st.IsTransientVehicleOverflow = false;
                 st.ActiveOrder = TacticalOrderKind.Follow;
@@ -933,6 +952,33 @@ namespace ZedZone.SmartCompanions
             };
         }
 
+        public static bool MatchesActiveCommandChannel(CompanionRuntimeState st)
+        {
+            if (st != null && st.RosterMode == CompanionRosterMode.CampGarrison) return false;
+            if (ActiveCommandGroup == SquadFireteam.None) return true;
+            return st != null && st.Fireteam == ActiveCommandGroup;
+        }
+
+        public static string GetFireteamShortTag(SquadFireteam ft, ModLanguage lang)
+        {
+            return ft switch
+            {
+                SquadFireteam.Alpha => "A",
+                SquadFireteam.Bravo => "B",
+                _                   => "--"
+            };
+        }
+
+        public static string GetCommandChannelLabel(SquadFireteam ch, ModLanguage lang)
+        {
+            return ch switch
+            {
+                SquadFireteam.Alpha => L(lang, "Альфа [Alt+2]", "Alpha [Alt+2]", "A组 [Alt+2]"),
+                SquadFireteam.Bravo => L(lang, "Браво [Alt+3]", "Bravo [Alt+3]", "B组 [Alt+3]"),
+                _                   => L(lang, "Все [Alt+1]",   "All [Alt+1]",   "全队 [Alt+1]")
+            };
+        }
+
         private static string SaveFilePath =>
             Path.Combine(Paths.ConfigPath, "SmartCompanions_Rules.txt");
 
@@ -1009,6 +1055,7 @@ namespace ZedZone.SmartCompanions
             sb.AppendLine($"SET|EnablePlayerRescue|{EnablePlayerRescue}");
             sb.AppendLine($"SET|EnableAutoBioAndSleep|{EnableAutoBioAndSleep}");
             sb.AppendLine($"SET|EnableBaseIndustry|{EnableBaseIndustry}");
+            sb.AppendLine($"SET|AutoHarvestCrops|{AutoHarvestCrops}");
             sb.AppendLine($"SET|ShowHudBadge|{ShowHudBadge}");
             sb.AppendLine($"SET|HudBadgeCollapsed|{HudBadgeCollapsed}");
             sb.AppendLine($"SET|BaseScanRadius|{BaseScanRadius.ToString("F1", CultureInfo.InvariantCulture)}");
@@ -1047,7 +1094,7 @@ namespace ZedZone.SmartCompanions
                 var safeOwnerName = (c.OwnerPlayerName ?? "").Replace("|", "/").Replace("\n", " ").Replace("\r", "");
                 string ax = c.HomeAnchorPos.x.ToString("F2", CultureInfo.InvariantCulture);
                 string ay = c.HomeAnchorPos.y.ToString("F2", CultureInfo.InvariantCulture);
-                sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}|{(int)c.Archetype}|{c.ExperiencePoints}|{c.AllowBaseChores}|{safeOwnerId}|{safeOwnerName}|{(int)c.WorkRole}|{(int)c.Specialization}|{(int)c.Loadout}|{c.ReserveAmmoMin}|{c.ReserveFoodMin}|{c.ReserveMedMin}|{(int)c.RosterMode}|{ax}|{ay}|{c.HomeAnchorZ}");
+                sb.AppendLine($"NPC|{c.NpcGuid}|{(int)c.Doctrine}|{c.AllowAutoSortBase}|{c.AllowAutoLootNearby}|{c.AllowFieldMedic}|{c.AllowAmmoShare}|{safeName}|{c.AllowAutoDropoffAtBase}|{(int)c.Archetype}|{c.ExperiencePoints}|{c.AllowBaseChores}|{safeOwnerId}|{safeOwnerName}|{(int)c.WorkRole}|{(int)c.Specialization}|{(int)c.Loadout}|{c.ReserveAmmoMin}|{c.ReserveFoodMin}|{c.ReserveMedMin}|{(int)c.RosterMode}|{ax}|{ay}|{c.HomeAnchorZ}|{(int)c.Fireteam}");
             }
 
             return sb.ToString();
@@ -1068,6 +1115,7 @@ namespace ZedZone.SmartCompanions
                     $"  \"EnableChatter\": {EnableChatter.ToString().ToLowerInvariant()},\n" +
                     $"  \"EnableSmartCombat\": {EnableSmartCombat.ToString().ToLowerInvariant()},\n" +
                     $"  \"EnableBaseChores\": {EnableBaseChores.ToString().ToLowerInvariant()},\n" +
+                    $"  \"AutoHarvestCrops\": {AutoHarvestCrops.ToString().ToLowerInvariant()},\n" +
                     $"  \"EnableSmartFlashlight\": {EnableSmartFlashlight.ToString().ToLowerInvariant()},\n" +
                     $"  \"EnablePlayerRescue\": {EnablePlayerRescue.ToString().ToLowerInvariant()},\n" +
                     $"  \"AutoShareFoodOnEat\": {AutoShareFoodOnEat.ToString().ToLowerInvariant()}\n" +
@@ -1143,7 +1191,13 @@ namespace ZedZone.SmartCompanions
                     else if (key == "EnableSmartFlashlight" && bool.TryParse(val, out var bFlash)) EnableSmartFlashlight = bFlash;
                     else if (key == "EnablePlayerRescue" && bool.TryParse(val, out var bRescue)) EnablePlayerRescue = bRescue;
                     else if (key == "EnableAutoBioAndSleep" && bool.TryParse(val, out var bBio)) EnableAutoBioAndSleep = bBio;
-                    else if (key == "EnableBaseIndustry" && bool.TryParse(val, out var bInd)) EnableBaseIndustry = bInd;
+                    else if (key == "EnableBaseIndustry" && bool.TryParse(val, out var bInd))
+                    {
+                        EnableBaseIndustry = bInd;
+                        BaseIndustrySystem.EnablePowerGridAutomation = bInd;
+                        BaseIndustrySystem.EnableFurnaceAndKitchenAutomation = bInd;
+                    }
+                    else if (key == "AutoHarvestCrops" && bool.TryParse(val, out var bHarvest)) AutoHarvestCrops = bHarvest;
                     else if (key == "ShowHudBadge" && bool.TryParse(val, out var b7)) ShowHudBadge = b7;
                     else if (key == "HudBadgeCollapsed" && bool.TryParse(val, out var bCol)) HudBadgeCollapsed = bCol;
                     else if (key == "BaseScanRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f2)) BaseScanRadius = Mathf.Clamp(f2, 15f, 120f);
@@ -1245,6 +1299,13 @@ namespace ZedZone.SmartCompanions
                     int anchorZ = 0;
                     if (parts.Length >= 24 && int.TryParse(parts[23], out var az))
                         anchorZ = az;
+                    var fireteam = SquadFireteam.None;
+                    if (parts.Length >= 25 && int.TryParse(parts[24], out var ftInt))
+                    {
+                        int clampedFt = Mathf.Clamp(ftInt, 0, 2);
+                        if (Enum.IsDefined(typeof(SquadFireteam), clampedFt))
+                            fireteam = (SquadFireteam)clampedFt;
+                    }
 
                     CompanionStates[guid] = new CompanionRuntimeState
                     {
@@ -1268,6 +1329,7 @@ namespace ZedZone.SmartCompanions
                         ReserveFoodMin = resFood,
                         ReserveMedMin = resMed,
                         RosterMode = rosterMode,
+                        Fireteam = fireteam,
                         HomeAnchorPos = new Vector2(anchorX, anchorY),
                         HomeAnchorZ = anchorZ,
                         HasHomeAnchor = parsedAnchor,

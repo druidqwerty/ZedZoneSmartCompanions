@@ -180,7 +180,10 @@ namespace ZedZone.SmartCompanions
                             agent.agentState.SetState("targetEnemyInSight", true);
                         }
                     }
-                    if (reaction.Target != targetPointer)
+                    bool idleOrFollowSuperseded = agent.currentGoal == null ||
+                        (agent.currentGoal.TryCast<GOAPGoal_FollowLeader>() != null &&
+                         RangedEngagementPolicy.CanEngage(agent, agent.agentState));
+                    if (reaction.Target != targetPointer || idleOrFollowSuperseded)
                     {
                         // Replan only at acquisition/target change; restarting a current
                         // firing action every tick would reset its native aiming timer.

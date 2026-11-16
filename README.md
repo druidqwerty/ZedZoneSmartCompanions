@@ -7,12 +7,24 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.2"><strong>Release v3.0.2 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.0"><strong>Release v3.1.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v3.1.0 — Fireteams, camp survival, crop harvesting & dual-inventory sorting
+
+- **Fireteam Groups (`[--]` / `[A]` / `[B]`) & `Alt+1 / Alt+2 / Alt+3` command channels:** assign companions to **Alpha** or **Bravo** on `F8 → Squad` cards and target orders, sorting, auto-loot, rally cries, first aid, and rations per fireteam (`SC14` backwards-compatible with 23-field co-op packets).
+- **Autonomous camp survival & offline garrison sustain (`CompanionSurvivalSystem`):** self-care eating/drinking/bandaging from personal & shared bags, base chest and `TerrainObject_WaterWell` resupply (gated so `HoldPosition`/`CoverDirection` defenders never wander), `isSleeping` recall guard, `1.85 m` garrison leash yielding cleanly to `UpdateGoal()`, and `UpdateOfflineNPC` offline garrison sustain.
+- **Auto-harvest crops & 32 m base farming (`BaseChoreSystem`):** added **`[x] Auto-harvest crops`** toggle in `F8 → Work` alongside 32 m planting-pot watering, fertilizing, and ripe crop harvesting, with base/`isPlayerBuilt`/`zLayer` checks and 45 s unreachable cooldowns.
+- **Anti-wander & tight tactical anchor hold (`HarmonyPatches`, `TacticalSquadSystem`):** disabled `Explore` and anchored `TerritoryPatrol`, gated native `SearchForFood`/`SearchForWater`, clamped `FollowLeader` priority `<= 0` for anchored/Hold/Overflow teammates, and enforced `1.15 m` / `1.65 m` `HoldPosition` anchors plus loot/chore/pet range leashes.
+- **Dual-inventory sorting & stack-cap fixes (`BaseSortingSystem`, `CompanionProfileSystem`):** enabled `Auto-Dropoff` by default on `Fighter` presets, added unloading from both shared and personal bags with reserve and first flashlight/canteen protection, bounded partial-stack batch merges (`claimedMergeUnits`), added `[Drop-off]` fallback rerouting, and synced `EnableBaseIndustry`.
+- **Vehicles, tactics, cursor guard, Quick Guide `[?]` & Vehicle Combat Chatter:** preserved ranged LOS before cover/side-weaving, fixed `FieldTacticsSystem` max-HP reads, guarded `EmergencyAid` & modal hotkeys, restored cursor on focus return, added the **`[?]` Quick Guide** screen (RU/EN/ZH) and Vehicle Combat Callouts (**61 topics**, **1,215 unique lines**: 577 RU / 302 EN / 336 ZH).
+- **Verified:** reproducible live acceptance (`backups/live-20261117-012137` & `012242`, **86** Harmony patches, **0.00 m** Hold Position drift) + **300/300** graphical UI matrix + **11** deterministic regression suites (`backups/ui310-20261117-012352`) + Win32 OS input probes (`0.75x`, `2.0x`); all 8,386 real save files unchanged. [Scope and limits](docs/verification-3.1.0.md).
+
+![Quick Mod Guide dialog (real engine, isolated test fixtures)](docs/images/ui-3.1.0-guide-en.png)
 
 ## New in v3.0.2 — Input, vehicle, long-range garrison, co-op revival & stack-merging fixes
 
@@ -291,9 +303,9 @@
 ## Requirements & Installation
 
 1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-3.0.2.zip` into the `<ZED ZONE>` game folder).
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-3.1.0.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
-4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub**, **`Alt+F`** to sweep nearby loot, or **`F7`** to issue a quick Base Sort order.
+4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub** (click **`?`** for the Quick Guide), **`Alt+1/2/3`** to switch command channel (`All` / `Alpha` / `Bravo`), **`Alt+F`** to sweep nearby loot, or **`F7`** to issue a quick Base Sort order.
 
 ## Building from Source
 

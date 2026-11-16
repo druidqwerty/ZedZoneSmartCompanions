@@ -26,14 +26,16 @@ namespace ZedZone.SmartCompanions
                 Vector2.Distance(self.transform.position, enemy.transform.position) >= 1.85f) return false;
             // Beyond vanilla's near-leader threshold keep its catch-up priorities, unless holding a tactical anchor.
             bool nearLeader = Vector2.Distance(self.transform.position, leader.transform.position) <=
-                Mathf.Max(8f, TacticalSquadSystem.GetFollowDistanceMeters(CompanionConfigStore.FollowDistance) + 1.5f);
+                Mathf.Max(10f, TacticalSquadSystem.GetFollowDistanceMeters(CompanionConfigStore.FollowDistance) + 3.0f);
             bool nearTacticalAnchor = profile.ActiveOrder != TacticalOrderKind.Follow &&
                 Vector2.Distance(self.transform.position, profile.OrderAnchorPos) <= 8f;
             if (!nearLeader && !nearTacticalAnchor) return false;
             float distance=Vector2.Distance(self.transform.position,enemy.transform.position);
             if (distance<2.5f || distance>ReadyRange(self)) return false;
             Vector2 muzzle=self.GetProjectileAimOrigin();
-            return agent.HasClearFireLine(new Vector3(muzzle.x,muzzle.y,self.transform.position.z),enemy.GetTorsePositionOrRoot());
+            Vector3 aimTo=enemy.GetTorsePositionOrRoot();
+            return agent.HasClearFireLine(new Vector3(muzzle.x,muzzle.y,self.transform.position.z),aimTo) ||
+                agent.HasClearFireLine(self.GetTorsePositionOrRoot(),aimTo);
         }
 
         internal static float ReadyRange(HumanCharacterController self)
@@ -77,7 +79,7 @@ namespace ZedZone.SmartCompanions
                 // Native FireAtWill adds no command priority; FollowLeader has a
                 // floor of 2 even next to the leader. Do not turn this into a forced
                 // goal: native validity and higher emergency goals still apply.
-                if(!float.IsNaN(follow) && follow<=2.01f) __result=Mathf.Max(__result,follow+0.5f);
+                if(!float.IsNaN(follow) && follow<=6.5f) __result=Mathf.Max(__result,follow+0.5f);
             }
             catch { }
         }

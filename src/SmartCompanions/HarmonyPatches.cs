@@ -239,20 +239,59 @@ namespace ZedZone.SmartCompanions
 
             if (commandStr.EndsWith("EmergencyAid", StringComparison.OrdinalIgnoreCase))
             {
-                if (st != null)
-                {
-                    st.LastFieldMedicTime = -999f;
-                    st.LastAmmoShareTime = -999f;
-                }
+                if (MultiplayerSyncSystem.IsMultiplayerOnline && !MultiplayerSyncSystem.CanLocalPlayerCommand(npcData))
+                    return true;
+                if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAliveUnity(agent.humanCharacter) || agent.humanCharacter.deadFlag)
+                    return true;
+                if (st != null && Time.unscaledTime - st.LastFieldMedicTime < 15f)
+                    return true;
+
                 var player = GameController.instance?.playerCharacter;
-                if (Il2CppSafe.IsAliveUnity(player) && Il2CppSafe.IsAlive(player.characterData?.characterStatusData))
+                if (!Il2CppSafe.IsAliveUnity(player) || player.deadFlag)
+                    return true;
+
+                int agentZ = Il2CppSafe.IsAlive(agent.npcData) ? agent.npcData.zLevel : (Il2CppSafe.IsAlive(npcData) ? npcData.zLevel : 0);
+                int playerZ = Il2CppSafe.IsAlive(player.characterData) ? player.characterData.zLevel : agentZ;
+                if (agentZ != playerZ)
+                {
+                    if (st != null)
+                        ExpeditionSystems.TryStepMultiFloorTransition(agent, st, (sbyte)playerZ);
+                    BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                        "Напарник на другом этаже — идёт к вам для оказания помощи!",
+                        "Companion is on another floor — moving to render field aid!",
+                        "队友位于不同楼层——正在赶来为您急救！"), 3.5f);
+                    return true;
+                }
+
+                float dist = Vector2.Distance(agent.humanCharacter.transform.position, player.transform.position);
+                if (dist > 12f)
+                {
+                    try { CorridorNavigationHelper.SmartMoveTo(agent, player.transform.position, 1.8f, true); } catch { }
+                    if (st != null)
+                    {
+                        st.CurrentTaskText = CompanionConfigStore.L(
+                            "Идёт оказать полевую помощь лидеру...",
+                            "Moving to render field aid to leader...",
+                            "正前往为队长实施战地急救...");
+                    }
+                    BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                        $"Напарник слишком далеко ({dist:F0} м) — уже спешит к вам!",
+                        $"Companion is {dist:F0}m away — running over to render field aid!",
+                        $"队友距离过远（{dist:F0} 米）——正在跑来为您急救！"), 3.5f);
+                    return true;
+                }
+
+                if (Il2CppSafe.IsAlive(player.characterData?.characterStatusData))
                 {
                     var status = player.characterData.characterStatusData;
-                    status.hp = Mathf.Min(status.maxhp, status.hp + Mathf.Max(25f, status.maxhp * 0.30f));
-                    player.hp = status.hp;
+                    if (status.maxhp > 0.01f && status.hp < status.maxhp)
+                    {
+                        status.hp = Mathf.Min(status.maxhp, status.hp + Mathf.Max(25f, status.maxhp * 0.30f));
+                        player.hp = status.hp;
+                        if (st != null) st.LastFieldMedicTime = Time.unscaledTime;
+                        SmartChatterSystem.Speak(agent, ChatterTopic.FieldMedicAid, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
+                    }
                 }
-                if (Il2CppSafe.IsAliveUnity(agent))
-                    SmartChatterSystem.Speak(agent, ChatterTopic.FieldMedicAid, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
                 return true;
             }
 
@@ -939,46 +978,23 @@ namespace ZedZone.SmartCompanions
                 if (st != null && st.RosterMode == CompanionRosterMode.CampGarrison && !hasPhysicalTask &&
                     agentState.npcData.zLevel == st.HomeAnchorZ)
                 {
-                    if (__result > 0.35f) __result = 0.35f;
+                    if (__result > 0f) __result = 0f;
                     return;
                 }
 
                 if (st != null && st.IsTransientVehicleOverflow && !hasPhysicalTask &&
                     agentState.npcData.zLevel == st.TransientVehicleHoldZ)
                 {
-                    if (__result > 0.35f) __result = 0.35f;
+                    if (__result > 0f) __result = 0f;
                     return;
                 }
 
                 if (hasPositionalOrder && !hasPhysicalTask && agentState.npcData.zLevel == st.OrderAnchorZ)
                 {
-                    if (__result > 0.35f)
-                        __result = 0.35f;
+                    if (__result > 0f)
+                        __result = 0f;
                     return;
                 }
-
-                float configuredFollowDist = TacticalSquadSystem.GetFollowDistanceMeters(CompanionConfigStore.FollowDistance);
-                if (!hasPhysicalTask && configuredFollowDist > 4.2f &&
-                    !cmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) &&
-                    !cmd.EndsWith("CollectSpecifiedItem", StringComparison.OrdinalIgnoreCase))
-                {
-                    var agFollow = agentState.npcData.agentCache;
-                    var leaderFollow = Il2CppSafe.IsAliveUnity(agFollow) && Il2CppSafe.IsAliveUnity(agFollow.leaderCharacter)
-                        ? agFollow.leaderCharacter
-                        : GameController.instance?.playerCharacter;
-                    if (Il2CppSafe.IsAliveUnity(leaderFollow))
-                    {
-                        float d = Vector2.Distance(agentState.agentPosition, leaderFollow.transform.position);
-                        if (d <= configuredFollowDist + 1.4f && __result > 1.8f)
-                            __result = 1.8f;
-                    }
-                    return;
-                }
-
-                if (!hasPhysicalTask &&
-                    !cmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) &&
-                    !cmd.EndsWith("CollectSpecifiedItem", StringComparison.OrdinalIgnoreCase))
-                    return;
 
                 var ag = agentState.npcData.agentCache;
                 bool activeCombatThreat = Il2CppSafe.IsAliveUnity(ag) &&
@@ -987,15 +1003,49 @@ namespace ZedZone.SmartCompanions
                     CombatResponse.NormalizeCommand(agentState.combatCommand ?? agentState.npcData.combatCommand) != "StopFire" &&
                     (st == null || st.Doctrine != TacticalDoctrine.Passive) &&
                     !ag.IsTeammateCombatSuppressed();
+
+                var leaderFollow = Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAliveUnity(ag.leaderCharacter)
+                    ? ag.leaderCharacter
+                    : GameController.instance?.playerCharacter;
+
+                bool selfInVehicle = Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAliveUnity(ag.humanCharacter) &&
+                    (ag.humanCharacter.isDriving || Il2CppSafe.IsAliveUnity(ag.humanCharacter.drivingVehicle));
+                if (Il2CppSafe.IsAliveUnity(leaderFollow) &&
+                    (leaderFollow.isDriving || Il2CppSafe.IsAliveUnity(leaderFollow.drivingVehicle)))
+                {
+                    if (st == null || (st.RosterMode != CompanionRosterMode.CampGarrison && !st.IsTransientVehicleOverflow))
+                    {
+                        if (!selfInVehicle && (!activeCombatThreat || Vector2.Distance(agentState.agentPosition, leaderFollow.transform.position) > 4f))
+                        {
+                            if (__result < 8.5f) __result = 8.5f;
+                        }
+                        return;
+                    }
+                }
+
+                float configuredFollowDist = TacticalSquadSystem.GetFollowDistanceMeters(CompanionConfigStore.FollowDistance);
+                if (!hasPhysicalTask &&
+                    !cmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) &&
+                    !cmd.EndsWith("CollectSpecifiedItem", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (Il2CppSafe.IsAliveUnity(leaderFollow))
+                    {
+                        float d = Vector2.Distance(agentState.agentPosition, leaderFollow.transform.position);
+                        bool holdForCombat = activeCombatThreat && !selfInVehicle &&
+                            (st == null || st.ActiveOrder != TacticalOrderKind.FallBackHere || st.FallBackArrived) &&
+                            d <= Mathf.Max(10f, configuredFollowDist + 3.0f);
+                        if ((holdForCombat || (configuredFollowDist > 4.2f && d <= configuredFollowDist + 1.4f)) && __result > 1.8f)
+                            __result = 1.8f;
+                    }
+                    return;
+                }
+
                 if (activeCombatThreat)
                     return;
 
-                var leader = Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAliveUnity(ag.leaderCharacter)
-                    ? ag.leaderCharacter
-                    : GameController.instance?.playerCharacter;
-                if (Il2CppSafe.IsAliveUnity(leader))
+                if (Il2CppSafe.IsAliveUnity(leaderFollow))
                 {
-                    float dist = Vector2.Distance(agentState.agentPosition, leader.transform.position);
+                    float dist = Vector2.Distance(agentState.agentPosition, leaderFollow.transform.position);
                     if (dist <= 48f && __result > 1.2f)
                         __result = 1.2f;
                 }
@@ -1003,7 +1053,7 @@ namespace ZedZone.SmartCompanions
             catch { }
         }
 
-        // 22. Lift TeammateScavengeRestricted when companion is ordered to CollectResource / CollectSpecifiedItem or AllowAutoLootNearby is enabled
+        // 22. Lift TeammateScavengeRestricted only when companion is explicitly ordered to CollectResource / CollectSpecifiedItem and not anchored behind
         [HarmonyPatch(typeof(GOAPAgentState), nameof(GOAPAgentState.IsTeammateScavengeRestricted))]
         [HarmonyPostfix]
         public static void IsTeammateScavengeRestricted_Postfix(GOAPAgentState __instance, ref bool __result)
@@ -1012,14 +1062,9 @@ namespace ZedZone.SmartCompanions
             {
                 if (!__result || !Il2CppSafe.IsAlive(__instance) || !Il2CppSafe.IsAlive(__instance.npcData)) return;
                 string cmd = __instance.basicCommand ?? __instance.npcData.basicCommand ?? "";
-                if (cmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) ||
-                    cmd.EndsWith("CollectSpecifiedItem", StringComparison.OrdinalIgnoreCase))
-                {
-                    __result = false;
-                    return;
-                }
-                if (CompanionConfigStore.CompanionStates.TryGetValue(__instance.npcData.npcGUID ?? "", out var st) &&
-                    st != null && st.AllowAutoLootNearby)
+                if ((cmd.EndsWith("CollectResource", StringComparison.OrdinalIgnoreCase) ||
+                     cmd.EndsWith("CollectSpecifiedItem", StringComparison.OrdinalIgnoreCase)) &&
+                    !CampGarrisonSystem.ShouldStayAnchoredBehind(__instance.npcData))
                 {
                     __result = false;
                 }
@@ -1085,6 +1130,77 @@ namespace ZedZone.SmartCompanions
             }
             catch { }
             return true;
+        }
+
+        // 25. Prevent teammates from wandering off on Explore / TerritoryPatrol / SearchForFood / SearchForWater and sustain offline garrison
+        [HarmonyPatch(typeof(GOAPGoal_Explore), nameof(GOAPGoal_Explore.IsValid))]
+        [HarmonyPostfix]
+        public static void Explore_IsValid_Postfix(GOAPAgent __0, ref bool __result)
+        {
+            try
+            {
+                if (__result && Il2CppSafe.IsAliveUnity(__0) && __0.IsPlayerTeammate())
+                    __result = false;
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(GOAPGoal_TerritoryPatrol), nameof(GOAPGoal_TerritoryPatrol.IsValid))]
+        [HarmonyPostfix]
+        public static void TerritoryPatrol_IsValid_Postfix(GOAPAgent __0, ref bool __result)
+        {
+            try
+            {
+                if (__result && Il2CppSafe.IsAliveUnity(__0) && __0.IsPlayerTeammate() &&
+                    CampGarrisonSystem.ShouldStayAnchoredBehind(__0.npcData))
+                    __result = false;
+            }
+            catch { }
+        }
+
+        [HarmonyPatch(typeof(GOAPAction_SearchForFood), nameof(GOAPAction_SearchForFood.Execute))]
+        [HarmonyPrefix]
+        public static bool SearchForFood_Execute_Prefix(GOAPAgent __0, ref bool __result)
+        {
+            try
+            {
+                if (CompanionConfigStore.EnableSmartCombat && CompanionConfigStore.EnableAutoBioAndSleep &&
+                    Il2CppSafe.IsAliveUnity(__0) && __0.IsPlayerTeammate())
+                {
+                    __result = false;
+                    return false;
+                }
+            }
+            catch { }
+            return true;
+        }
+
+        [HarmonyPatch(typeof(GOAPAction_SearchForWater), nameof(GOAPAction_SearchForWater.Execute))]
+        [HarmonyPrefix]
+        public static bool SearchForWater_Execute_Prefix(GOAPAgent __0, ref bool __result)
+        {
+            try
+            {
+                if (CompanionConfigStore.EnableSmartCombat && CompanionConfigStore.EnableAutoBioAndSleep &&
+                    Il2CppSafe.IsAliveUnity(__0) && __0.IsPlayerTeammate())
+                {
+                    __result = false;
+                    return false;
+                }
+            }
+            catch { }
+            return true;
+        }
+
+        [HarmonyPatch(typeof(GOAPNPCManager), nameof(GOAPNPCManager.UpdateOfflineNPC), new Type[] { typeof(GOAPNPCData) })]
+        [HarmonyPostfix]
+        public static void UpdateOfflineNPC_Postfix(GOAPNPCData __0)
+        {
+            try
+            {
+                CompanionSurvivalSystem.SustainOfflineGarrisonCompanion(__0);
+            }
+            catch { }
         }
     }
 

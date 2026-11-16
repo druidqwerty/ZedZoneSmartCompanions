@@ -67,6 +67,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     if (!_agent.IsPathClear(origin, leaderSpot, 0.30f))
                         leaderSpot = origin - axis * 4.5f;
                     human.TeleportTo(origin, false);
+                    human.movementInput = Vector2.zero;
+                    _agent.hasNavigationTarget = false;
                     // Keep the leader ~5m away and off the firing line; other squad
                     // members remain at the base instead of overlapping this actor.
                     player.TeleportTo(leaderSpot, false);

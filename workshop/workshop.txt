@@ -1,18 +1,18 @@
 version=1
 id=3836613312
-title=ZED ZONE: Smart Companions 3.0.2
+title=ZED ZONE: Smart Companions 3.1.0
 visibility=public
-description=[h1]Smart Companions 3.0.2[/h1]
+description=[h1]Smart Companions 3.1.0[/h1]
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=Enjoy the mod? Support development on Boosty.
-description=Turn recruited survivors into a reliable squad: tactical combat, physical scavenging and base deliveries, with 1,179 live chatter lines across English, Russian and Simplified Chinese.
-description=[h2]New in 3.0.2: input, vehicle, garrison, co-op revival & sorting fixes[/h2]
-description=[list][*]Fixed a startup freeze where WASD, Esc and UI buttons stopped responding right after loading a save.[*]Fixed vehicle boarding and exit: companions no longer get stuck on car hulls, teleport mid-drive, or stay permanently reassigned to Camp Garrison when seats run out.[*]Fixed Hold Position and Camp Garrison guards teleporting back to you beyond 100m or reacting to squad-wide hotkeys.[*]Fixed multiplayer companions dying immediately on zero HP: downed squadmates now kneel for revival, with a [+] Revive button in F8 when standing nearby.[*]Added Alt+F quick loot sweep hotkey, automatic stack merging in chests and backpacks, hybrid [Drop-off + Category] chest support, vehicle trunk unloading, Coconut food sorting, and a Reset All Settings button in F8 -> Settings.[/list]
+description=Turn recruited survivors into a reliable squad: tactical combat, physical scavenging and base deliveries, with 1,215 live chatter lines across English, Russian and Simplified Chinese.
+description=[h2]New in 3.1.0: Fireteams, Camp Survival, Crop Harvest & Base Logistics[/h2]
+description=[list][*]Added Fireteam groups ([--] / [A] / [B]) on companion cards and Alt+1 (All) / Alt+2 (Alpha) / Alt+3 (Bravo) hotkeys to command each team separately.[*]Added autonomous camp eating, drinking from canteens or water wells, chest resupply, and offline garrison sustain while keeping Hold Position guards anchored without starving.[*]Added an [x] Auto-harvest crops toggle in F8 -> Work with 32m watering, fertilizing, and ripe crop harvesting.[*]Stopped companions from wandering off randomly (Explore / Territory Patrol / native food searches) and tightened loot, chore, and Hold Position leashes.[*]Upgraded base unloading: Fighters enable Auto-Dropoff by default, sorting empties surplus items from both personal and shared bags while protecting reserves, first flashlights and canteens, stack merges never exceed chest room, and full chests reroute to [Drop-off].[*]Polished vehicle boarding for Hold defenders, cursor restore on focus/UI close, First Aid checks, ranged cover LOS, Vehicle Combat chatter (61 topics), and the built-in [?] Quick Guide button.[/list]
 description=[h2]Your squad and base[/h2]
-description=Six combat doctrines, squad cap up to 15, emergency medic and ammo aid, autonomous scavenging, and 12 storage categories. Companions walk to loot and carry goods between your marked chests; there is no instant item transfer. Existing saves do not need resetting.
+description=Six combat doctrines, squad cap up to 15, fireteams, emergency medic and ammo aid, autonomous scavenging, and 12 storage categories. Companions walk to loot and carry goods between your marked chests; there is no instant item transfer. Existing saves do not need resetting.
 description=[h2]Install & hotkeys[/h2]
-description=Requires third-party [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (run its install.cmd once, then launch via Steam). The loader is not a mod by druidqwerty. Both co-op players should use 3.0.2.
-description=F8: squad, work, base, chatter & settings · Esc: close F8 · Alt+F: sweep nearby loot · F7: physical base sorting · F6 (Alt+F6 with AVO): share rations · F9: battle cry.
+description=Requires third-party [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url] (run its install.cmd once, then launch via Steam). The loader is not a mod by druidqwerty. Both co-op players should use 3.1.0.
+description=F8: squad, work, base, chatter & settings ([?] quick guide) · Alt+1/2/3: All / Alpha / Bravo · Alt+F: sweep loot · F7: physical sort · F6 (Alt+F6 with AVO): share rations · F9: battle cry.
 description=[h2]Co-op limitation[/h2]
 description=Host checks and resolves every companion order and syncs downed companion state to clients. A live two-machine host + client session still awaits real two-player confirmation; please report co-op issues in the discussions.
 description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]GitHub repository, full changes & verification reports[/url]

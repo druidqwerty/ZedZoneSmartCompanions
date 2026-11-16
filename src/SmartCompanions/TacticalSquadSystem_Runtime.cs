@@ -35,12 +35,11 @@ namespace ZedZone.SmartCompanions
                 for (int i = 0; i < squad.Count; i++)
                 {
                     var cand = squad[i];
-                    if (Il2CppSafe.IsAliveUnity(cand) && Il2CppSafe.IsAlive(cand.npcData) &&
-                        CompanionConfigStore.CompanionStates.TryGetValue(cand.npcData.npcGUID ?? "", out var candSt) &&
-                        candSt != null && candSt.RosterMode == CompanionRosterMode.CampGarrison)
-                    {
+                    if (!Il2CppSafe.IsAliveUnity(cand) || !Il2CppSafe.IsAlive(cand.npcData))
                         continue;
-                    }
+                    var candSt = CompanionConfigStore.GetOrCreateCompanion(cand.npcData.npcGUID, cand.npcData.characterData?.characterName);
+                    if (!CompanionConfigStore.MatchesActiveCommandChannel(candSt))
+                        continue;
                     targets.Add(cand);
                 }
             }
@@ -64,7 +63,7 @@ namespace ZedZone.SmartCompanions
                 Vector2 selfPos = ag.humanCharacter.transform.position;
                 int selfZ = Il2CppSafe.IsAlive(ag.npcData) ? ag.npcData.zLevel : playerZ;
 
-                if (order == TacticalOrderKind.FallBackHere && st.HasAnyPhysicalTask)
+                if (order != TacticalOrderKind.Follow && st.HasAnyPhysicalTask)
                     BaseWorkManager.CancelWork(ag, st);
 
                 st.ActiveOrder = order;
@@ -101,6 +100,11 @@ namespace ZedZone.SmartCompanions
                     st.OrderAnchorPos = slot;
                     st.OrderAnchorZ = selfZ;
                     placedAnchors.Add(slot);
+                    ag.humanCharacter.movementInput = Vector2.zero;
+                    ag.hasNavigationTarget = false;
+                    ag.executeSelectPriorityGoalFlag = true;
+                    CampGarrisonSystem.SyncAnchoredNpcDataPosition(ag, slot, selfZ);
+                    try { ag.SelectPriorityGoalExecute(); } catch { }
                 }
 
                 if (!fromNetwork)
@@ -132,7 +136,13 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        public static bool TickTacticalGoalOverride(GOAPAgent agent)
+        public static bool TickTacticalGoalOverride(GOAPAgent agent) =>
+            TickTacticalGoalOverrideCore(agent, returnTrueWhenSettled: true);
+
+        public static bool TickTacticalUpdateGoalOverride(GOAPAgent agent) =>
+            TickTacticalGoalOverrideCore(agent, returnTrueWhenSettled: false);
+
+        private static bool TickTacticalGoalOverrideCore(GOAPAgent agent, bool returnTrueWhenSettled)
         {
             if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData) ||
                 !Il2CppSafe.IsAliveUnity(agent.humanCharacter) || agent.humanCharacter.deadFlag)
@@ -188,7 +198,7 @@ namespace ZedZone.SmartCompanions
                     agent.hasNavigationTarget = false;
                     if (st.OrderBlockReason == TacticalOrderBlockReason.PathBlockedToAnchor)
                         st.OrderBlockReason = TacticalOrderBlockReason.None;
-                    return !hasThreat;
+                    return !hasThreat && returnTrueWhenSettled;
                 }
 
                 bool meleeCornered = hasThreat && Vector2.Distance(selfPos, threat.transform.position) < 1.85f;
@@ -201,10 +211,11 @@ namespace ZedZone.SmartCompanions
             }
 
             // 2. HoldPosition / CoverDirection / arrived FallBackHere:
-            // If fighting, let native combat shoot/fight unless companion chased >4.2m off their anchor!
+            // If fighting, let native combat shoot/fight within a tight tactical leash around the anchor!
             if (hasThreat)
             {
-                if (distToAnchor > 4.2f)
+                float combatAnchorLeash = st.ActiveOrder == TacticalOrderKind.HoldPosition ? 1.65f : 2.4f;
+                if (distToAnchor > combatAnchorLeash)
                 {
                     SteerTowardAnchor(agent, st, selfPos, distToAnchor, shouldRun: true);
                     return true;
@@ -213,7 +224,7 @@ namespace ZedZone.SmartCompanions
             }
 
             // Out of combat: stay on anchor & watch sector if CoverDirection
-            if (distToAnchor > 1.45f)
+            if (distToAnchor > 1.15f)
             {
                 SteerTowardAnchor(agent, st, selfPos, distToAnchor, shouldRun: distToAnchor > 5.5f);
                 return true;
@@ -228,7 +239,47 @@ namespace ZedZone.SmartCompanions
             {
                 try { agent.LookAtPositionSmoothCompat(selfPos + st.OrderDirection * 6f, 10f); } catch { }
             }
-            return true;
+
+            return returnTrueWhenSettled;
+        }
+
+        public static void EnforceSettledHoldPositionsEveryFrame()
+        {
+            var squad = SmartChatterSystem.GetActiveTeammateAgents();
+            for (int i = 0; i < squad.Count; i++)
+            {
+                var ag = squad[i];
+                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
+                    !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag || ag.humanCharacter.isSleeping)
+                    continue;
+                var hc = ag.humanCharacter;
+                if (hc.isDriving || Il2CppSafe.IsAliveUnity(hc.drivingVehicle))
+                    continue;
+                if (!CompanionConfigStore.CompanionStates.TryGetValue(ag.npcData.npcGUID ?? "", out var st) || st == null || st.HasAnyPhysicalTask)
+                    continue;
+                if (st.ActiveOrder != TacticalOrderKind.HoldPosition && st.ActiveOrder != TacticalOrderKind.CoverDirection)
+                    continue;
+                if (ag.npcData.zLevel != st.OrderAnchorZ || st.OrderAnchorPos.sqrMagnitude < 0.001f)
+                    continue;
+                bool hasThreat = Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && !ag.mostThreateningCharacter.deadFlag;
+                float dist = Vector2.Distance(hc.transform.position, st.OrderAnchorPos);
+                if (hasThreat)
+                {
+                    float leash = st.ActiveOrder == TacticalOrderKind.HoldPosition ? 1.65f : 2.4f;
+                    if (dist > leash)
+                        SteerTowardAnchor(ag, st, hc.transform.position, dist, shouldRun: true);
+                    continue;
+                }
+                if (dist > 1.15f)
+                {
+                    SteerTowardAnchor(ag, st, hc.transform.position, dist, shouldRun: dist > 5.5f);
+                }
+                else
+                {
+                    hc.movementInput = Vector2.zero;
+                    ag.hasNavigationTarget = false;
+                }
+            }
         }
 
         private static void SteerTowardAnchor(GOAPAgent agent, CompanionRuntimeState st, Vector2 selfPos, float dist, bool shouldRun)
@@ -248,7 +299,7 @@ namespace ZedZone.SmartCompanions
 
             try
             {
-                CorridorNavigationHelper.SmartMoveTo(agent, st.OrderAnchorPos, 1.15f, shouldRun);
+                CorridorNavigationHelper.SmartMoveTo(agent, st.OrderAnchorPos, 0.85f, shouldRun);
                 Vector2 lookPos = st.ActiveOrder == TacticalOrderKind.CoverDirection
                     ? selfPos + st.OrderDirection * 6f
                     : st.OrderAnchorPos;

@@ -1,16 +1,16 @@
-title=ZED ZONE: Smart Companions 3.0.2 — 智能队友
+title=ZED ZONE: Smart Companions 3.1.0 — 智能队友
 visibility=public
-description=[h1]智能队友 3.0.2[/h1]
+description=[h1]智能队友 3.1.0[/h1]
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=喜欢这个模组吗？欢迎在 Boosty 支持开发。
-description=打造可靠的幸存者小队：智能战术战斗、真实走位搜刮与基地搬运，以及中英俄三语共 1,179 条实时台词。
-description=[h2]3.0.2 更新：按键失灵、载具上下车、远程驻守、联机倒地救援与自动叠堆修复[/h2]
-description=[list][*]修复读档进入世界后偶发 WASD、Esc 与界面按钮失灵锁死的问题。[*]修复载具上下车与乘员溢出：队友不再卡在车身旁或行车途中瞬移，座位不足暂时留守的队友在下车后会自动恢复随行，不再永久卡在营地驻守。[*]修复原地待命与营地驻守队友在玩家离开 100 米外后瞬移跟随的问题，全队快捷键不再误召回基地守卫。[*]修复联机模式下队友空血直接死亡：现在队友会正常跪地等待救援，靠近后也可在 F8 面板点击 [+] 扶起。[*]新增 Alt+F 一键搜刮附近战利品、箱子与背包自动合并同类叠堆、支持 [卸货+分类] 混合箱、自动清空载具后备箱、椰子归入食物分类，以及 F8 -> 设置中的恢复默认设置按钮。[/list]
+description=打造可靠的幸存者小队：智能战术战斗、真实走位搜刮与基地搬运，以及中英俄三语共 1,215 条实时台词。
+description=[h2]3.1.0 更新：火力小组、营地生存保障、农田自动收获与双背包整理[/h2]
+description=[list][*]在队伍卡片新增火力小组 [--] / [A] / [B]，配合 Alt+1（全队）/ Alt+2（A组）/ Alt+3（B组）分频道下达指令。[*]队友会在基地自主喝水（水壶或水井）、进食、包扎并从储物箱补给，离线营地驻守不再饿死，同时不会打断原地坚守防线。[*]在 F8 -> 工作页新增 [x] 自动收获作物 开关，浇水施肥与收获覆盖 32 米。[*]屏蔽队友漫无目的地乱逛与原生觅食跑图，收紧搜刮、内务与原地待命范围限制。[*]战斗员预设默认开启回城自动卸货；卸货兼顾个人与共享背包并保护弹药食物医药保底、首把手电筒与水壶，修复叠堆合并上限与满箱自动改道。[*]优化上车流程、切窗光标恢复、战地急救与掩体开火视野，新增界面快速指南 [?] 与载具战斗语录（共 61 个话题）。[/list]
 description=[h2]小队与基地[/h2]
-description=六种战术学说、最高 15 人队伍、战地急救与弹药支援、自主物资搜刮及 12 类储物规则。队友亲自走到物品旁拾取，并在玩家标记的箱子间搬运，绝不瞬间隔空传物。兼容现有存档，无需重开。
+description=六种战术学说、最高 15 人队伍、火力小组、战地急救与弹药支援、自主物资搜刮及 12 类储物规则。队友亲自走位拾取并搬运物品，绝不隔空传物。兼容现有存档，无需重开。
 description=[h2]安装与快捷键[/h2]
-description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次其 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 3.0.2。
-description=F8：小队/工作/基地/语录/设置 · Esc：关闭 F8 · Alt+F：搜刮附近物资 · F7：走位整理基地 · F6（与 AVO 共用时 Alt+F6）：分享口粮 · F9：战吼。
+description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 3.1.0。
+description=F8：队伍/工作/基地/设置（右上 [?] 指南） · Alt+1/2/3：全队/A组/B组 · Alt+F：搜刮附近 · F7：整理基地 · F6（与 AVO 共用 Alt+F6）：分享口粮 · F9：战吼。
 description=[h2]联机限制[/h2]
 description=主机校验并同步每条队友指令与倒地救援状态。真实双机主机 + 客户端联机会话仍待双人实测反馈，联机问题欢迎在讨论区留言。
 description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]GitHub 源码、完整更新与验证报告[/url]

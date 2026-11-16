@@ -100,6 +100,17 @@ namespace ZedZone.SmartCompanions
             if (Il2CppSafe.IsAliveUnity(st.SafeDismissTargetAnchor))
                 st.SafeDismissTargetPos = st.SafeDismissTargetAnchor.position;
 
+            if (st.IsSortingActive || st.IsLootingActive || st.IsChoreWalkActive)
+            {
+                BaseSortingSystem.ReturnCarryBufferWithoutTeleport(ag, st);
+                st.IsSortingActive = false;
+                st.SortingPhase = 0;
+                st.IsLootingActive = false;
+                st.LootQueue.Clear();
+                st.IsChoreWalkActive = false;
+                st.PendingChoreArrivalAction = null;
+            }
+
             PhysicalMovementHelper.StepWalkAndInteract(
                 ag, st, st.SafeDismissTargetPos, st.SafeDismissTargetAnchor, 0, 0.40f,
                 out bool ready, out bool unreachable);

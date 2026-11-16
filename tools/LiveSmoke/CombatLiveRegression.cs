@@ -134,11 +134,21 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 float requiredRange = _phase == 1 ? 12f : 8f;
                 if (_phase < 2 && gun.fireRange + 0.01f < requiredRange && now - _phaseStart > 2f)
                     return End(false, $"BLOCKED: native weapon selection uses weaponId={gun.weaponData.itemId} range={gun.fireRange:F2}m for the {requiredRange:F0}m phase; target={DescribeCurrentTarget()}. A suitable weapon/arena fixture is required.");
+                if (_phase < 3 && Il2CppSafe.IsAliveUnity(_zombie))
+                {
+                    _zombie.movementInput = Vector2.zero;
+                    if (Vector2.Distance(_zombie.transform.position, _placement) > 0.35f)
+                        _zombie.TeleportTo(_placement, false);
+                }
+                if (_phase == 3 && Il2CppSafe.IsAliveUnity(_hostileHuman))
+                {
+                    _hostileHuman.movementInput = Vector2.zero;
+                    if (Vector2.Distance(_hostileHuman.transform.position, _placement) > 0.35f)
+                        _hostileHuman.TeleportTo(_placement, false);
+                }
                 float distance = _phase == 3 && Il2CppSafe.IsAliveUnity(_hostileHuman)
                     ? Vector2.Distance(_agent.humanCharacter.transform.position, _hostileHuman.transform.position)
                     : Vector2.Distance(_agent.humanCharacter.transform.position, _zombie.transform.position);
-                if (_phase == 3 && Il2CppSafe.IsAliveUnity(_hostileHuman))
-                    _hostileHuman.movementInput = Vector2.zero;
                 var expectedTarget = _phase == 3 && Il2CppSafe.IsAliveUnity(_hostileHuman)
                     ? (BasicCharacterController)_hostileHuman
                     : (BasicCharacterController)_zombie;
@@ -421,6 +431,9 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             float distance = _phase == 1 ? 12f : 8f;
             bool found = FindOpenTestPlacement(distance);
             if (!found) throw new Exception("BLOCKED: no clear native fire line at " + distance + "m.");
+            _agent.humanCharacter.movementInput = Vector2.zero;
+            _agent.hasNavigationTarget = false;
+            _agent.executeSelectPriorityGoalFlag = true;
             if (_phase == 3)
             {
                 SetupHostileHumanTarget();

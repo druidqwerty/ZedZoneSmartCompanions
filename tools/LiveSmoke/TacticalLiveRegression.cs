@@ -49,9 +49,12 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     if (!TryFindOpenLine(9.0f, out _holdPoint, out _fallbackPoint))
                         return End(false, "FAIL [TacticalLive]: could not find 9m open corridor.");
 
-                    // Clear any nearby stray threats around test corridor
+                    // Suppress ambient hostiles re-enabled after PhysicalLive so HoldPosition & FallBack test tactical steering cleanly
+                    CombatLiveRegression.SuppressAllNearbyHostilesForLogistics(_agent);
                     _agent.mostThreateningCharacter = null;
                     _agent.humanCharacter.TeleportTo(_holdPoint, false);
+                    _agent.humanCharacter.movementInput = Vector2.zero;
+                    _agent.hasNavigationTarget = false;
                     player.TeleportTo(_holdPoint, false);
 
                     // Phase 0: Issue HoldPosition at _holdPoint, then move player 9m away to _fallbackPoint
@@ -66,13 +69,16 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 if (!Il2CppSafe.IsAliveUnity(_agent?.humanCharacter))
                     return End(false, "FAIL [TacticalLive]: companion died or became invalid.");
 
+                if (Il2CppSafe.IsAliveUnity(_agent.mostThreateningCharacter))
+                    _agent.mostThreateningCharacter = null;
+
                 Vector2 curPos = _agent.humanCharacter.transform.position;
 
                 if (_phase == 0)
                 {
                     float drift = Vector2.Distance(curPos, _holdPoint);
                     if (drift > 1.85f)
-                        return End(false, $"FAIL [TacticalLive HoldPosition]: companion chased player off hold anchor (drift={drift:F2}m)!");
+                        return End(false, $"FAIL [TacticalLive HoldPosition]: companion chased player off hold anchor (drift={drift:F2}m, pos={curPos}, task={_state.HasAnyPhysicalTask}/{_state.CurrentTaskText}, goal={_agent.currentGoal?.GetIl2CppType()?.Name ?? "null"}, move={_agent.humanCharacter.movementInput})!");
 
                     if (now - _phaseStart >= 2.5f)
                     {
@@ -223,6 +229,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     _agent.humanCharacter.TeleportTo(_origAgentPos, false);
                 if (Il2CppSafe.IsAliveUnity(GameController.instance?.playerCharacter))
                     GameController.instance.playerCharacter.TeleportTo(_origPlayerPos, false);
+                CombatLiveRegression.RestoreLogisticsArena();
             }
             catch { }
             return true;

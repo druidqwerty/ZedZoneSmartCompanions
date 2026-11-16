@@ -1,4 +1,4 @@
-# ZED ZONE: Smart Companions — 智能队友、基地分类整理与 980+ 实时互动语录
+# ZED ZONE: Smart Companions — 智能队友、基地分类整理与 1,215 条实时互动语录
 
 <p align="center"><a href="https://boosty.to/lrgpp"><img src="https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png" alt="LrgPP mods on Boosty" width="640"></a></p>
 <p align="center"><em>喜欢这个模组吗？欢迎在 <a href="https://boosty.to/lrgpp">Boosty</a> 上支持开发。</em></p>
@@ -7,12 +7,24 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.0.2"><strong>下载 v3.0.2 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.0"><strong>下载 v3.1.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v3.1.0 更新 — 火力小组、营地生存保障、自动收获作物与双背包整理
+
+- **火力小组（`[--]` / `[A]` / `[B]`）与 `Alt+1 / Alt+2 / Alt+3` 指挥频道：** 在 `F8 → 队伍` 卡片上分配 **A组（Alpha）** 或 **B组（Bravo）**，并按小队频道下达战术、整理、拾取、战吼、急救与分口粮指令（兼容旧版 23 字段联机包）。
+- **营地自主生存与离线驻守维持（`CompanionSurvivalSystem`）：** 队友自主使用水壶饮水、进食和包扎，在营地空闲时前往储物箱或水井（`TerrainObject_WaterWell`）补给（绝不打断 `HoldPosition`/`CoverDirection` 守卫），离线驻守防止饿死渴死（`UpdateOfflineNPC`），收紧驻守活动半径 `1.85米` 并向原生 `UpdateGoal()` 让位。
+- **自动收获作物与 32 米种植照料（`BaseChoreSystem`）：** 在 `F8 → 工作` 新增 **`[x] 自动收获作物`** 开关，浇水施肥与收获覆盖 32 米，增加楼层与玩家建造校验及 45 秒不可达冷却。
+- **防乱逛与严格定点防守（`HarmonyPatches`, `TacticalSquadSystem`）：** 屏蔽 `Explore` 闲逛、驻守巡逻与原生觅食跑图，压低驻守/待命/乘员溢出时的跟随优先级至 `<= 0`，每帧强制约束原地待命半径（脱战 `1.15米` / 战时 `1.65米`），并限制搜刮、内务与宠物距离。
+- **双背包卸货与叠堆合并上限修复（`BaseSortingSystem`, `CompanionProfileSystem`）：** 战斗员预设默认开启自动回城卸货；卸货同时清理共享背包与个人背包的盈余物品并保护保底物资与首把手电/水壶，修复半格叠堆批量合并超额分配，满箱时自动改道回 `[中转箱]`。
+- **载具、战术视野、光标保护、`[?]` 快速指南与载具战斗语录：** 优化掩体前开火瞄准视野、`FieldTacticsSystem` 血量读取、跨楼层急救限制与焦点恢复光标；新增 **`[?]` 模组快速指南**（三语）与载具战斗喊话（总计 **61 个话题**、**1,215 条独立台词**：577 RU / 302 EN / 336 ZH）。
+- **已验证：** 连续两次实机测试通过（`backups/live-20261117-012137` 与 `012242`，**86** 项 Harmony 补丁，原地待命漂移 `0.00米`）+ **300/300** 图形界面测试 + 全部 **11** 组回归测试（`backups/ui310-20261117-012352`）+ `0.75x`/`2.0x` Win32 系统输入测试；8,386 个存档文件均未改变。[测试范围与限制](docs/verification-3.1.0.md)。
+
+![3.1.0 模组快速指南界面（游戏引擎实测）](docs/images/ui-3.1.0-guide-zh.png)
 
 ## v3.0.2 更新 — 按键锁死、载具上下车、百米远程驻守、联机倒地救援与叠堆合并修复
 
@@ -246,7 +258,7 @@
 ## 安装与快捷键
 
 1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-3.0.2.zip` 解压至 `<ZED ZONE>`）。
-3. 快捷键：**`F8`** 打开智能队友与基地中心 · **`Alt+F`** 搜刮附近战利品 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-3.1.0.zip` 解压至 `<ZED ZONE>`）。
+3. 快捷键：**`F8`** 打开智能队友与基地中心（右上 **`?`** 为快速指南） · **`Alt+1/2/3`** 切换小队频道（全队/A组/B组） · **`Alt+F`** 搜刮附近战利品 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

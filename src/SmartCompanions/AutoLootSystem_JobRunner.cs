@@ -184,6 +184,19 @@ namespace ZedZone.SmartCompanions
 
         public static void StepLootingJobForAgent(GOAPAgent agent, CompanionRuntimeState st)
         {
+            if (st.IsSilentAutoLoot && Il2CppSafe.IsAliveUnity(agent) && Il2CppSafe.IsAliveUnity(agent.humanCharacter))
+            {
+                var leader = Il2CppSafe.IsAliveUnity(agent.leaderCharacter) && !agent.leaderCharacter.deadFlag
+                    ? agent.leaderCharacter
+                    : GameController.instance?.playerCharacter;
+                if (Il2CppSafe.IsAliveUnity(leader) &&
+                    Vector2.Distance(agent.humanCharacter.transform.position, leader.transform.position) > 22.0f)
+                {
+                    FinishLootingSweep(agent, st);
+                    return;
+                }
+            }
+
             if (st.LootQueue.Count == 0 || !IsLootStopStillValid(st.LootQueue[0]))
             {
                 BeginCurrentLootLeg(agent, st);

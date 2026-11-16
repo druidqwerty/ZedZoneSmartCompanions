@@ -58,7 +58,11 @@ namespace ZedZone.SmartCompanions
         };
 
         public static bool AllowsIndustryRole(CompanionRuntimeState st) =>
-            st != null && (st.WorkRole == CompanionWorkRole.Any || st.WorkRole == CompanionWorkRole.Camp || st.WorkRole == CompanionWorkRole.Sorter);
+            !BaseWorkManager.Paused && st != null &&
+            (st.RosterMode == CompanionRosterMode.CampGarrison ||
+             st.WorkRole == CompanionWorkRole.Any ||
+             st.WorkRole == CompanionWorkRole.Camp ||
+             st.WorkRole == CompanionWorkRole.Sorter);
 
         public static bool IsPowerGridStationKind(string kind) =>
             string.Equals(kind, "StirlingGenerator", StringComparison.OrdinalIgnoreCase) ||
@@ -135,7 +139,10 @@ namespace ZedZone.SmartCompanions
 
         public static void TickBaseIndustry(float now)
         {
-            if (!CompanionConfigStore.EnableBaseChores || BaseWorkManager.Paused || MultiplayerSyncSystem.IsMultiplayerClient) return;
+            if (!CompanionConfigStore.EnableBaseIndustry ||
+                (!EnablePowerGridAutomation && !EnableFurnaceAndKitchenAutomation) ||
+                !CompanionConfigStore.EnableBaseChores || BaseWorkManager.Paused ||
+                MultiplayerSyncSystem.IsMultiplayerClient) return;
             if (now - _lastIndustryTickAt < 4.5f) return;
             _lastIndustryTickAt = now;
             var gc = GameController.instance;
@@ -152,23 +159,38 @@ namespace ZedZone.SmartCompanions
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
                 if (!st.IsSortingActive && !st.IsChoreWalkActive && st.CarryBuffer.Count > 0)
                     BaseSortingSystem.ReturnCarryBufferWithoutTeleport(ag, st);
-                if (worker == null && st.AllowBaseChores && !st.HasAnyPhysicalTask && st.CarryBuffer.Count == 0 &&
-                    now - st.LastChoreTime >= 12f && BaseWorkManager.MayStartAutomaticWork(st, AllowsIndustryRole))
+                if (worker == null &&
+                    (st.RosterMode == CompanionRosterMode.CampGarrison || st.AllowBaseChores) &&
+                    !st.HasAnyPhysicalTask && st.CarryBuffer.Count == 0 &&
+                    now - st.LastChoreTime >= 12f &&
+                    BaseWorkManager.MayStartAutomaticWork(st, AllowsIndustryRole) &&
+                    CompanionSurvivalSystem.IsAtCampOrPlayerBase(ag.humanCharacter.transform.position, st))
                 { worker = ag; workerSt = st; }
             }
-            if (worker == null) return;
+            if (worker == null || !CompanionSurvivalSystem.IsAtCampOrPlayerBase(worker.humanCharacter.transform.position, workerSt)) return;
 
             Vector2 playerPos = gc.playerCharacter.transform.position, selfPos = worker.humanCharacter.transform.position;
+            Vector2? homeAnchor = (workerSt.RosterMode == CompanionRosterMode.CampGarrison && workerSt.HasHomeAnchor)
+                ? workerSt.HomeAnchorPos
+                : (Vector2?)null;
+            sbyte workerZ = worker.npcData.zLevel;
             float radius = Mathf.Clamp(CompanionConfigStore.BaseScanRadius, 16f, 48f);
             var chests = BaseSortingSystem.ScanNearbyContainers(force: false);
             var stations = new List<StationEntry>(); var seen = new HashSet<IntPtr>();
             var worldObjs = BaseSortingSystem.CollectWorldTerrainObjects(playerPos, radius);
             for (int i = 0; i < worldObjs.Count; i++)
-                InspectStation(worldObjs[i]?.TryCast<TerrainObject_Production>(), playerPos, selfPos, radius, chests, seen, stations);
+                InspectStation(worldObjs[i]?.TryCast<TerrainObject_Production>(), playerPos, homeAnchor, selfPos, workerZ, radius, chests, seen, stations);
+            if (homeAnchor.HasValue && Vector2.Distance(homeAnchor.Value, playerPos) > 4f)
+            {
+                BaseSortingSystem.InvalidateTerrainScanCache();
+                var homeObjs = BaseSortingSystem.CollectWorldTerrainObjects(homeAnchor.Value, radius);
+                for (int i = 0; i < homeObjs.Count; i++)
+                    InspectStation(homeObjs[i]?.TryCast<TerrainObject_Production>(), playerPos, homeAnchor, selfPos, workerZ, radius, chests, seen, stations);
+            }
             var activeProds = TerrainObject_Production.ActiveObjects_Production;
             if (activeProds != null)
                 for (int i = 0; i < activeProds.Count; i++)
-                    InspectStation(activeProds[i], playerPos, selfPos, radius, chests, seen, stations);
+                    InspectStation(activeProds[i], playerPos, homeAnchor, selfPos, workerZ, radius, chests, seen, stations);
             if (stations.Count == 0) return;
 
             var snaps = new List<(string id, string kind, float fuelRatio, int outputItems, float dist)>(stations.Count);
@@ -180,11 +202,16 @@ namespace ZedZone.SmartCompanions
                 { StartTwoPhaseTransfer(worker, workerSt, stations[i], chests, taskType == IndustryTaskType.UnloadOutput, now); break; }
         }
 
-        private static void InspectStation(TerrainObject_Production prod, Vector2 playerPos, Vector2 selfPos, float radius,
+        private static void InspectStation(TerrainObject_Production prod, Vector2 playerPos, Vector2? homeAnchor, Vector2 selfPos, sbyte workerZ, float radius,
             List<DiscoveredContainer> chests, HashSet<IntPtr> seen, List<StationEntry> output)
         {
             if (!Il2CppSafe.IsAliveUnity(prod) || !prod.gameObject.activeInHierarchy || !seen.Add(prod.Pointer)) return;
-            if (Vector2.Distance(prod.transform.position, playerPos) > radius || !Il2CppSafe.IsAlive(prod.objectData?.productionData)) return;
+            if (!Il2CppSafe.IsAlive(prod.objectData) || prod.objectData.zLayer != workerZ || !Il2CppSafe.IsAlive(prod.objectData.productionData)) return;
+            Vector2 prodPos = prod.transform.position;
+            bool inPlayerRange = Vector2.Distance(prodPos, playerPos) <= radius;
+            bool inHomeRange = homeAnchor.HasValue && Vector2.Distance(prodPos, homeAnchor.Value) <= radius;
+            if (!inPlayerRange && !inHomeRange) return;
+            if (!inHomeRange && !AutoLootSystem.IsPositionNearPlayerBase(prodPos, Mathf.Max(32f, radius))) return;
             var pd = prod.objectData.productionData;
             string kind = prod.TryCast<TerrainObject_Production_StirlingGenerator>() != null ? "StirlingGenerator" :
                           prod.TryCast<TerrainObject_Production_BatteryCharger>() != null ? "BatteryCharger" :
@@ -275,6 +302,9 @@ namespace ZedZone.SmartCompanions
             Transform srcTr = unload ? station.Prod.transform : chest.TerrainObj.transform, dstTr = unload ? chest.TerrainObj.transform : station.Prod.transform;
             if (!Il2CppSafe.IsAlive(srcInv) || !Il2CppSafe.IsAlive(dstInv) || !Il2CppSafe.IsAlive(item)) return;
 
+            string phase1Key = unload ? station.Id : chest.ContainerId;
+            string phase2Key = unload ? chest.ContainerId : station.Id;
+
             st.LastChoreTime = now;
             BaseSortingSystem.RegisterExternalInventoryAnchor(unload ? station.OutInv : station.FuelInv, station.Prod.transform, station.Kind);
             BaseChoreSystem.StartPhysicalChoreWalk(ag, st, srcTr.position, srcTr,
@@ -285,7 +315,7 @@ namespace ZedZone.SmartCompanions
                     if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAliveUnity(srcTr) || !Il2CppSafe.IsAlive(srcInv) ||
                         PhysicalMovementHelper.ComputeSurfaceDistance(ag.humanCharacter.transform.position, srcTr.position, srcTr) > StationInteractRadius ||
                         !InventoryTransfers.TryTakeIntoCarryBuffer(srcInv, item, out var carried)) return;
-                    st.CarryBuffer.Add(new CarryItemEntry { Item = carried, TargetContainerId = unload ? chest.ContainerId : station.Id, TargetInv = dstInv, TargetAnchor = dstTr, TargetPos = dstTr.position, TargetDisplayName = unload ? chest.DisplayName : station.Kind, Category = ItemCategorizer.ClassifyItem(carried) });
+                    st.CarryBuffer.Add(new CarryItemEntry { Item = carried, FallbackSourceInv = srcInv, TargetContainerId = unload ? chest.ContainerId : station.Id, TargetInv = dstInv, TargetAnchor = dstTr, TargetPos = dstTr.position, TargetDisplayName = unload ? chest.DisplayName : station.Kind, Category = ItemCategorizer.ClassifyItem(carried) });
                     BaseChoreSystem.StartPhysicalChoreWalk(ag, st, dstTr.position, dstTr,
                         unload ? CompanionConfigStore.L("Несёт продукцию со станции на склад...", "Carrying station output to storage...", "正将工作站产物搬运至仓库...")
                                : CompanionConfigStore.L("Несёт топливо к станции...", "Carrying fuel to station...", "正将燃料搬运至工作站..."),
@@ -303,8 +333,10 @@ namespace ZedZone.SmartCompanions
                                                             : CompanionConfigStore.L("Заправил и запустил станцию", "Refueled and started station", "已补充燃料并启动工作站");
                             }
                             else BaseSortingSystem.ReturnCarryBufferWithoutTeleport(ag, st);
-                        });
-                });
+                        },
+                        phase2Key);
+                },
+                phase1Key);
         }
 
         private static void ActivateStationAtHand(TerrainObject_Production prod, ProductionData pd, InventoryData fuelInv)

@@ -141,6 +141,17 @@ namespace ZedZone.SmartCompanions
                         "Поймал клин затвора! Сейчас быстро прочищу ствол!"
                     };
 
+                case ChatterTopic.VehicleCombatCallout:
+                    return new[]
+                    {
+                        "Держи руль ровнее — веду огонь прямо из окна машины!",
+                        "Не виляй на кочках, я выцеливаю врагов с пассажирского сиденья!",
+                        "Дави их бампером или прорывайся, а я прикрою огнём по борту!",
+                        "Огневой контакт на ходу! Жми на газ, отстреливаемся из салона!",
+                        "Притормози чуть-чуть или держи курс — у меня отличный сектор из окна!",
+                        "Проскакиваем через толпу! Стреляю по ближайшим, следи за дорогой!"
+                    };
+
                 default:
                     return new[] { "Я на связи, командир!" };
             }
@@ -261,6 +272,16 @@ namespace ZedZone.SmartCompanions
                     return new[] { "Back at base! Automatically unloaded raid loot into the drop-off chest and sorted storage!", "Auto-dropoff complete: raid supplies sorted into base chests!" };
                 case ChatterTopic.WorldNpcEncounter:
                     return new[] { "Keep your distance, stranger. Everyone's on edge in the quarantine zone.", "Watch the streets ahead, spotted walkers a block away." };
+                case ChatterTopic.VehicleCombatCallout:
+                    return new[]
+                    {
+                        "Keep the wheel steady — firing from the passenger window!",
+                        "Try not to swerve, I've got a clean bead on them from the car!",
+                        "Ram right through them or punch it — I'm covering our flanks from the seat!",
+                        "Drive-by engagement! Eyes on the road while I light them up!",
+                        "Hold this line! Picking off targets from the window as we roll!",
+                        "Don't stop now, commander — keep rolling and I'll clear the road!"
+                    };
                 default:
                     return new[] { "Standing by, boss!", "Copy that, watching our sector." };
             }

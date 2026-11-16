@@ -267,7 +267,7 @@ namespace ZedZone.SmartCompanions
                 string dy = st.OrderDirection.y.ToString("F2", CultureInfo.InvariantCulture);
                 string hx = st.HomeAnchorPos.x.ToString("F1", CultureInfo.InvariantCulture);
                 string hy = st.HomeAnchorPos.y.ToString("F1", CultureInfo.InvariantCulture);
-                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}|{rev}|{sender}|{(int)st.WorkRole}|{(int)st.ActiveOrder}|{ax}|{ay}|{st.OrderAnchorZ}|{dx}|{dy}|{(int)st.Specialization}|{(int)st.Loadout}|{st.ReserveAmmoMin}|{st.ReserveFoodMin}|{st.ReserveMedMin}|{(int)st.RosterMode}|{hx}|{hy}|{st.HomeAnchorZ}";
+                string body = $"NPC|{st.NpcGuid}|{(int)st.Doctrine}|{ownerId}|{ownerName}|{rev}|{sender}|{(int)st.WorkRole}|{(int)st.ActiveOrder}|{ax}|{ay}|{st.OrderAnchorZ}|{dx}|{dy}|{(int)st.Specialization}|{(int)st.Loadout}|{st.ReserveAmmoMin}|{st.ReserveFoodMin}|{st.ReserveMedMin}|{(int)st.RosterMode}|{hx}|{hy}|{st.HomeAnchorZ}|{(int)st.Fireteam}";
                 if (IsMultiplayerHost) BroadcastPacketFromHost(body);
                 else if (IsMultiplayerClient) SendPacketToHost(body);
             }
@@ -506,6 +506,16 @@ namespace ZedZone.SmartCompanions
                             st.HomeAnchorZ = hz;
                             st.HasHomeAnchor = st.RosterMode == CompanionRosterMode.CampGarrison || Mathf.Abs(hx) > 0.01f || Mathf.Abs(hy) > 0.01f;
                         }
+                    }
+                    if (parts.Length >= 24 && int.TryParse(parts[23], out int ftInt))
+                    {
+                        int clampedFt = Mathf.Clamp(ftInt, 0, 2);
+                        if (Enum.IsDefined(typeof(SquadFireteam), clampedFt))
+                            st.Fireteam = (SquadFireteam)clampedFt;
+                    }
+                    else
+                    {
+                        st.Fireteam = SquadFireteam.None;
                     }
                     if (!string.IsNullOrEmpty(ownerId)) st.OwnerCharacterId = ownerId;
                     if (!string.IsNullOrEmpty(ownerName)) st.OwnerPlayerName = ownerName;

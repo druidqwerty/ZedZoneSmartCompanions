@@ -16,6 +16,7 @@ namespace ZedZone.SmartCompanions
         public const float PetFeedReachRadius = 2.45f;
 
         private static readonly HashSet<string> PlannedBoardGuids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, float> HullArrivalSinceByGuid = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, float> LastFloorTransitionAt = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
         public static readonly Dictionary<string, string> PetEscortCompanionByPet = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static readonly Dictionary<string, float> LastPetFedAt = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
@@ -162,6 +163,7 @@ namespace ZedZone.SmartCompanions
                     _wasPlayerDriving = false;
                     _activeDrivenVehiclePtr = IntPtr.Zero;
                     PlannedBoardGuids.Clear();
+                    HullArrivalSinceByGuid.Clear();
                     ClearAllTransientVehicleOverflow();
                 }
                 return;
@@ -176,10 +178,12 @@ namespace ZedZone.SmartCompanions
                 _wasPlayerDriving = false;
                 _activeDrivenVehiclePtr = IntPtr.Zero;
                 PlannedBoardGuids.Clear();
+                HullArrivalSinceByGuid.Clear();
                 ClearAllTransientVehicleOverflow();
             }
 
-            if (now - _lastVehicleTickAt < 1.0f) return;
+            float interval = Il2CppSafe.IsAliveUnity(driven) ? 0.20f : 1.0f;
+            if (now - _lastVehicleTickAt < interval) return;
             _lastVehicleTickAt = now;
 
             var squad = SmartChatterSystem.GetActiveTeammateAgents();
@@ -189,6 +193,7 @@ namespace ZedZone.SmartCompanions
                 if (!_wasPlayerDriving || _activeDrivenVehiclePtr != driven.Pointer)
                 {
                     ClearAllTransientVehicleOverflow();
+                    HullArrivalSinceByGuid.Clear();
                     _wasPlayerDriving = true;
                     _activeDrivenVehiclePtr = driven.Pointer;
                     int aboardCompanions = 0;
@@ -204,6 +209,11 @@ namespace ZedZone.SmartCompanions
                         {
                             st.IsTransientVehicleOverflow = false;
                             aboardCompanions++;
+                            continue;
+                        }
+                        if (st.ActiveOrder == TacticalOrderKind.HoldPosition || st.ActiveOrder == TacticalOrderKind.CoverDirection)
+                        {
+                            st.IsTransientVehicleOverflow = false;
                             continue;
                         }
                         var sd = ag.npcData.characterData?.characterStatusData;
@@ -225,6 +235,20 @@ namespace ZedZone.SmartCompanions
                             ovSt.TransientVehicleHoldZ = Il2CppSafe.IsAlive(ovAg.npcData) ? ovAg.npcData.zLevel : 0;
                         }
                     }
+                    for (int i = 0; i < squad.Count; i++)
+                    {
+                        var ag = squad[i];
+                        if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag) continue;
+                        string guid = ag.npcData.npcGUID ?? "";
+                        if (!PlannedBoardGuids.Contains(guid)) continue;
+                        CompanionConfigStore.CompanionStates.TryGetValue(guid, out var st);
+                        if (st != null && st.HasAnyPhysicalTask)
+                            BaseWorkManager.CancelWork(ag, st);
+                        if (st != null && st.ActiveOrder == TacticalOrderKind.FallBackHere)
+                            st.ActiveOrder = TacticalOrderKind.Follow;
+                        ag.hasNavigationTarget = false;
+                        try { ag.OnLeaderVehicleStateChanged(); } catch { }
+                    }
                 }
                 else
                 {
@@ -234,22 +258,36 @@ namespace ZedZone.SmartCompanions
                     {
                         var ag = squad[i];
                         if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag) continue;
-                        if (!CompanionConfigStore.CompanionStates.TryGetValue(ag.npcData.npcGUID ?? "", out var st) || st == null) continue;
+                        string guid = ag.npcData.npcGUID ?? "";
+                        if (!CompanionConfigStore.CompanionStates.TryGetValue(guid, out var st) || st == null) continue;
                         bool isAboard = ag.humanCharacter.isDriving ||
                                         (Il2CppSafe.IsAliveUnity(ag.humanCharacter.drivingVehicle) && ag.humanCharacter.drivingVehicle.Pointer == driven.Pointer);
                         if (isAboard)
                         {
                             st.IsTransientVehicleOverflow = false;
+                            HullArrivalSinceByGuid.Remove(guid);
                         }
-                        else if (!anyFreeSeat && st.RosterMode == CompanionRosterMode.ActiveSquad && !st.IsTransientVehicleOverflow)
+                        else if (st.ActiveOrder == TacticalOrderKind.HoldPosition || st.ActiveOrder == TacticalOrderKind.CoverDirection)
                         {
-                            st.IsTransientVehicleOverflow = true;
-                            st.TransientVehicleHoldPos = ag.humanCharacter.transform.position;
-                            st.TransientVehicleHoldZ = ag.npcData.zLevel;
+                            PlannedBoardGuids.Remove(guid);
+                            HullArrivalSinceByGuid.Remove(guid);
+                            st.IsTransientVehicleOverflow = false;
+                        }
+                        else
+                        {
+                            if (PlannedBoardGuids.Contains(guid) && st.HasAnyPhysicalTask)
+                                BaseWorkManager.CancelWork(ag, st);
+                            if (!anyFreeSeat && st.RosterMode == CompanionRosterMode.ActiveSquad && !st.IsTransientVehicleOverflow)
+                            {
+                                st.IsTransientVehicleOverflow = true;
+                                st.TransientVehicleHoldPos = ag.humanCharacter.transform.position;
+                                st.TransientVehicleHoldZ = ag.npcData.zLevel;
+                                HullArrivalSinceByGuid.Remove(guid);
+                            }
                         }
                     }
                 }
-                GuideCrewAndPetsToBoard(driven, squad);
+                GuideCrewAndPetsToBoard(driven, squad, now);
                 return;
             }
 
@@ -355,19 +393,102 @@ namespace ZedZone.SmartCompanions
             return null;
         }
 
-        private static void GuideCrewAndPetsToBoard(BasicVehicle vehicle, IReadOnlyList<GOAPAgent> squad)
+        private static void GuideCrewAndPetsToBoard(BasicVehicle vehicle, IReadOnlyList<GOAPAgent> squad, float now)
         {
             int vZ = Il2CppSafe.IsAlive(vehicle.vehicleData) ? vehicle.vehicleData.zLevel : 0;
-            if (vehicle.HasFreePassengerSeat())
-                for (int i = 0; i < squad.Count; i++)
+            for (int i = 0; i < squad.Count; i++)
+            {
+                var ag = squad[i];
+                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter)) continue;
+                string guid = ag.npcData.npcGUID ?? "";
+                CompanionConfigStore.CompanionStates.TryGetValue(guid, out var st);
+                if (st != null && (st.ActiveOrder == TacticalOrderKind.HoldPosition || st.ActiveOrder == TacticalOrderKind.CoverDirection))
                 {
-                    var ag = squad[i];
-                    if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter)) continue;
-                    if (ag.humanCharacter.deadFlag || ag.humanCharacter.isDriving || ag.npcData.zLevel != vZ || !PlannedBoardGuids.Contains(ag.npcData.npcGUID ?? "")) continue;
-                    Vector2 hullPt = vehicle.GetClosestBodyPoint(ag.humanCharacter.transform.position);
-                    float d = Vector2.Distance(ag.humanCharacter.transform.position, hullPt);
-                    if (d > 2.2f && d <= 26f) { try { ag.MoveTo(hullPt, 1.6f, d > 6f); } catch { } }
+                    PlannedBoardGuids.Remove(guid);
+                    HullArrivalSinceByGuid.Remove(guid);
+                    continue;
                 }
+                if (ag.humanCharacter.deadFlag || ag.humanCharacter.isDriving ||
+                    Il2CppSafe.IsAliveUnity(ag.humanCharacter.drivingVehicle) ||
+                    ag.npcData.zLevel != vZ || !PlannedBoardGuids.Contains(guid))
+                {
+                    HullArrivalSinceByGuid.Remove(guid);
+                    continue;
+                }
+                if (!vehicle.HasFreePassengerSeat())
+                {
+                    HullArrivalSinceByGuid.Remove(guid);
+                    continue;
+                }
+
+                Vector2 selfPos = ag.humanCharacter.transform.position;
+                Vector2 hullPt = vehicle.GetClosestBodyPoint(selfPos);
+                if (float.IsNaN(hullPt.x) || float.IsNaN(hullPt.y) || float.IsInfinity(hullPt.x) || float.IsInfinity(hullPt.y))
+                    continue;
+
+                float d = Vector2.Distance(selfPos, hullPt);
+                if (d > 1.85f && d <= 32f)
+                {
+                    Vector2 approachPt = hullPt;
+                    bool directClear = false;
+                    try { directClear = ag.IsPathClear(selfPos, hullPt, 0.25f); } catch { }
+                    if (!directClear)
+                    {
+                        Vector2 vehCenter = vehicle.transform.position;
+                        Vector2 radial = hullPt - vehCenter;
+                        float probeDist = radial.magnitude + 0.6f;
+                        if (radial.sqrMagnitude < 0.01f)
+                        {
+                            radial = selfPos - vehCenter;
+                            if (radial.sqrMagnitude < 0.01f) radial = Vector2.right;
+                            probeDist = Mathf.Max(1.6f, probeDist);
+                        }
+                        Vector2 baseDir = radial.normalized;
+                        float[] angles = { 45f, -45f, 90f, -90f };
+                        for (int a = 0; a < angles.Length; a++)
+                        {
+                            Vector2 cand = vehCenter + CorridorNavigationHelper.RotateVec2(baseDir, angles[a]) * probeDist;
+                            try
+                            {
+                                if (ag.IsPathClear(selfPos, cand, 0.25f))
+                                {
+                                    approachPt = cand;
+                                    break;
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                    try { CorridorNavigationHelper.SmartMoveTo(ag, approachPt, 0.75f, true); } catch { }
+                }
+
+                if (d <= 2.45f && vehicle.HasFreePassengerSeat())
+                {
+                    if (!HullArrivalSinceByGuid.TryGetValue(guid, out float arrivalAt))
+                    {
+                        arrivalAt = now;
+                        HullArrivalSinceByGuid[guid] = arrivalAt;
+                    }
+                    if (now - arrivalAt >= 0.25f)
+                    {
+                        try
+                        {
+                            if (vehicle.CanCharacterEnter(ag.humanCharacter))
+                            {
+                                ag.humanCharacter.movementInput = Vector2.zero;
+                                ag.hasNavigationTarget = false;
+                                ag.humanCharacter.GetInVehicle(vehicle);
+                                HullArrivalSinceByGuid.Remove(guid);
+                            }
+                        }
+                        catch { }
+                    }
+                }
+                else
+                {
+                    HullArrivalSinceByGuid.Remove(guid);
+                }
+            }
             try
             {
                 var petDatas = PetSystem.GetActivePlayerPetDatas();
@@ -449,7 +570,10 @@ namespace ZedZone.SmartCompanions
             if (!Il2CppSafe.IsAliveUnity(best)) return;
             string guid = best.npcData.npcGUID ?? "";
             PetEscortCompanionByPet[petGuid] = guid;
-            if (bestDist > 10f && bestDist <= 24f && CompanionConfigStore.CompanionStates.TryGetValue(guid, out var st) && st != null &&
+            var playerChar = GameController.instance?.playerCharacter;
+            if (bestDist > 10f && bestDist <= 24f &&
+                Il2CppSafe.IsAliveUnity(playerChar) && Vector2.Distance(petPos, playerChar.transform.position) <= 14f &&
+                CompanionConfigStore.CompanionStates.TryGetValue(guid, out var st) && st != null &&
                 st.RosterMode == CompanionRosterMode.ActiveSquad && !st.HasAnyPhysicalTask)
                 try { best.MoveTo(petPos, 3.2f, false); } catch { }
         }

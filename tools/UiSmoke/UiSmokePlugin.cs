@@ -48,6 +48,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
         private bool _nativeOnly;
         private float _menuSceneAt = -1f;
         private float _closingAt = -1f;
+        private int _guideStage = -1;
+        private int _guideRepaints;
         private const int Variants = 10; // 2.0.0: variant 9 = Work tab
         private int Cases => _profiles.Length * _languages.Length * Variants;
 
@@ -93,6 +95,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     IndustryRegression.Run();
                     ExpeditionRegression.Run();
                     InventoryRegression.Run();
+                    V310Regression.Run();
                     if (Environment.GetCommandLineArgs().Contains("--sc-native-menu-only"))
                     {
                         NativeMenuRegression.VerifyAllLanguages();
@@ -121,9 +124,35 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 if (_failed || Time.realtimeSinceStartup < _nextAt) return;
                 if (_case >= Cases - 1)
                 {
-                    if (_repaints < 3) return;
+                    if (_guideStage < 0 && _repaints < 3) return;
+                    if (_guideStage < _languages.Length)
+                    {
+                        if (_guideStage < 0)
+                        {
+                            _guideStage = 0;
+                            _guideRepaints = 0;
+                            CompanionConfigStore.ShowQuickGuide = true;
+                            SmartCompanionsUI.ShowMainWindow = true;
+                            CompanionConfigStore.LanguageMode = _languages[0];
+                            SmartCompanionsUI.InvalidateStyles();
+                            return;
+                        }
+                        if (_guideRepaints < 3) return;
+                        _guideStage++;
+                        if (_guideStage < _languages.Length)
+                        {
+                            _guideRepaints = 0;
+                            CompanionConfigStore.ShowQuickGuide = true;
+                            SmartCompanionsUI.ShowMainWindow = true;
+                            CompanionConfigStore.LanguageMode = _languages[_guideStage];
+                            SmartCompanionsUI.InvalidateStyles();
+                            return;
+                        }
+                        CompanionConfigStore.ShowQuickGuide = false;
+                    }
                     if (_closingAt < 0f)
                     {
+                        CompanionConfigStore.ShowQuickGuide = false;
                         SmartCompanionsUI.ShowMainWindow = false;
                         _closingAt = Time.realtimeSinceStartup;
                         InputRegression.VerifyClosed();
@@ -210,6 +239,16 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     GUI.contentColor != expectedContent || GUI.backgroundColor != expectedBackground)
                     throw new Exception($"Production DrawAllGUI did not restore GUI state: enabled={GUI.enabled}, scale={GUI.matrix.m00}, colorB={GUI.color.b}, contentG={GUI.contentColor.g}, backgroundR={GUI.backgroundColor.r}.");
                 if (Event.current.type != EventType.Repaint) return;
+                if (_guideStage >= 0 && _guideStage < _languages.Length)
+                {
+                    _guideRepaints++;
+                    if (_guideRepaints == 3)
+                    {
+                        ScreenCapture.CaptureScreenshot(Path.Combine(_output, $"guide-{_languages[_guideStage]}.png"));
+                        UiSmokePlugin.Logger.LogInfo($"[UiSmoke] PASS QuickGuide repaint {_languages[_guideStage]}.");
+                    }
+                    return;
+                }
                 _repaints++;
                 bool firstInProfile = _case % (Variants * _languages.Length) == 0;
                 if (_repaints != 3 && !(firstInProfile && _repaints == 4)) return;
@@ -244,6 +283,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
         private void Finish()
         {
             CompanionConfigStore.LanguageMode = _originalLanguage;
+            CompanionConfigStore.ShowQuickGuide = false;
             RestoreDisplayOptions();
             ContainerFixtures.Cleanup();
             SmartCompanionsUI.ShowMainWindow = false;

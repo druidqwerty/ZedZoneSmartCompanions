@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "3.0.2";
+        public const string PluginVersion = "3.1.0";
 
         internal static ManualLogSource Logs;
 
@@ -225,41 +225,69 @@ namespace ZedZone.SmartCompanions
                             SmartCompanionsUI.OnMainWindowOpened();
                     }
 
-                    // Hotkey F7: Quick Order -> Sort Base Containers
-                    if (Input.GetKeyDown(KeyCode.F7))
-                    {
-                        BaseSortingSystem.CommandSortBase(null, null, instant: false);
-                    }
-
-                    // Hotkey F6 (or Alt+F6 when AVO Expanded compatibility is active): Share Ration with Squad
-                    if (Input.GetKeyDown(KeyCode.F6))
-                    {
-                        bool altHeld = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
-                        if (!CompanionConfigStore.ShouldUseAltForRationHotkey() || altHeld)
-                        {
-                            SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
-                        }
-                    }
-
-                    // Hotkey F9: Quick Order -> Squad Battle Cry & Focus Assault ("Боевой клич / Штурм")
-                    if (Input.GetKeyDown(KeyCode.F9))
-                    {
-                        SmartCombatAI.CommandSquadBattleCry(null);
-                    }
-
-                    // Hotkeys Alt+F / Alt+G / Alt+H: Sweep Nearby Loot, Tactical Move-To-Cursor Fan & Tactical Healing Smoke
+                    // Hotkeys Alt+1/2/3: Switch active Fireteam Command Channel
                     bool altMod = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
-                    if (altMod && Input.GetKeyDown(KeyCode.F))
+                    if (altMod && Input.GetKeyDown(KeyCode.Alpha1))
                     {
-                        AutoLootSystem.CommandSweepNearbyLoot(null, CompanionConfigStore.LootSweepRadius);
+                        CompanionConfigStore.ActiveCommandGroup = SquadFireteam.None;
+                        BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                            "Канал команд: Все [Alt+1]",
+                            "Command channel: All [Alt+1]",
+                            "指挥频道：全队 [Alt+1]"), 3.5f);
                     }
-                    if (altMod && Input.GetKeyDown(KeyCode.G))
+                    if (altMod && Input.GetKeyDown(KeyCode.Alpha2))
                     {
-                        FieldTacticsSystem.IssueMoveToCursorOrder(null);
+                        CompanionConfigStore.ActiveCommandGroup = SquadFireteam.Alpha;
+                        BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                            "Канал команд: Альфа [Alt+2]",
+                            "Command channel: Alpha [Alt+2]",
+                            "指挥频道：A组 [Alt+2]"), 3.5f);
                     }
-                    if (altMod && Input.GetKeyDown(KeyCode.H))
+                    if (altMod && Input.GetKeyDown(KeyCode.Alpha3))
                     {
-                        FieldTacticsSystem.CommandTacticalHealingSmoke(null);
+                        CompanionConfigStore.ActiveCommandGroup = SquadFireteam.Bravo;
+                        BaseSortingSystem.SetBanner(CompanionConfigStore.L(
+                            "Канал команд: Браво [Alt+3]",
+                            "Command channel: Bravo [Alt+3]",
+                            "指挥频道：B组 [Alt+3]"), 3.5f);
+                    }
+
+                    if (SmartCompanionsInput.CanProcessGameplayWorldOrders())
+                    {
+                        // Hotkey F7: Quick Order -> Sort Base Containers
+                        if (Input.GetKeyDown(KeyCode.F7))
+                        {
+                            BaseSortingSystem.CommandSortBase(null, null, instant: false);
+                        }
+
+                        // Hotkey F6 (or Alt+F6 when AVO Expanded compatibility is active): Share Ration with Squad
+                        if (Input.GetKeyDown(KeyCode.F6))
+                        {
+                            if (!CompanionConfigStore.ShouldUseAltForRationHotkey() || altMod)
+                            {
+                                SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
+                            }
+                        }
+
+                        // Hotkey F9: Quick Order -> Squad Battle Cry & Focus Assault ("Боевой клич / Штурм")
+                        if (Input.GetKeyDown(KeyCode.F9))
+                        {
+                            SmartCombatAI.CommandSquadBattleCry(null);
+                        }
+
+                        // Hotkeys Alt+F / Alt+G / Alt+H: Sweep Loot, Cursor Fan & Healing Smoke
+                        if (altMod && Input.GetKeyDown(KeyCode.F))
+                        {
+                            AutoLootSystem.CommandSweepNearbyLoot(null, CompanionConfigStore.LootSweepRadius);
+                        }
+                        if (altMod && Input.GetKeyDown(KeyCode.G))
+                        {
+                            FieldTacticsSystem.IssueMoveToCursorOrder(null);
+                        }
+                        if (altMod && Input.GetKeyDown(KeyCode.H))
+                        {
+                            FieldTacticsSystem.CommandTacticalHealingSmoke(null);
+                        }
                     }
                 }
 
@@ -267,6 +295,7 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.FlushPendingProgress();
                 MultiplayerSyncSystem.Tick();
                 BaseSortingSystem.TickActiveSortingMovementEveryFrame();
+                TacticalSquadSystem.EnforceSettledHoldPositionsEveryFrame();
 
                 if (now - _lastCombatTickTime >= 0.15f)
                 {
@@ -283,11 +312,23 @@ namespace ZedZone.SmartCompanions
                 }
 
                 SmartChatterSystem.TickAmbientChatter();
+                SmartCompanionsInput.TickCursorGuard();
             }
             catch (Exception e)
             {
                 SmartCompanionsPlugin.LogWarning("SmartCompanionsController.Update exception: " + e.Message);
             }
+        }
+
+        private void LateUpdate()
+        {
+            SmartCompanionsInput.TickCursorGuard();
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (hasFocus)
+                SmartCompanionsInput.OnFocusRegained();
         }
 
         private void OnApplicationQuit()

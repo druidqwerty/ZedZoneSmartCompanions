@@ -17,6 +17,92 @@ namespace ZedZone.SmartCompanions
         private static int _modalReleasedFrame = -1;
         private static int _mouseReleasedFrame = -1;
         private static float _nextWarningTime;
+        private static Vector3 _lastRawMousePos;
+        private static bool _wasMainWindowOpen;
+
+        public static void OnFocusRegained()
+        {
+            try
+            {
+                MouseController.InvalidateCursorCache();
+                Vector3 mp = Input.mousePosition;
+                bool overOverlay = SmartCompanionsUI.IsPointerOverOverlay(new Vector2(mp.x, Screen.height - mp.y));
+                bool gameplayCursorAllowed = !LockPickingPanel.isHoldingCursor &&
+                                             !HudVisibility.mainCanvasHidden &&
+                                             !GameInputManager.isUsingController &&
+                                             Il2CppSafe.IsAliveUnity(GameController.instance?.playerCharacter);
+                if (SmartCompanionsUI.ShowMainWindow || overOverlay || gameplayCursorAllowed)
+                {
+                    Cursor.lockState = CursorLockMode.None;
+                    Cursor.visible = true;
+                }
+            }
+            catch { }
+        }
+
+        public static void TickCursorGuard()
+        {
+            try
+            {
+                if (Application.isBatchMode) return;
+                var gc = GameController.instance;
+                if (!Il2CppSafe.IsAliveUnity(gc)) return;
+
+                Vector3 mp = Input.mousePosition;
+                bool mouseMoved = (mp - _lastRawMousePos).sqrMagnitude > 4f;
+                _lastRawMousePos = mp;
+                bool mouseClicked = Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(2);
+                bool uiActive = SmartCompanionsUI.ShowMainWindow ||
+                                SmartCompanionsUI.IsPointerOverOverlay(new Vector2(mp.x, Screen.height - mp.y));
+                bool wasUsingController = false;
+                try { wasUsingController = GameInputManager.isUsingController; } catch { }
+
+                if (uiActive || mouseMoved || mouseClicked)
+                {
+                    try { GameInputManager.lastKeyboardMouseActivityTime = Time.unscaledTime; } catch { }
+                    if (uiActive || (wasUsingController && (mouseMoved || mouseClicked)))
+                    {
+                        try { GameInputManager.isUsingController = false; } catch { }
+                    }
+                }
+
+                if (uiActive)
+                {
+                    if (!Cursor.visible)
+                    {
+                        Cursor.visible = true;
+                        try { MouseController.InvalidateCursorCache(); } catch { }
+                    }
+                    if (Cursor.lockState == CursorLockMode.Locked)
+                        Cursor.lockState = CursorLockMode.None;
+                }
+                else if (_wasMainWindowOpen)
+                {
+                    try
+                    {
+                        MouseController.InvalidateCursorCache();
+                        if (!LockPickingPanel.isHoldingCursor && !HudVisibility.mainCanvasHidden && !GameInputManager.isUsingController)
+                            Cursor.visible = true;
+                    }
+                    catch { }
+                }
+                else if (Il2CppSafe.IsAliveUnity(gc.playerCharacter) && wasUsingController && (mouseMoved || mouseClicked))
+                {
+                    try
+                    {
+                        if (!LockPickingPanel.isHoldingCursor && !HudVisibility.mainCanvasHidden)
+                        {
+                            Cursor.visible = true;
+                            MouseController.InvalidateCursorCache();
+                        }
+                    }
+                    catch { }
+                }
+
+                _wasMainWindowOpen = SmartCompanionsUI.ShowMainWindow;
+            }
+            catch { }
+        }
 
         public static bool CanProcessWorldHotkeys()
         {
@@ -26,6 +112,23 @@ namespace ZedZone.SmartCompanions
                 if (!Il2CppSafe.IsAliveUnity(player)) return false;
                 if (ZedZone.Net.NetChatBar.isTypingChat) return false;
                 if (GUIUtility.keyboardControl != 0) return false;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool CanProcessGameplayWorldOrders()
+        {
+            try
+            {
+                if (!CanProcessWorldHotkeys()) return false;
+                if (SmartCompanionsUI.ShowMainWindow) return false;
+                if (LockPickingPanel.isHoldingCursor) return false;
+                var lootPanel = LootInventoryPanel._instance;
+                if (Il2CppSafe.IsAliveUnity(lootPanel) && lootPanel.gameObject.activeInHierarchy) return false;
                 return true;
             }
             catch

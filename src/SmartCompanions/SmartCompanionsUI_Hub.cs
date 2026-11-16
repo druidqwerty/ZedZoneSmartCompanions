@@ -35,7 +35,7 @@ namespace ZedZone.SmartCompanions
             float w = r.width - 28f;
 
             // Keep the title separate from controls; the whole free header is draggable.
-            var titleDragRect = new Rect(x, y, w - 300f, 32f);
+            var titleDragRect = new Rect(x, y, w - 348f, 32f);
             GUI.Label(titleDragRect,
                 CompanionConfigStore.L(lang, "УМНЫЕ НАПАРНИКИ", "SMART COMPANIONS", "智能队友"), _headerStyle);
             var winPos = new Vector2(_mainWinRect.x, _mainWinRect.y);
@@ -46,6 +46,16 @@ namespace ZedZone.SmartCompanions
                 CompanionConfigStore.MainWinPosX = p.x;
                 CompanionConfigStore.MainWinPosY = p.y;
             });
+
+            if (GUI.Button(new Rect(r.xMax - 344f, y, 38f, 28f),
+                UiTip("?", CompanionConfigStore.L(lang,
+                    "Краткая памятка по моду",
+                    "Quick Mod Guide",
+                    "模组快速指南")),
+                CompanionConfigStore.ShowQuickGuide ? _catOnStyle : _btnStyle))
+            {
+                CompanionConfigStore.ShowQuickGuide = !CompanionConfigStore.ShowQuickGuide;
+            }
 
             float lx = r.xMax - 300f;
             var languages = new[] { ModLanguage.Auto, ModLanguage.Russian, ModLanguage.English, ModLanguage.Chinese };
@@ -74,8 +84,9 @@ namespace ZedZone.SmartCompanions
             float tabW = (w - 8f * (tabs.Length - 1)) / tabs.Length;
             for (int i = 0; i < tabs.Length; i++)
                 if (GUI.Button(new Rect(x + i * (tabW + 8f), y, tabW, 34f), tabs[i],
-                    _activeTab == tabOrder[i] ? _catOnStyle : _btnStyle))
+                    !CompanionConfigStore.ShowQuickGuide && _activeTab == tabOrder[i] ? _catOnStyle : _btnStyle))
                 {
+                    CompanionConfigStore.ShowQuickGuide = false;
                     _activeTab = tabOrder[i];
                     if (_activeTab == 1) BaseSortingSystem.ScanNearbyContainers(force: true);
                 }
@@ -88,7 +99,8 @@ namespace ZedZone.SmartCompanions
 
             try
             {
-                if (_activeTab == 0) DrawTabSquad(contentRect, lang);
+                if (CompanionConfigStore.ShowQuickGuide) DrawQuickGuideCard(contentRect, lang);
+                else if (_activeTab == 0) DrawTabSquad(contentRect, lang);
                 else if (_activeTab == 1) DrawTabBaseBoxes(contentRect, lang);
                 else if (_activeTab == 2) DrawTabChatter(contentRect, lang);
                 else if (_activeTab == 4) DrawTabWork(contentRect, lang);
@@ -109,6 +121,144 @@ namespace ZedZone.SmartCompanions
             }
         }
 
+        private static void DrawQuickGuideCard(Rect area, ModLanguage lang)
+        {
+            GUI.Box(area, GUIContent.none, _boxStyle);
+            float x = area.x + 16f;
+            float y = area.y + 12f;
+            float w = area.width - 32f;
+
+            GUI.Label(new Rect(x, y, w, 30f), CompanionConfigStore.L(lang,
+                "Краткая памятка по моду",
+                "Quick Mod Guide",
+                "模组快速指南"), _headerStyle);
+            y += 38f;
+
+            var steps = new[]
+            {
+                (
+                    CompanionConfigStore.L(lang,
+                        "1. Отряд и боевые группы [--] / [A] / [B]  ·  Alt+1 / Alt+2 / Alt+3",
+                        "1. Squad & Fireteams [--] / [A] / [B]  ·  Alt+1 / Alt+2 / Alt+3",
+                        "1. 队伍与火力组 [--] / [A] / [B]  ·  Alt+1 / Alt+2 / Alt+3"),
+                    CompanionConfigStore.L(lang,
+                        "На карточке напарника назначьте группу [A] (Альфа) или [B] (Браво). Клавиши Alt+1 (Все), Alt+2 (Альфа), Alt+3 (Браво) переключают, кто принимает команды.",
+                        "Click [--]/[A]/[B] on a companion card to assign Alpha or Bravo. Press Alt+1 (All), Alt+2 (Alpha), or Alt+3 (Bravo) to target squad commands.",
+                        "在队友卡片点击 [--]/[A]/[B] 分配 A 组或 B 组。按 Alt+1（全队）、Alt+2（A组）、Alt+3（B组）切换接收指令的队伍频道。")
+                ),
+                (
+                    CompanionConfigStore.L(lang,
+                        "2. Гарнизон лагеря, выживание и огород",
+                        "2. Camp Garrison, Survival & Crops",
+                        "2. 营地驻守、生存防护与农田作物"),
+                    CompanionConfigStore.L(lang,
+                        "Кнопка «Гарнизон» оставляет бойца охранять базу, спать по сменам, надевать противогаз в угрозах и вести хозяйство (в т.ч. автосбор урожая во вкладке «Работа»).",
+                        "Toggle Garrison to keep a companion guarding base, taking sleep shifts, auto-equipping gas masks in hazards, and tending chores (including crop harvest in Work tab).",
+                        "开启「营地驻守」可让队友留守基地巡逻、轮班睡眠、在毒区自动佩戴防毒面具并照料内务（可在「工作」页开关自动收获成熟作物）。")
+                ),
+                (
+                    CompanionConfigStore.L(lang,
+                        "3. Разметка ящиков базы, Приёмник и F7 / Alt+F",
+                        "3. Marked Base Chests, [Drop-off] & F7 / Alt+F",
+                        "3. 标记基地箱子、[中转箱] 与 F7 / Alt+F"),
+                    CompanionConfigStore.L(lang,
+                        "Отметьте категории на ящиках базы (или при открытии ящика). Пометьте один ящик как «Приёмник» — напарники разнесут вещи оттуда. F7 — сортировка, Alt+F — сбор лута.",
+                        "Tag categories on base chests (in Base tab or while looting). Mark one chest as [Drop-off] so companions distribute loot from it. F7 sorts base; Alt+F sweeps nearby loot.",
+                        "在基地页或开箱时勾选物品分类。将一个箱子设为「中转箱」后队友会自动将战利品分拣入库。按 F7 整理基地，按 Alt+F 搜刮附近物资。")
+                ),
+                (
+                    CompanionConfigStore.L(lang,
+                        "4. Транспорт и переходы между этажами",
+                        "4. Vehicles & Multi-Floor Navigation",
+                        "4. 载具乘车与多层建筑跨层"),
+                    CompanionConfigStore.L(lang,
+                        "Садитесь в авто — походный отряд автоматически займёт свободные места (лишние подождут на месте). Напарники сами проходят по лестницам и люкам между этажами.",
+                        "Board a vehicle and active squadmates take available passenger seats (overflow holds safely). Companions also use stairs and hatches to follow between floors.",
+                        "驾驶载具时现役队友会自动上车入座（超员队友在原地安全待命）。队友也会自主使用楼梯和地下入口跟随你切换楼层。")
+                ),
+                (
+                    CompanionConfigStore.L(lang,
+                        "5. Тактика и бой: Alt+G / F9 / Alt+H",
+                        "5. Tactical Hotkeys: Alt+G / F9 / Alt+H",
+                        "5. 战术快捷键：Alt+G / F9 / Alt+H"),
+                    CompanionConfigStore.L(lang,
+                        "Alt+G — отправить отряд веером в точку курсора; F9 — «Боевой клич / Штурм»; Alt+H — лечебный дым и перевязка. В меню [F8] доступны формации и резервы.",
+                        "Alt+G fans the squad to your cursor; F9 triggers Battle Cry; Alt+H deploys healing smoke / aid. Open [F8] anytime for formations, doctrines, and reserves.",
+                        "Alt+G 令小队扇形前往鼠标点；F9 发动战吼；Alt+H 投掷治疗烟雾与包扎。随时按 [F8] 调整编队阵型、学说与物资保底。")
+                )
+            };
+
+            const float rowH = 76f;
+            const float gap = 8f;
+            for (int i = 0; i < steps.Length; i++)
+            {
+                var rowRect = new Rect(x, y + i * (rowH + gap), w, rowH);
+                GUI.Box(rowRect, GUIContent.none, _winStyle);
+                GUI.Label(new Rect(rowRect.x + 12f, rowRect.y + 4f, rowRect.width - 24f, 22f), steps[i].Item1, _subHeaderStyle);
+                GUI.Label(new Rect(rowRect.x + 12f, rowRect.y + 26f, rowRect.width - 24f, 46f), steps[i].Item2, _labelStyle);
+            }
+
+            if (GUI.Button(new Rect(area.x + (area.width - 240f) * 0.5f, area.yMax - 46f, 240f, 34f),
+                CompanionConfigStore.L(lang, "Закрыть памятку", "Close Guide", "关闭指南"), _catOnStyle))
+            {
+                CompanionConfigStore.ShowQuickGuide = false;
+            }
+        }
+
+        private static GOAPAgent PickBestFirstAidCompanion(List<GOAPAgent> teammates)
+        {
+            if (teammates == null || teammates.Count == 0) return null;
+            var player = GameController.instance?.playerCharacter;
+            bool hasPlayer = Il2CppSafe.IsAliveUnity(player);
+            Vector2 playerPos = hasPlayer ? (Vector2)player.transform.position : Vector2.zero;
+
+            GOAPAgent preferred = null;
+            float preferredDistSq = float.MaxValue;
+            GOAPAgent nonGarrisonFallback = null;
+            float nonGarrisonDistSq = float.MaxValue;
+            GOAPAgent anyFallback = null;
+            float anyDistSq = float.MaxValue;
+
+            for (int i = 0; i < teammates.Count; i++)
+            {
+                var ag = teammates[i];
+                if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
+                    !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag)
+                    continue;
+                if (MultiplayerSyncSystem.IsMultiplayerOnline && !MultiplayerSyncSystem.CanLocalPlayerCommand(ag.npcData))
+                    continue;
+
+                float distSq = hasPlayer ? ((Vector2)ag.humanCharacter.transform.position - playerPos).sqrMagnitude : i;
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                bool notGarrison = st == null || st.RosterMode != CompanionRosterMode.CampGarrison;
+
+                if (CompanionConfigStore.MatchesActiveCommandChannel(st) && notGarrison)
+                {
+                    if (distSq < preferredDistSq)
+                    {
+                        preferredDistSq = distSq;
+                        preferred = ag;
+                    }
+                }
+                else if (notGarrison)
+                {
+                    if (distSq < nonGarrisonDistSq)
+                    {
+                        nonGarrisonDistSq = distSq;
+                        nonGarrisonFallback = ag;
+                    }
+                }
+
+                if (distSq < anyDistSq)
+                {
+                    anyDistSq = distSq;
+                    anyFallback = ag;
+                }
+            }
+
+            return preferred ?? nonGarrisonFallback ?? anyFallback;
+        }
+
         private static void DrawTabSquad(Rect area, ModLanguage lang)
         {
             var teammates = SmartChatterSystem.GetActiveTeammateAgents();
@@ -121,10 +271,20 @@ namespace ZedZone.SmartCompanions
                 ? CompanionConfigStore.L(lang, "Авто (3/AVO)", "Auto (3/AVO)", "自动 (3/AVO)")
                 : CompanionConfigStore.MaxTeamSize.ToString();
             string petSummary = ExpeditionSystems.GetActivePlayerPetsSummary(lang);
-            GUI.Label(new Rect(bx + 8f, by, area.width - 265f, 28f), CompanionConfigStore.L(lang,
+            GUI.Label(new Rect(bx + 8f, by, area.width - 425f, 28f), CompanionConfigStore.L(lang,
                 $"Напарников рядом: {teammates.Count}  ·  {petSummary}",
                 $"Companions nearby: {teammates.Count}  ·  {petSummary}",
                 $"附近队友：{teammates.Count}  ·  {petSummary}"), _subHeaderStyle);
+            if (GUI.Button(new Rect(area.xMax - 404f, by, 166f, 28f), UiTip(
+                CompanionConfigStore.GetCommandChannelLabel(CompanionConfigStore.ActiveCommandGroup, lang),
+                CompanionConfigStore.L(lang,
+                    "Активный канал команд: Все [Alt+1] / Альфа [Alt+2] / Браво [Alt+3]",
+                    "Active command channel: All [Alt+1] / Alpha [Alt+2] / Bravo [Alt+3]",
+                    "当前指挥频道：全队 [Alt+1] / A组 [Alt+2] / B组 [Alt+3]")),
+                CompanionConfigStore.ActiveCommandGroup != SquadFireteam.None ? _catOnStyle : _btnStyle))
+            {
+                CompanionConfigStore.ActiveCommandGroup = (SquadFireteam)(((int)CompanionConfigStore.ActiveCommandGroup + 1) % 3);
+            }
             if (GUI.Button(new Rect(area.xMax - 232f, by, 224f, 28f), CompanionConfigStore.L(lang,
                 $"Лимит: {limitStr}", $"Squad cap: {limitStr}", $"队伍上限：{limitStr}"), _btnStyle))
                 CompanionConfigStore.CycleMaxTeamSize();
@@ -147,9 +307,16 @@ namespace ZedZone.SmartCompanions
             if (GUI.Button(new Rect(bx + (actionW + 6f) * 4f, by, actionW, 30f),
                 CompanionConfigStore.L(lang, "Штурм [F9]", "Rally [F9]", "战吼 [F9]"), _btnStyle))
                 SmartCombatAI.CommandSquadBattleCry(null);
+            var firstAidAgent = PickBestFirstAidCompanion(teammates);
+            bool prevAidEnabled = GUI.enabled;
+            GUI.enabled = prevAidEnabled && Il2CppSafe.IsAliveUnity(firstAidAgent);
             if (GUI.Button(new Rect(bx + (actionW + 6f) * 5f, by, actionW, 30f),
-                CompanionConfigStore.L(lang, "Первая помощь", "First Aid", "急救"), _btnStyle) && teammates.Count > 0)
-                CustomNpcCommands.ExecuteCustomCommand(teammates[0].npcData, CustomNpcCommands.EmergencyAid);
+                CompanionConfigStore.L(lang, "Первая помощь", "First Aid", "急救"), _btnStyle) &&
+                Il2CppSafe.IsAliveUnity(firstAidAgent))
+            {
+                CustomNpcCommands.ExecuteCustomCommand(firstAidAgent.npcData, CustomNpcCommands.EmergencyAid);
+            }
+            GUI.enabled = prevAidEnabled;
 
             float listY = area.y + 88f;
             float listH = area.height - 88f;
@@ -241,16 +408,44 @@ namespace ZedZone.SmartCompanions
                 }
 
                 float innerW = viewRect.width - 20f;
-                GUI.Label(new Rect(cx, cy, innerW - 190f, 24f),
+                GUI.Label(new Rect(cx, cy, canCommand ? innerW - 248f : innerW - 424f, 24f),
                     $"{name}{ownerBadge}  ·  {rankTitle}  ·  {st.ExperiencePoints}/{nextXp} XP", _subHeaderStyle);
                 if (!canCommand)
                 {
-                    GUI.Label(new Rect(cx + innerW - 360f, cy, 175f, 24f), UiTip(
+                    GUI.Label(new Rect(cx + innerW - 420f, cy, 172f, 24f), UiTip(
                         CompanionConfigStore.L(lang, "только просмотр", "view only", "仅查看"),
                         CompanionConfigStore.L(lang, $"Приказы этому напарнику отдаёт {controllerName}",
                             $"Only {controllerName} can give orders to this companion", $"只有 {controllerName} 能指挥这名队友")), _labelStyle);
                     GUI.enabled = false;
                 }
+
+                var prevBg = GUI.backgroundColor;
+                bool fireteamClicked = false;
+                try
+                {
+                    if (st.Fireteam == SquadFireteam.Alpha)
+                        GUI.backgroundColor = new Color(1f, 0.72f, 0.52f);
+                    else if (st.Fireteam == SquadFireteam.Bravo)
+                        GUI.backgroundColor = new Color(0.55f, 0.90f, 1f);
+                    fireteamClicked = GUI.Button(new Rect(cx + innerW - 242f, cy, 56f, 24f), UiTip(
+                        "[" + CompanionConfigStore.GetFireteamShortTag(st.Fireteam, lang) + "]",
+                        CompanionConfigStore.L(lang,
+                            "Боевая группа: [--] / [A] Альфа / [B] Браво (Alt+1/2/3)",
+                            "Fireteam group: [--] / [A] Alpha / [B] Bravo (Alt+1/2/3)",
+                            "火力分组：[--] / [A] A组 / [B] B组 (Alt+1/2/3)")),
+                        st.Fireteam != SquadFireteam.None ? _catOnStyle : _btnStyle);
+                }
+                finally
+                {
+                    GUI.backgroundColor = prevBg;
+                }
+                if (fireteamClicked)
+                {
+                    st.Fireteam = (SquadFireteam)(((int)st.Fireteam + 1) % 3);
+                    CompanionConfigStore.Save();
+                    MultiplayerSyncSystem.SyncCompanionStateChange(st);
+                }
+
                 if (GUI.Button(new Rect(cx + innerW - 180f, cy, 180f, 24f), archTitle, _btnStyle))
                 {
                     st.Archetype = (CompanionArchetype)(((int)st.Archetype + 1) % 6);

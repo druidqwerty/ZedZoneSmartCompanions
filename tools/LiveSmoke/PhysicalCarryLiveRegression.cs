@@ -330,6 +330,9 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             var shared = _agent.npcData.GetOrCreateSharedInventory();
             while (Il2CppSafe.IsAlive(shared) && shared.itemList != null && shared.itemList.Count > 0)
                 shared.RemoveItem(shared.itemList[shared.itemList.Count - 1], false);
+            var personalInv = _agent.npcData.characterData?.inventoryData;
+            while (Il2CppSafe.IsAlive(personalInv) && personalInv.itemList != null && personalInv.itemList.Count > 0)
+                personalInv.RemoveItem(personalInv.itemList[personalInv.itemList.Count - 1], false);
 
             foreach (var c in containers)
             {

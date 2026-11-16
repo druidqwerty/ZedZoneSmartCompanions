@@ -87,11 +87,15 @@ namespace ZedZone.SmartCompanions
             bool silent = st.IsSilentAutoLoot;
             st.LootQueue.Clear();
             st.IsLootingActive = false;
+            st.IsSilentAutoLoot = false;
             st.ArrivalInteractStarted = false;
             st.LootPickedInCurrentSweep = 0;
 
             if (picked > 0)
             {
+                if (CompanionConfigStore.EnableBaseAutoDropoff && st.AllowAutoDropoffAtBase)
+                    st.LastAutoDropoffTime = -999f;
+
                 st.CurrentTaskText = CompanionConfigStore.L(
                     $"Собрал трофеи ({picked} шт.)",
                     $"Looted {picked} item(s)",

@@ -107,6 +107,51 @@ namespace ZedZone.SmartCompanions
             if (st == null || !Il2CppSafe.IsAlive(backpack) || backpack.itemList == null || backpack.itemList.Count == 0)
                 return result;
 
+            var sharedInv = agent?.npcData?.sharedInventoryData;
+            var personalInv = agent?.npcData?.characterData?.inventoryData;
+            bool isSharedInv = Il2CppSafe.IsAlive(sharedInv) && backpack.Pointer == sharedInv.Pointer;
+
+            int effectiveAmmoMin = Mathf.Max(0, st.ReserveAmmoMin);
+            int effectiveFoodMin = Mathf.Max(0, st.ReserveFoodMin);
+            int effectiveMedMin = Mathf.Max(0, st.ReserveMedMin);
+
+            if (isSharedInv && Il2CppSafe.IsAlive(personalInv) && personalInv.Pointer != backpack.Pointer)
+            {
+                int personalAmmo = 0;
+                int personalFood = 0;
+                int personalMed = 0;
+                try
+                {
+                    if (personalInv.itemList != null)
+                    {
+                        for (int i = 0; i < personalInv.itemList.Count; i++)
+                        {
+                            var pItem = personalInv.itemList[i];
+                            if (!Il2CppSafe.IsAlive(pItem)) continue;
+                            var pCat = ItemCategorizer.ClassifyItem(pItem);
+                            int pUnits = Mathf.Max(1, Mathf.RoundToInt(pItem.itemNumberFloat));
+                            if (pCat == StorageCategory.AmmoAndMags)
+                                personalAmmo += pUnits;
+                            else if (pCat == StorageCategory.FreshFood || pCat == StorageCategory.CannedAndDrinks)
+                                personalFood += pUnits;
+                            else if (pCat == StorageCategory.Medicine)
+                                personalMed += pUnits;
+                        }
+                    }
+
+                    if (Il2CppSafe.IsAliveUnity(agent?.humanCharacter?.rangedWeapon) &&
+                        Il2CppSafe.IsAlive(agent.humanCharacter.rangedWeapon.weaponData))
+                    {
+                        personalAmmo += Mathf.Max(0, BasicRangedWeapon.GetLoadedAmmo(agent.humanCharacter.rangedWeapon.weaponData));
+                    }
+                }
+                catch { }
+
+                effectiveAmmoMin = Mathf.Max(0, effectiveAmmoMin - personalAmmo);
+                effectiveFoodMin = Mathf.Max(0, effectiveFoodMin - personalFood);
+                effectiveMedMin = Mathf.Max(0, effectiveMedMin - personalMed);
+            }
+
             var equippedPtrs = new HashSet<IntPtr>();
             try
             {
@@ -120,9 +165,63 @@ namespace ZedZone.SmartCompanions
                         var wd = eq.GetWeaponData(s);
                         if (Il2CppSafe.IsAlive(wd)) equippedPtrs.Add(wd.Pointer);
                     }
+                    if (!isSharedInv)
+                    {
+                        if (Il2CppSafe.IsAlive(eq.torseItemData)) equippedPtrs.Add(eq.torseItemData.Pointer);
+                        if (Il2CppSafe.IsAlive(eq.hatItemData)) equippedPtrs.Add(eq.hatItemData.Pointer);
+                        if (Il2CppSafe.IsAlive(eq.legItemData)) equippedPtrs.Add(eq.legItemData.Pointer);
+                        if (Il2CppSafe.IsAlive(eq.feetItemData)) equippedPtrs.Add(eq.feetItemData.Pointer);
+                        if (Il2CppSafe.IsAlive(eq.faceMaskItemData)) equippedPtrs.Add(eq.faceMaskItemData.Pointer);
+                        if (Il2CppSafe.IsAlive(eq.backpackItemData)) equippedPtrs.Add(eq.backpackItemData.Pointer);
+                    }
                 }
             }
             catch { }
+
+            if (!isSharedInv)
+            {
+                if (Il2CppSafe.IsAliveUnity(agent))
+                {
+                    try
+                    {
+                        var lights = agent.GetAvailableFlashLights();
+                        if (lights != null)
+                        {
+                            for (int l = 0; l < lights.Count; l++)
+                            {
+                                var fl = lights[l];
+                                if (Il2CppSafe.IsAlive(fl)) equippedPtrs.Add(fl.Pointer);
+                            }
+                        }
+                    }
+                    catch { }
+
+                    var drink = FindFirstDrinkingContainerInInventory(agent, backpack);
+                    if (Il2CppSafe.IsAlive(drink))
+                        equippedPtrs.Add(drink.Pointer);
+                }
+            }
+            else
+            {
+                bool personalHasFlashlight = Il2CppSafe.IsAlive(personalInv) && personalInv.Pointer != backpack.Pointer &&
+                    Il2CppSafe.IsAlive(FindFirstAvailableFlashlightInInventory(agent, personalInv));
+                if (!personalHasFlashlight)
+                {
+                    var sharedLight = FindFirstAvailableFlashlightInInventory(agent, backpack)
+                        ?? FindFirstLightingToolInInventory(backpack);
+                    if (Il2CppSafe.IsAlive(sharedLight))
+                        equippedPtrs.Add(sharedLight.Pointer);
+                }
+
+                bool personalHasDrink = Il2CppSafe.IsAlive(personalInv) && personalInv.Pointer != backpack.Pointer &&
+                    Il2CppSafe.IsAlive(FindFirstDrinkingContainerInInventory(agent, personalInv));
+                if (!personalHasDrink)
+                {
+                    var sharedDrink = FindFirstDrinkingContainerInInventory(agent, backpack);
+                    if (Il2CppSafe.IsAlive(sharedDrink))
+                        equippedPtrs.Add(sharedDrink.Pointer);
+                }
+            }
 
             var tuples = new List<(StorageCategory cat, int units, bool equipped)>(backpack.itemList.Count);
             var ptrs = new List<IntPtr>(backpack.itemList.Count);
@@ -138,13 +237,114 @@ namespace ZedZone.SmartCompanions
                 ptrs.Add(item.Pointer);
             }
 
-            var keptIdx = ComputeProtectedBackpackIndices(tuples, st.ReserveAmmoMin, st.ReserveFoodMin, st.ReserveMedMin);
+            var keptIdx = ComputeProtectedBackpackIndices(tuples, effectiveAmmoMin, effectiveFoodMin, effectiveMedMin);
             foreach (int idx in keptIdx)
             {
                 if (idx >= 0 && idx < ptrs.Count)
                     result.Add(ptrs[idx]);
             }
             return result;
+        }
+
+        private static ItemData FindFirstContainedItem(
+            Il2CppSystem.Collections.Generic.List<ItemData> candidates,
+            InventoryData inv)
+        {
+            if (candidates == null || !Il2CppSafe.IsAlive(inv)) return null;
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                var it = candidates[i];
+                if (Il2CppSafe.IsAlive(it) && InventoryTransfers.Contains(inv, it))
+                    return it;
+            }
+            return null;
+        }
+
+        private static ItemData FindFirstAvailableFlashlightInInventory(GOAPAgent agent, InventoryData inv)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(inv)) return null;
+            try
+            {
+                return FindFirstContainedItem(agent.GetAvailableFlashLights(), inv);
+            }
+            catch { }
+            return null;
+        }
+
+        private static ItemData FindFirstLightingToolInInventory(InventoryData inv)
+        {
+            if (!Il2CppSafe.IsAlive(inv) || inv.itemList == null) return null;
+            var im = ItemManager.instance;
+            if (!Il2CppSafe.IsAlive(im)) return null;
+            for (int i = 0; i < inv.itemList.Count; i++)
+            {
+                var item = inv.itemList[i];
+                if (!Il2CppSafe.IsAlive(item)) continue;
+                try
+                {
+                    var attr = im.GetItemAttrById(item.itemId);
+                    if (!Il2CppSafe.IsAliveUnity(attr)) continue;
+                    bool isLight = (attr.itemFeatures != null && attr.itemFeatures.Contains(ItemFeatureType.LightingTool)) ||
+                                   (attr.itemFeatureDataDic != null && attr.itemFeatureDataDic.ContainsKey(ItemFeatureType.LightingTool));
+                    if (isLight)
+                        return item;
+                }
+                catch { }
+            }
+            return null;
+        }
+
+        private static ItemData FindFirstDrinkingContainerInInventory(GOAPAgent agent, InventoryData inv)
+        {
+            if (!Il2CppSafe.IsAlive(inv) || inv.itemList == null || inv.itemList.Count == 0)
+                return null;
+
+            if (Il2CppSafe.IsAliveUnity(agent))
+            {
+                try
+                {
+                    var found = FindFirstContainedItem(agent.GetDrinkingItems(), inv);
+                    if (Il2CppSafe.IsAlive(found)) return found;
+                }
+                catch { }
+            }
+
+            if (Il2CppSafe.IsAlive(agent?.npcData))
+            {
+                try
+                {
+                    var found = FindFirstContainedItem(agent.npcData.GetDrinkingItems(), inv);
+                    if (Il2CppSafe.IsAlive(found)) return found;
+                }
+                catch { }
+            }
+
+            try
+            {
+                var im = ItemManager.instance;
+                if (Il2CppSafe.IsAlive(im))
+                {
+                    var contCand = new Il2CppSystem.Collections.Generic.List<ItemData>();
+                    for (int i = 0; i < inv.itemList.Count; i++)
+                    {
+                        var it = inv.itemList[i];
+                        if (!Il2CppSafe.IsAlive(it)) continue;
+                        var attr = im.GetItemAttrById(it.itemId);
+                        if (Il2CppSafe.IsAliveUnity(attr) && attr.TryCast<ItemAttr_Container>() != null)
+                            contCand.Add(it);
+                    }
+                    if (contCand.Count > 0)
+                    {
+                        var validDrinks = new Il2CppSystem.Collections.Generic.List<ItemData>();
+                        GOAPNPCData.AppendDrinkingContainers(contCand, validDrinks);
+                        if (validDrinks.Count > 0 && Il2CppSafe.IsAlive(validDrinks[0]))
+                            return validDrinks[0];
+                    }
+                }
+            }
+            catch { }
+
+            return null;
         }
 
         public static void CycleBaseWorkPriority()

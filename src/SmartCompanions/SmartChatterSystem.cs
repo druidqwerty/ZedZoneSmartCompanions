@@ -300,10 +300,19 @@ namespace ZedZone.SmartCompanions
                 float distToPlayer = Il2CppSafe.IsAliveUnity(player)
                     ? Vector2.Distance(ag.humanCharacter.transform.position, player.transform.position)
                     : 0f;
-                if (!Il2CppSafe.IsAliveUnity(specificAgent) && st.RosterMode == CompanionRosterMode.CampGarrison && distToPlayer > 3.2f)
+                if (!fromAutoShare && !Il2CppSafe.IsAliveUnity(specificAgent))
+                {
+                    if (!CompanionConfigStore.MatchesActiveCommandChannel(st))
+                        continue;
+                    if (st.RosterMode == CompanionRosterMode.CampGarrison && distToPlayer > 16f)
+                        continue;
+                }
+                else if (!Il2CppSafe.IsAliveUnity(specificAgent) && st.RosterMode == CompanionRosterMode.CampGarrison && distToPlayer > 3.2f)
+                {
                     continue;
+                }
 
-                if (!fromAutoShare && Il2CppSafe.IsAliveUnity(player) && distToPlayer > 3.2f && !st.IsSortingActive && !st.IsLootingActive)
+                if (!fromAutoShare && Il2CppSafe.IsAliveUnity(player) && distToPlayer > 3.2f && !st.HasAnyPhysicalTask)
                 {
                     var capturedAg = ag;
                     var capturedSt = st;

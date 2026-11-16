@@ -317,6 +317,16 @@ namespace ZedZone.SmartCompanions
                         "What the fuck are you staring at?! Keep walking while you still have legs!",
                         "More drifters... Keep your hands off my stash and we won't have a problem!"
                     };
+                case ChatterTopic.VehicleCombatCallout:
+                    return new[]
+                    {
+                        "Hold the damn wheel steady — I'm leaning out the window shooting these bastards!",
+                        "Run the fuckers over! Whoever survives the bumper eats my lead from the window!",
+                        "Stop swerving all over the damn road, I'm trying to aim out the passenger side!",
+                        "Quarantine drive-by, motherfuckers! Floor it while I spray 'em from the cab!",
+                        "Watch the potholes, dammit — you're bouncing my sights right off their skulls!",
+                        "Pure road rage, baby! Smash through the pack and I'll hose the rest down!"
+                    };
                 default:
                     return new[] { "Locked and loaded, boss!" };
             }

@@ -20,6 +20,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
         private static Vector2 _origPlayerPos, _origAgentPos;
         private static Vector2 _campSpot, _raidSpot;
         private static string _origLeaderGuid;
+        private static float _origHunger, _origThirst;
         private static int _chestInitialUnits;
         private static ItemData _testPackItem;
         private static Vector2 _lastPos;
@@ -47,12 +48,26 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     _origPlayerPos = player.transform.position;
                     _origAgentPos = _agent.humanCharacter.transform.position;
                     _origLeaderGuid = _agent.npcData.leaderCharacterGUID;
+                    _origHunger = _agent.npcData.hunger;
+                    _origThirst = _agent.npcData.thirst;
 
                     if (!TryFindOpenLine(12.0f, out _campSpot, out _raidSpot))
                         return End(false, "FAIL [GarrisonLive]: could not find 12m open line.");
 
+                    CombatLiveRegression.SuppressAllNearbyHostilesForLogistics(_agent);
+                    BaseWorkManager.CancelWork(_agent, _state);
+                    _agent.npcData.hunger = Mathf.Max(_agent.npcData.hunger, 85f);
+                    _agent.npcData.thirst = Mathf.Max(_agent.npcData.thirst, 85f);
+                    var stData = _agent.npcData.characterData?.characterStatusData;
+                    if (Il2CppSafe.IsAlive(stData))
+                    {
+                        stData.hunger = Mathf.Max(stData.hunger, 85f);
+                        stData.thirst = Mathf.Max(stData.thirst, 85f);
+                    }
                     _agent.mostThreateningCharacter = null;
                     _agent.humanCharacter.TeleportTo(_campSpot, false);
+                    _agent.humanCharacter.movementInput = Vector2.zero;
+                    _agent.hasNavigationTarget = false;
                     player.TeleportTo(_campSpot, false);
 
                     _state.RosterMode = CompanionRosterMode.ActiveSquad;
@@ -62,6 +77,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     _state.HasHomeAnchor = true;
 
                     player.TeleportTo(_raidSpot, false);
+                    Physics2D.SyncTransforms();
                     _phase = 0;
                     _phaseStart = now;
                     LiveSmokePlugin.Logger.LogInfo($"[GarrisonLive] Started Phase 0 (Camp Garrison Hold): camp={_campSpot}, playerRaid={_raidSpot} (12m).");
@@ -97,8 +113,12 @@ namespace ZedZone.SmartCompanions.LiveSmoke
 
                         Vector2 startDismissPos = _campSpot;
                         Vector2 targetPlayerPos = _campSpot + (_raidSpot - _campSpot).normalized * 6.5f;
+                        BaseWorkManager.CancelWork(_agent, _state);
                         _agent.humanCharacter.TeleportTo(startDismissPos, false);
+                        _agent.humanCharacter.movementInput = Vector2.zero;
+                        _agent.hasNavigationTarget = false;
                         player.TeleportTo(targetPlayerPos, false);
+                        Physics2D.SyncTransforms();
                         _chestInitialUnits = CountUnits(player.characterData.inventoryData, 220);
 
                         // Start physical SafeDismiss directed to player (force no marked chests by temporarily clearing rules, restored in End)
@@ -132,7 +152,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     {
                         int afterUnits = CountUnits(player.characterData.inventoryData, 220);
                         if (_walkedDismiss < 3.5f)
-                            return End(false, $"FAIL [GarrisonLive Phase 1]: SafeDismiss completed without physical walk (walked={_walkedDismiss:F2}m)!");
+                            return End(false, $"FAIL [GarrisonLive Phase 1]: SafeDismiss completed without physical walk (walked={_walkedDismiss:F2}m, dismissed={_state.IsDismissedOrNotInTeam}, block={_state.LastBlockReason}, pos={curPos})!");
                         if (afterUnits <= _chestInitialUnits)
                             return End(false, "FAIL [GarrisonLive Phase 1]: SafeDismiss did not hand over inventory item on arrival!");
                         if (!_state.IsDismissedOrNotInTeam)
@@ -243,7 +263,96 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         if (!MultiplayerTeammateAidPatches.IsNonPlayerNpcForAid(_agent.humanCharacter))
                             return End(false, "FAIL [v3.0.2 MpAid]: IsNonPlayerNpcForAid returned false for companion NPC!");
 
-                        return End(true, $"PASS v2.4–v3.0.2 Live Suite: Garrison, SafeDismiss + Native TeamNPCPanel Purge (walked={_walkedDismiss:F2}m, 0 teleports), InputFreeze=false, LongRangeStayBehind, MpAidSelector, CorridorNav, GrenadeSafetyGate, SavedMask, FuelWhitelist, VehicleSeats & Pets.");
+                        // v3.1.0 Live check #1: Settled CampGarrison yields UpdateGoal (non-starvation) while holding FollowLeader drift
+                        float prevHunger = _agent.npcData.hunger;
+                        float prevThirst = _agent.npcData.thirst;
+                        var prevAnchor = _state.HomeAnchorPos;
+                        int prevAnchorZ = _state.HomeAnchorZ;
+                        bool prevHasAnchor = _state.HasHomeAnchor;
+                        var prevFireteam = _state.Fireteam;
+                        var prevChannel = CompanionConfigStore.ActiveCommandGroup;
+                        try
+                        {
+                            _agent.humanCharacter.TeleportTo(_campSpot, false);
+                            _state.RosterMode = CompanionRosterMode.CampGarrison;
+                            _state.HomeAnchorPos = _campSpot;
+                            _state.HomeAnchorZ = _agent.npcData.zLevel;
+                            _state.HasHomeAnchor = true;
+
+                            if (CampGarrisonSystem.TickGarrisonGoalOverride(_agent))
+                                return End(false, "FAIL [v3.1.0 GarrisonUpdateGoal]: TickGarrisonGoalOverride blocked UpdateGoal while settled at camp!");
+                            if (!CampGarrisonSystem.TickGarrisonFrame(_agent))
+                                return End(false, "FAIL [v3.1.0 GarrisonFollowHold]: TickGarrisonFrame did not hold settled FollowLeader execution!");
+
+                            // v3.1.0 Live check #2: Offline garrison sustain prevents 0-hunger/thirst return death
+                            const string tempBoxKey = "sc_v310_live_camp_box";
+                            CompanionConfigStore.ContainerRules[tempBoxKey] = new ContainerRuleProfile
+                            {
+                                ContainerId = tempBoxKey,
+                                IsMarkedByPlayer = true,
+                                LastKnownPos = _campSpot,
+                                Categories = StorageCategory.FreshFood | StorageCategory.CannedAndDrinks
+                            };
+                            try
+                            {
+                                _agent.npcData.hunger = 10f;
+                                _agent.npcData.thirst = 10f;
+                                CompanionSurvivalSystem.SustainOfflineGarrisonCompanion(_agent.npcData);
+                                if (_agent.npcData.hunger < 55f || _agent.npcData.thirst < 55f)
+                                    return End(false, $"FAIL [v3.1.0 OfflineSustain]: hunger={_agent.npcData.hunger:F1}, thirst={_agent.npcData.thirst:F1}");
+                            }
+                            finally
+                            {
+                                CompanionConfigStore.ContainerRules.Remove(tempBoxKey);
+                            }
+
+                            // v3.1.0 Live check #3: Anti-wander native scavenge gate ignores AllowAutoLootNearby outside explicit CollectResource
+                            _state.RosterMode = CompanionRosterMode.ActiveSquad;
+                            bool prevAutoLoot = _state.AllowAutoLootNearby;
+                            _state.AllowAutoLootNearby = true;
+                            var scavState = new GOAPAgentState { npcData = _agent.npcData, basicCommand = "FollowPlayer" };
+                            bool scavRestrictedFollow = true;
+                            HarmonyPatches.IsTeammateScavengeRestricted_Postfix(scavState, ref scavRestrictedFollow);
+                            scavState.basicCommand = "Basic.CollectResource";
+                            bool scavRestrictedCollect = true;
+                            HarmonyPatches.IsTeammateScavengeRestricted_Postfix(scavState, ref scavRestrictedCollect);
+                            _state.AllowAutoLootNearby = prevAutoLoot;
+                            if (!scavRestrictedFollow)
+                                return End(false, "FAIL [v3.1.0 AntiWander]: AllowAutoLootNearby bypassed native IsTeammateScavengeRestricted!");
+                            if (scavRestrictedCollect)
+                                return End(false, "FAIL [v3.1.0 AntiWander]: explicit CollectResource remained restricted!");
+
+                            // v3.1.0 Live check #4: Fireteam command channel routing
+                            _state.ActiveOrder = TacticalOrderKind.Follow;
+                            _state.Fireteam = SquadFireteam.Bravo;
+                            CompanionConfigStore.ActiveCommandGroup = SquadFireteam.Alpha;
+                            TacticalSquadSystem.IssueOrder(null, TacticalOrderKind.HoldPosition, explicitAnchor: _campSpot, quiet: true);
+                            if (_state.ActiveOrder != TacticalOrderKind.Follow)
+                                return End(false, "FAIL [v3.1.0 Fireteam]: Alpha channel order affected Bravo companion!");
+                            CompanionConfigStore.ActiveCommandGroup = SquadFireteam.Bravo;
+                            int bravoApplied = TacticalSquadSystem.IssueOrder(null, TacticalOrderKind.HoldPosition, explicitAnchor: _campSpot, quiet: true);
+                            if (bravoApplied < 1 || _state.ActiveOrder != TacticalOrderKind.HoldPosition)
+                                return End(false, "FAIL [v3.1.0 Fireteam]: Bravo channel order did not reach Bravo companion!");
+                        }
+                        finally
+                        {
+                            _agent.npcData.hunger = prevHunger;
+                            _agent.npcData.thirst = prevThirst;
+                            if (_agent.npcData.characterData?.characterStatusData != null)
+                            {
+                                _agent.npcData.characterData.characterStatusData.hunger = prevHunger;
+                                _agent.npcData.characterData.characterStatusData.thirst = prevThirst;
+                            }
+                            _state.HomeAnchorPos = prevAnchor;
+                            _state.HomeAnchorZ = prevAnchorZ;
+                            _state.HasHomeAnchor = prevHasAnchor;
+                            _state.Fireteam = prevFireteam;
+                            _state.ActiveOrder = TacticalOrderKind.Follow;
+                            _state.RosterMode = CompanionRosterMode.ActiveSquad;
+                            CompanionConfigStore.ActiveCommandGroup = prevChannel;
+                        }
+
+                        return End(true, $"PASS v2.4–v3.1.0 Live Suite: Garrison (Non-Starving UpdateGoal + Offline Sustain), SafeDismiss + Native TeamNPCPanel Purge (walked={_walkedDismiss:F2}m, 0 teleports), AntiWander Gate, Fireteams, InputFreeze=false, LongRangeStayBehind, MpAidSelector, CorridorNav, GrenadeSafetyGate, SavedMask, FuelWhitelist, VehicleSeats & Pets.");
                     }
 
                     if (now - _phaseStart > 16f)
@@ -317,6 +426,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 if (Il2CppSafe.IsAliveUnity(_agent) && Il2CppSafe.IsAlive(_agent.npcData))
                 {
                     _agent.npcData.leaderCharacterGUID = _origLeaderGuid;
+                    _agent.npcData.hunger = _origHunger;
+                    _agent.npcData.thirst = _origThirst;
                     _agent.leaderCharacter = player;
                     if (Il2CppSafe.IsAliveUnity(player) && Il2CppSafe.IsAlive(player.characterData) &&
                         !player.characterData.teamNPCGuids.Contains(_agent.npcData.npcGUID))
@@ -326,6 +437,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                         GOAPNPCManager.instance.teammateNPCs.Add(_agent.npcData);
                     SmartChatterSystem.InvalidateSquadCache();
                 }
+                CombatLiveRegression.RestoreLogisticsArena();
                 if (Il2CppSafe.IsAliveUnity(_agent?.humanCharacter))
                     _agent.humanCharacter.TeleportTo(_origAgentPos, false);
                 if (Il2CppSafe.IsAliveUnity(player))

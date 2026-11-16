@@ -151,6 +151,7 @@ namespace ZedZone.SmartCompanions
                 {
                     st.NavResetDone = true;
                     agent.hasNavigationTarget = false;
+                    agent.pathfindingBackoffUntil = 0f;
                 }
                 float stopDist = Mathf.Max(0.85f, arrivalRadius - 0.35f);
                 CorridorNavigationHelper.SmartMoveTo(agent, targetPos, stopDist, true);
@@ -160,7 +161,7 @@ namespace ZedZone.SmartCompanions
 
             float motionlessSeconds = now - st.LastMovedTime;
             float totalLegElapsed = now - st.SortingStateStartTime;
-            if ((agent.cantFindPath && totalLegElapsed > 2.5f) ||
+            if ((agent.cantFindPath && motionlessSeconds > 1.8f && totalLegElapsed > 2.5f) ||
                 motionlessSeconds > stallSeconds ||
                 totalLegElapsed > MaxDetourLegSeconds)
             {
@@ -230,6 +231,12 @@ namespace ZedZone.SmartCompanions
                 return false;
             }
 
+            if (st.IsSafeDismissActive)
+            {
+                CampGarrisonSystem.StepSafeDismissForAgent(agent, st);
+                return true;
+            }
+
             if (st.IsSortingActive)
             {
                 BaseSortingSystem.StepSortingJobForAgent(agent, st);
@@ -248,12 +255,6 @@ namespace ZedZone.SmartCompanions
                 return true;
             }
 
-            if (st.IsSafeDismissActive)
-            {
-                CampGarrisonSystem.StepSafeDismissForAgent(agent, st);
-                return true;
-            }
-
             return false;
         }
     }
@@ -268,9 +269,9 @@ namespace ZedZone.SmartCompanions
             {
                 if (PhysicalMovementHelper.TickPhysicalFrameForAgent(__instance))
                     return false;
-                if (CampGarrisonSystem.TickGarrisonFrame(__instance))
+                if (CampGarrisonSystem.TickGarrisonGoalOverride(__instance))
                     return false;
-                if (TacticalSquadSystem.TickTacticalGoalOverride(__instance))
+                if (TacticalSquadSystem.TickTacticalUpdateGoalOverride(__instance))
                     return false;
             }
             catch { }
