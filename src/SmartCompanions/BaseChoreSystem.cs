@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace ZedZone.SmartCompanions
@@ -229,49 +230,33 @@ namespace ZedZone.SmartCompanions
                         if (PhysicalMovementHelper.IsTargetTemporarilyUnreachable(potKey))
                             continue;
 
-                        bool isRipePot = CompanionConfigStore.AutoHarvestCrops &&
-                                         pot.currentDef.cropStageLengthAry != null &&
-                                         pot.currentDef.cropStageLengthAry.Length > 0;
-                        if (isRipePot)
+                        if (CompanionConfigStore.AutoHarvestCrops && TryIsPlantingPotRipe(pot))
                         {
-                            float growth = pot.ParseProp(TerrainObject_PlantingPot.PROP_GROWTH, 0f);
-                            float matureTime = pot.currentDef.CumulativeStageTime(pot.currentDef.cropStageLengthAry.Length - 1);
-                            if (matureTime > 0.01f && growth >= matureTime)
-                            {
-                                st.LastChoreTime = now;
-                                StartPhysicalChoreWalk(
-                                    ag, st, potPos, pot.transform,
-                                    CompanionConfigStore.L("🌾 Идёт собирать урожай...", "🌾 Walking to harvest crop...", "🌾 前往收获成熟作物..."),
-                                    0,
-                                    () =>
-                                    {
-                                        if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
-                                            !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag ||
-                                            !Il2CppSafe.IsAliveUnity(pot) || !Il2CppSafe.IsAlive(pot.currentDef) || pot.IsHarvested() ||
-                                            pot.currentDef.cropStageLengthAry == null || pot.currentDef.cropStageLengthAry.Length == 0)
-                                            return;
+                            st.LastChoreTime = now;
+                            StartPhysicalChoreWalk(
+                                ag, st, potPos, pot.transform,
+                                CompanionConfigStore.L("🌾 Идёт собирать урожай...", "🌾 Walking to harvest crop...", "🌾 前往收获成熟作物..."),
+                                0,
+                                () =>
+                                {
+                                    if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
+                                        !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag ||
+                                        !TryIsPlantingPotRipe(pot))
+                                        return;
 
-                                        float curGrowth = pot.ParseProp(TerrainObject_PlantingPot.PROP_GROWTH, 0f);
-                                        float curMature = pot.currentDef.CumulativeStageTime(pot.currentDef.cropStageLengthAry.Length - 1);
-                                        if (curMature <= 0.01f || curGrowth < curMature) return;
-
-                                        var ids = new Il2CppSystem.Collections.Generic.List<int>();
-                                        var nums = new Il2CppSystem.Collections.Generic.List<int>();
-                                        bool harvested = MultiplayerSyncSystem.IsMultiplayerHost
-                                            ? pot.NetHostHarvest(ids, nums)
-                                            : pot.HarvestCore(ids, nums);
-                                        if (harvested)
-                                            CompleteCropHarvest(ag, st, GameController.instance, ids, nums, pot.transform.position);
-                                    },
-                                    potKey);
-                                return true;
-                            }
+                                    var ids = new Il2CppSystem.Collections.Generic.List<int>();
+                                    var nums = new Il2CppSystem.Collections.Generic.List<int>();
+                                    if (TryHarvestPlantingPot(pot, ids, nums))
+                                        CompleteCropHarvest(ag, st, GameController.instance, ids, nums, pot.transform.position);
+                                },
+                                potKey);
+                            return true;
                         }
 
                         if (!Il2CppSafe.IsAliveUnity(carePot))
                         {
-                            float wateredUntil = pot.ParseProp(TerrainObject_PlantingPot.PROP_WATERED_UNTIL, 0f);
-                            bool needsWater = gc.gameData.inGameTime >= wateredUntil;
+                            bool needsWater = TryGetPlantingPotWateredUntil(pot, out float wateredUntil) &&
+                                              gc.gameData.inGameTime >= wateredUntil;
                             bool needsFert = !pot.IsFertilized();
                             if (needsWater || needsFert)
                                 carePot = pot;
@@ -280,40 +265,8 @@ namespace ZedZone.SmartCompanions
                     }
 
                     if (!CompanionConfigStore.AutoHarvestCrops) continue;
-                    var crop = tobj.TryCast<TerrainObject_Crop>();
-                    if (!Il2CppSafe.IsAliveUnity(crop) || crop.harvested ||
-                        crop.cropStageLengthAry == null || crop.cropStageLengthAry.Length == 0 ||
-                        crop.cropCurrentStage < crop.cropStageLengthAry.Length)
-                        continue;
-                    Vector2 cropPos = crop.transform.position;
-                    if (!AutoLootSystem.IsPositionNearPlayerBase(cropPos, 24f)) continue;
-                    string cropKey = $"crop_{crop.Pointer.ToInt64():X}";
-                    if (PhysicalMovementHelper.IsTargetTemporarilyUnreachable(cropKey)) continue;
-
-                    st.LastChoreTime = now;
-                    StartPhysicalChoreWalk(
-                        ag, st, cropPos, crop.transform,
-                        CompanionConfigStore.L("🌾 Идёт собирать урожай...", "🌾 Walking to harvest crop...", "🌾 前往收获成熟作物..."),
-                        0,
-                        () =>
-                        {
-                            if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
-                                !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag ||
-                                !Il2CppSafe.IsAliveUnity(crop) || crop.harvested ||
-                                crop.cropStageLengthAry == null || crop.cropStageLengthAry.Length == 0 ||
-                                crop.cropCurrentStage < crop.cropStageLengthAry.Length)
-                                return;
-
-                            var ids = new Il2CppSystem.Collections.Generic.List<int>();
-                            var nums = new Il2CppSystem.Collections.Generic.List<int>();
-                            bool harvested = MultiplayerSyncSystem.IsMultiplayerHost
-                                ? crop.NetHostHarvest(ids, nums)
-                                : crop.HarvestCore(ids, nums);
-                            if (harvested)
-                                CompleteCropHarvest(ag, st, GameController.instance, ids, nums, crop.transform.position);
-                        },
-                        cropKey);
-                    return true;
+                    if (TryStartWorldCropHarvestChore(ag, st, tobj, now))
+                        return true;
                 }
 
                 if (Il2CppSafe.IsAliveUnity(carePot))
@@ -331,11 +284,9 @@ namespace ZedZone.SmartCompanions
                                 carePot.IsHarvested() || !Il2CppSafe.IsAliveUnity(curGc) || !Il2CppSafe.IsAlive(curGc.gameData))
                                 return;
 
-                            float wu = carePot.ParseProp(TerrainObject_PlantingPot.PROP_WATERED_UNTIL, 0f);
-                            if (curGc.gameData.inGameTime >= wu)
+                            if (TryGetPlantingPotWateredUntil(carePot, out float wu) && curGc.gameData.inGameTime >= wu)
                             {
-                                if (MultiplayerSyncSystem.IsMultiplayerHost) carePot.NetHostWater();
-                                else carePot.ApplyWatering();
+                                TryWaterPlantingPot(carePot);
                             }
                             if (!carePot.IsFertilized()) carePot.ApplyFertilizer(1.25f, 1, 0);
                             st.ChoresDoneThisSession++;
@@ -349,6 +300,238 @@ namespace ZedZone.SmartCompanions
             }
             catch { }
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool TryIsPlantingPotRipe(TerrainObject_PlantingPot pot)
+        {
+            try
+            {
+                return IsPlantingPotRipeNoInline(pot);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool IsPlantingPotRipeNoInline(TerrainObject_PlantingPot pot)
+        {
+            if (!Il2CppSafe.IsAliveUnity(pot) || !Il2CppSafe.IsAlive(pot.currentDef) || pot.IsHarvested())
+                return false;
+            var stages = pot.currentDef.cropStageLengthAry;
+            if (stages == null || stages.Length == 0)
+                return false;
+            float growth = pot.ParseProp(TerrainObject_PlantingPot.PROP_GROWTH, 0f);
+            float matureTime = pot.currentDef.CumulativeStageTime(stages.Length - 1);
+            return matureTime > 0.01f && growth >= matureTime;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool TryHarvestPlantingPot(
+            TerrainObject_PlantingPot pot,
+            Il2CppSystem.Collections.Generic.List<int> ids,
+            Il2CppSystem.Collections.Generic.List<int> nums)
+        {
+            if (!Il2CppSafe.IsAliveUnity(pot)) return false;
+            if (MultiplayerSyncSystem.IsMultiplayerHost)
+            {
+                try
+                {
+                    return HarvestPlantingPotNetHostNoInline(pot, ids, nums);
+                }
+                catch { }
+            }
+            try
+            {
+                return HarvestPlantingPotCoreNoInline(pot, ids, nums);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool HarvestPlantingPotNetHostNoInline(
+            TerrainObject_PlantingPot pot,
+            Il2CppSystem.Collections.Generic.List<int> ids,
+            Il2CppSystem.Collections.Generic.List<int> nums)
+        {
+            return pot.NetHostHarvest(ids, nums);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool HarvestPlantingPotCoreNoInline(
+            TerrainObject_PlantingPot pot,
+            Il2CppSystem.Collections.Generic.List<int> ids,
+            Il2CppSystem.Collections.Generic.List<int> nums)
+        {
+            return pot.HarvestCore(ids, nums);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool TryGetPlantingPotWateredUntil(TerrainObject_PlantingPot pot, out float wateredUntil)
+        {
+            wateredUntil = 0f;
+            if (!Il2CppSafe.IsAliveUnity(pot)) return false;
+            try
+            {
+                wateredUntil = GetPlantingPotWateredUntilNoInline(pot);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static float GetPlantingPotWateredUntilNoInline(TerrainObject_PlantingPot pot)
+        {
+            return pot.ParseProp(TerrainObject_PlantingPot.PROP_WATERED_UNTIL, 0f);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void TryWaterPlantingPot(TerrainObject_PlantingPot pot)
+        {
+            if (!Il2CppSafe.IsAliveUnity(pot)) return;
+            if (MultiplayerSyncSystem.IsMultiplayerHost)
+            {
+                try
+                {
+                    WaterPlantingPotNetHostNoInline(pot);
+                    return;
+                }
+                catch { }
+            }
+            try
+            {
+                pot.ApplyWatering();
+            }
+            catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void WaterPlantingPotNetHostNoInline(TerrainObject_PlantingPot pot)
+        {
+            pot.NetHostWater();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool TryStartWorldCropHarvestChore(GOAPAgent ag, CompanionRuntimeState st, TerrainObject tobj, float now)
+        {
+            try
+            {
+                return TryStartWorldCropHarvestChoreNoInline(ag, st, tobj, now);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool TryStartWorldCropHarvestChoreNoInline(GOAPAgent ag, CompanionRuntimeState st, TerrainObject tobj, float now)
+        {
+            var crop = tobj.TryCast<TerrainObject_Crop>();
+            if (!Il2CppSafe.IsAliveUnity(crop) || !TryIsWorldCropRipe(crop))
+                return false;
+
+            Vector2 cropPos = crop.transform.position;
+            if (!AutoLootSystem.IsPositionNearPlayerBase(cropPos, 24f))
+                return false;
+
+            string cropKey = $"crop_{crop.Pointer.ToInt64():X}";
+            if (PhysicalMovementHelper.IsTargetTemporarilyUnreachable(cropKey))
+                return false;
+
+            st.LastChoreTime = now;
+            StartPhysicalChoreWalk(
+                ag, st, cropPos, crop.transform,
+                CompanionConfigStore.L("🌾 Идёт собирать урожай...", "🌾 Walking to harvest crop...", "🌾 前往收获成熟作物..."),
+                0,
+                () =>
+                {
+                    if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
+                        !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag ||
+                        !Il2CppSafe.IsAliveUnity(crop) || !TryIsWorldCropRipe(crop))
+                        return;
+
+                    var ids = new Il2CppSystem.Collections.Generic.List<int>();
+                    var nums = new Il2CppSystem.Collections.Generic.List<int>();
+                    if (TryHarvestWorldCrop(crop, ids, nums))
+                        CompleteCropHarvest(ag, st, GameController.instance, ids, nums, crop.transform.position);
+                },
+                cropKey);
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool TryIsWorldCropRipe(TerrainObject_Crop crop)
+        {
+            try
+            {
+                return IsWorldCropRipeNoInline(crop);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool IsWorldCropRipeNoInline(TerrainObject_Crop crop)
+        {
+            return Il2CppSafe.IsAliveUnity(crop) &&
+                   !crop.harvested &&
+                   crop.cropStageLengthAry != null &&
+                   crop.cropStageLengthAry.Length > 0 &&
+                   crop.cropCurrentStage >= crop.cropStageLengthAry.Length;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool TryHarvestWorldCrop(
+            TerrainObject_Crop crop,
+            Il2CppSystem.Collections.Generic.List<int> ids,
+            Il2CppSystem.Collections.Generic.List<int> nums)
+        {
+            if (!Il2CppSafe.IsAliveUnity(crop)) return false;
+            if (MultiplayerSyncSystem.IsMultiplayerHost)
+            {
+                try
+                {
+                    return HarvestWorldCropNetHostNoInline(crop, ids, nums);
+                }
+                catch { }
+            }
+            try
+            {
+                return HarvestWorldCropCoreNoInline(crop, ids, nums);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool HarvestWorldCropNetHostNoInline(
+            TerrainObject_Crop crop,
+            Il2CppSystem.Collections.Generic.List<int> ids,
+            Il2CppSystem.Collections.Generic.List<int> nums)
+        {
+            return crop.NetHostHarvest(ids, nums);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool HarvestWorldCropCoreNoInline(
+            TerrainObject_Crop crop,
+            Il2CppSystem.Collections.Generic.List<int> ids,
+            Il2CppSystem.Collections.Generic.List<int> nums)
+        {
+            return crop.HarvestCore(ids, nums);
         }
 
         private static void CompleteCropHarvest(

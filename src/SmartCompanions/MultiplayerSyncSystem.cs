@@ -99,6 +99,15 @@ namespace ZedZone.SmartCompanions
                         return true;
                 }
 
+                var worldPlayerCd = GameController.instance?.gameData?.playerData;
+                if (Il2CppSafe.IsAlive(worldPlayerCd))
+                {
+                    if (worldPlayerCd.Pointer == data.Pointer) return true;
+                    if (!string.IsNullOrEmpty(worldPlayerCd.characterId) &&
+                        string.Equals(worldPlayerCd.characterId, data.characterId, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+
                 var playerSync = NetPlayerSync.instance;
                 if (Il2CppSafe.IsAliveUnity(playerSync) && playerSync.m_remotes != null)
                 {
@@ -175,8 +184,32 @@ namespace ZedZone.SmartCompanions
             catch { }
         }
 
+        public static void SelfHealPlayerCharacterData(CharacterData data)
+        {
+            if (!Il2CppSafe.IsAlive(data)) return;
+            try
+            {
+                int prev = data.characterAttrId;
+                if (prev != 0)
+                {
+                    data.characterAttrId = 0;
+                    SmartCompanionsPlugin.LogInfo(
+                        $"[MP NPC] Repaired player CharacterData characterAttrId {prev}->0 ({data.characterName ?? "Player"}).");
+                }
+            }
+            catch { }
+        }
+
         public static void Tick()
         {
+            try
+            {
+                var pcd = GameController.instance?.playerCharacter?.characterData;
+                if (Il2CppSafe.IsAlive(pcd))
+                    SelfHealPlayerCharacterData(pcd);
+            }
+            catch { }
+
             float now = Time.unscaledTime;
             bool online = IsMultiplayerOnline;
             int remoteCount = 0;

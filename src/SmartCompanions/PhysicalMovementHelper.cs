@@ -267,6 +267,7 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
+                if (!SmartCompanionsRuntimeGate.IsGameplaySimulationActive()) return true;
                 if (PhysicalMovementHelper.TickPhysicalFrameForAgent(__instance))
                     return false;
                 if (CampGarrisonSystem.TickGarrisonGoalOverride(__instance))
@@ -281,13 +282,20 @@ namespace ZedZone.SmartCompanions
         [HarmonyFinalizer]
         private static Exception Finalizer(Exception __exception, GOAPAgent __instance)
         {
-            if (__exception == null) return null;
-            if (Il2CppSafe.IsAliveUnity(__instance) && HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance.humanCharacter))
+            try
             {
-                HumanNpcEquipmentGuard.CleanupBrokenRangedState(__instance.humanCharacter);
+                if (__exception == null) return null;
+                if (Il2CppSafe.IsAliveUnity(__instance) && HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance.humanCharacter))
+                {
+                    HumanNpcEquipmentGuard.CleanupBrokenRangedState(__instance.humanCharacter);
+                    return null;
+                }
+                return __exception;
+            }
+            catch
+            {
                 return null;
             }
-            return __exception;
         }
     }
 }

@@ -66,6 +66,8 @@ namespace ZedZone.SmartCompanions
 
         public static List<DiscoveredContainer> ScanNearbyContainers(bool force = false)
         {
+            if (SmartCompanionsRuntimeGate.IsAnyLoadingScreenOrTransitionActive()) return CachedContainers;
+
             float now = Time.unscaledTime;
             if (!force && now - _lastContainerScanTime < 1.5f && CachedContainers.Count > 0)
                 return CachedContainers;

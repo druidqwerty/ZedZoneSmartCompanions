@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "3.1.0";
+        public const string PluginVersion = "3.1.1";
 
         internal static ManualLogSource Logs;
 
@@ -29,10 +29,9 @@ namespace ZedZone.SmartCompanions
             try
             {
                 var harmony = new Harmony(PluginGuid);
-                harmony.PatchAll(typeof(SmartCompanionsPlugin).Assembly);
-                int patchCount = harmony.GetPatchedMethods().Count();
+                int patchCount = SafeHarmonyPatcher.PatchAssemblySafely(harmony, typeof(SmartCompanionsPlugin).Assembly);
                 PerformanceAndDiagnostics.LastPatchedMethodCount = patchCount;
-                LogInfo($"Patched {patchCount} game method(s) via Harmony.");
+                LogInfo($"Patched {patchCount} game method(s) via Harmony (failed={SafeHarmonyPatcher.FailedPatchCount}).");
             }
             catch (Exception e)
             {
@@ -185,7 +184,13 @@ namespace ZedZone.SmartCompanions
                     throw new Exception("MultiplayerSyncSystem native MonsterAttr / player ID invariants failed!");
                 }
 
-                LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}], {uniqueZh.Count} unique ZH lines [Rude={rudeZhCount}, Clean={cleanZhCount}]), 12 storage categories (RU/EN/ZH), {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, MP Sync (Looter=200/Survivor=201) & Hostile Human Combat AI, ModLanguage Auto/RU/EN/ZH verified.");
+                // Verify runtime gate reports world not ready during startup Load()
+                if (SmartCompanionsRuntimeGate.IsGameplayWorldReady())
+                {
+                    throw new Exception("SmartCompanionsRuntimeGate.IsGameplayWorldReady() must be false during Load()!");
+                }
+
+                LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}], {uniqueZh.Count} unique ZH lines [Rude={rudeZhCount}, Clean={cleanZhCount}]), 12 storage categories (RU/EN/ZH), {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, MP Sync (Looter=200/Survivor=201) & Hostile Human Combat AI, RuntimeGate & ModLanguage Auto/RU/EN/ZH verified.");
             }
             catch (Exception e)
             {
@@ -206,11 +211,25 @@ namespace ZedZone.SmartCompanions
         private float _lastSortTickTime = 0f;
         private float _lastGuiErrorTime = -60f;
         private string _lastGuiError = "";
+        private long _lastUpdateWarnTickMs = -60000L;
+        private long _lastLateUpdateWarnTickMs = -60000L;
+        private long _lastFocusWarnTickMs = -60000L;
 
         private void Update()
         {
             try
             {
+                CompanionConfigStore.FlushPendingProgress();
+
+                bool uiAllowed = SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture();
+                if (!uiAllowed)
+                {
+                    if (SmartCompanionsUI.ShowMainWindow)
+                        SmartCompanionsUI.ShowMainWindow = false;
+                    SmartCompanionsUI.ClearTransientOverlayRects();
+                    return;
+                }
+
                 if (SmartCompanionsUI.ShowMainWindow && Input.GetKeyDown(KeyCode.Escape))
                 {
                     SmartCompanionsUI.ShowMainWindow = false;
@@ -291,56 +310,100 @@ namespace ZedZone.SmartCompanions
                     }
                 }
 
-                float now = Time.unscaledTime;
-                CompanionConfigStore.FlushPendingProgress();
-                MultiplayerSyncSystem.Tick();
-                BaseSortingSystem.TickActiveSortingMovementEveryFrame();
-                TacticalSquadSystem.EnforceSettledHoldPositionsEveryFrame();
-
-                if (now - _lastCombatTickTime >= 0.15f)
+                if (SmartCompanionsRuntimeGate.IsGameplayWorldReady())
                 {
-                    _lastCombatTickTime = now;
-                    SmartCombatAI.TickAllCompanionsCombat();
+                    MultiplayerSyncSystem.Tick();
                 }
 
-                if (now - _lastSortTickTime >= 0.30f)
+                if (SmartCompanionsRuntimeGate.IsGameplaySimulationActive())
                 {
-                    _lastSortTickTime = now;
-                    CompanionProfileSystem.TickPrioritizedBaseSystems();
-                    ExpeditionSystems.TickVehicleExpedition(now);
-                    ExpeditionSystems.TickPetCompanionSynergy(now);
+                    float now = Time.unscaledTime;
+                    BaseSortingSystem.TickActiveSortingMovementEveryFrame();
+                    TacticalSquadSystem.EnforceSettledHoldPositionsEveryFrame();
+
+                    if (now - _lastCombatTickTime >= 0.15f)
+                    {
+                        _lastCombatTickTime = now;
+                        SmartCombatAI.TickAllCompanionsCombat();
+                    }
+
+                    if (now - _lastSortTickTime >= 0.30f)
+                    {
+                        _lastSortTickTime = now;
+                        CompanionProfileSystem.TickPrioritizedBaseSystems();
+                        ExpeditionSystems.TickVehicleExpedition(now);
+                        ExpeditionSystems.TickPetCompanionSynergy(now);
+                    }
+
+                    SmartChatterSystem.TickAmbientChatter();
                 }
 
-                SmartChatterSystem.TickAmbientChatter();
                 SmartCompanionsInput.TickCursorGuard();
             }
             catch (Exception e)
             {
-                SmartCompanionsPlugin.LogWarning("SmartCompanionsController.Update exception: " + e.Message);
+                long nowMs = Environment.TickCount64;
+                if (nowMs - _lastUpdateWarnTickMs >= 30000L)
+                {
+                    _lastUpdateWarnTickMs = nowMs;
+                    SmartCompanionsPlugin.LogWarning("SmartCompanionsController.Update exception: " + e.Message);
+                }
             }
         }
 
         private void LateUpdate()
         {
-            SmartCompanionsInput.TickCursorGuard();
+            try
+            {
+                SmartCompanionsInput.TickCursorGuard();
+            }
+            catch (Exception e)
+            {
+                long nowMs = Environment.TickCount64;
+                if (nowMs - _lastLateUpdateWarnTickMs >= 30000L)
+                {
+                    _lastLateUpdateWarnTickMs = nowMs;
+                    SmartCompanionsPlugin.LogWarning("SmartCompanionsController.LateUpdate exception: " + e.Message);
+                }
+            }
         }
 
         private void OnApplicationFocus(bool hasFocus)
         {
-            if (hasFocus)
-                SmartCompanionsInput.OnFocusRegained();
+            try
+            {
+                if (hasFocus)
+                    SmartCompanionsInput.OnFocusRegained();
+            }
+            catch (Exception e)
+            {
+                long nowMs = Environment.TickCount64;
+                if (nowMs - _lastFocusWarnTickMs >= 30000L)
+                {
+                    _lastFocusWarnTickMs = nowMs;
+                    SmartCompanionsPlugin.LogWarning("SmartCompanionsController.OnApplicationFocus exception: " + e.Message);
+                }
+            }
         }
 
         private void OnApplicationQuit()
         {
-            BaseSortingSystem.FlushAllCarryBuffers();
-            CompanionConfigStore.FlushPendingProgress(force: true);
+            try
+            {
+                BaseSortingSystem.FlushAllCarryBuffers();
+                CompanionConfigStore.FlushPendingProgress(force: true);
+            }
+            catch { }
         }
 
         private void OnDestroy()
         {
-            BaseSortingSystem.FlushAllCarryBuffers();
-            CompanionConfigStore.FlushPendingProgress(force: true);
+            try
+            {
+                BaseSortingSystem.FlushAllCarryBuffers();
+                CompanionConfigStore.FlushPendingProgress(force: true);
+            }
+            catch { }
         }
 
         private void OnGUI()

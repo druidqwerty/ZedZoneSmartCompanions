@@ -36,6 +36,14 @@ namespace ZedZone.SmartCompanions
             _currentChestBarRect = Rect.zero;
         }
 
+        public static void ClearTransientOverlayRects()
+        {
+            _currentHudBadgeRect = Rect.zero;
+            _currentChestBarRect = Rect.zero;
+            _activeWindowDragId = 0;
+            _scrollDragId = 0;
+        }
+
         internal static Vector2 ClampWindowPosition(Vector2 pos, Vector2 size)
         {
             if (float.IsNaN(pos.x) || float.IsInfinity(pos.x)) pos.x = 4f;
@@ -73,6 +81,7 @@ namespace ZedZone.SmartCompanions
 
         public static bool IsPointerOverOverlay(Vector2 position)
         {
+            if (!SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture()) return false;
             var gc = GameController.instance;
             if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter)) return false;
             position /= EffectiveUiScale;

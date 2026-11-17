@@ -90,9 +90,9 @@ namespace ZedZone.SmartCompanions
     {
         private static void Postfix(GOAPAgent agent, ref bool __result)
         {
-            if (!__result || !Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData)) return;
             try
             {
+                if (!__result || !Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData)) return;
                 if (!agent.IsPlayerTeammate()) return;
                 string combatCmd = CombatResponse.NormalizeCommand(agent.npcData.combatCommand);
                 var profile = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID);

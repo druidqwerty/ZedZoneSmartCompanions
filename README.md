@@ -7,12 +7,19 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.0"><strong>Release v3.1.0 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.1"><strong>Release v3.1.1 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## New in v3.1.1 — Hotfix: Patch 1.0.19 loading, save-entry gating & player profile fix
+
+- **Fixed save/world loading freezes & premature execution (`SmartCompanionsRuntimeGate`):** companions, chunk container scans (`EnsureLootGenerated`), survival walks, and IMGUI/input capture stay strictly gated off in `MainMenu` and throughout ZED ZONE's `"Gaming"` scene / `GameInitPanel` / chunk streaming transition (`timeScale = 0.01`) until gameplay is ready.
+- **Fixed ZED ZONE Patch `1.0.19` compatibility & fault-isolated patching (`SafeHarmonyPatcher`):** resolved the native `/OPT:ICF` `GOAPAction_SearchForFood` vs `SearchForMeleeWeapon`/`SearchForRangedWeapon` hook collision, isolated Harmony patching per method (`[EH>0]` across all 86 patch entrypoints and `[NoInlining]` IL2CPP wrappers), switched to version-agnostic `Assembly-CSharp` `0.0.0.0` binding across `2.0.0.x` hotfixes, and unified single-folder Workshop staging.
+- **Fixed portrait preview player profile mutation & added save self-repair (`CharacterData.characterAttrId`):** stopped `MainMenu` / `CharacterSelectOverlay` portrait preview mannequins from mutating player `CharacterData.characterAttrId` (`0 -> 201`) and added automatic self-repair back to `0` on load for any previously affected save/profile.
+- **Verified:** real `MainMenu -> Sandbox -> CharacterSelect -> Gaming` native load runs + live combat, physical carry & garrison runs + **300/300** graphical UI matrix + **12** deterministic regression suites + `0.75x`/`2.0x` Win32 OS input probes; all 8,386 real save files unchanged. [Scope and limits](docs/verification-3.1.1.md).
 
 ## New in v3.1.0 — Fireteams, camp survival, crop harvesting & dual-inventory sorting
 
@@ -302,8 +309,8 @@
 
 ## Requirements & Installation
 
-1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-3.1.0.zip` into the `<ZED ZONE>` game folder).
+1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once. After a ZED ZONE game update (such as Patch `1.0.19`), if mods do not load or the game stalls at startup, delete `<ZED ZONE>/BepInEx/interop` (or re-run `Code Mod Loader`'s `install.cmd`) once so BepInEx regenerates fresh IL2CPP interop files.
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-3.1.1.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub** (click **`?`** for the Quick Guide), **`Alt+1/2/3`** to switch command channel (`All` / `Alpha` / `Bravo`), **`Alt+F`** to sweep nearby loot, or **`F7`** to issue a quick Base Sort order.
 

@@ -15,6 +15,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
     public sealed class UiSmokePlugin : BasePlugin
     {
         internal static bool Enabled;
+        internal static bool AllowMenuFixtureUiRender;
         internal static BepInEx.Logging.ManualLogSource Logger;
         public override void Load()
         {
@@ -25,6 +26,16 @@ namespace ZedZone.SmartCompanions.UiSmoke
             if (Environment.GetCommandLineArgs().Contains("--sc-ui-os-probe")) AddComponent<OsProbeRunner>();
             else AddComponent<UiSmokeRunner>();
             Log.LogInfo("[UiSmoke] Enabled. Main-menu fixtures only; no save is loaded or written.");
+        }
+    }
+
+    [HarmonyPatch(typeof(SmartCompanionsRuntimeGate), nameof(SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture))]
+    internal static class AllowUiSmokeFixturesInMainMenu
+    {
+        static void Postfix(ref bool __result)
+        {
+            if (UiSmokePlugin.AllowMenuFixtureUiRender)
+                __result = true;
         }
     }
 
@@ -96,6 +107,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     ExpeditionRegression.Run();
                     InventoryRegression.Run();
                     V310Regression.Run();
+                    V311Regression.Run();
                     if (Environment.GetCommandLineArgs().Contains("--sc-native-menu-only"))
                     {
                         NativeMenuRegression.VerifyAllLanguages();
@@ -106,6 +118,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                         _nativeOnly=true;
                         return;
                     }
+                    UiSmokePlugin.AllowMenuFixtureUiRender = true;
                     SmokeFixtures.Create();
                     ContainerFixtures.Create();
                     SmartCompanionsUI.ShowMainWindow = true;

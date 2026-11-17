@@ -303,7 +303,7 @@ namespace ZedZone.SmartCompanions
             {
                 try
                 {
-                    var found = FindFirstContainedItem(agent.GetDrinkingItems(), inv);
+                    var found = FindFirstContainedItem(CompanionSurvivalSystem.TryGetAgentDrinkingItems(agent), inv);
                     if (Il2CppSafe.IsAlive(found)) return found;
                 }
                 catch { }
@@ -313,7 +313,7 @@ namespace ZedZone.SmartCompanions
             {
                 try
                 {
-                    var found = FindFirstContainedItem(agent.npcData.GetDrinkingItems(), inv);
+                    var found = FindFirstContainedItem(CompanionSurvivalSystem.TryGetNpcDataDrinkingItems(agent.npcData), inv);
                     if (Il2CppSafe.IsAlive(found)) return found;
                 }
                 catch { }
@@ -336,8 +336,8 @@ namespace ZedZone.SmartCompanions
                     if (contCand.Count > 0)
                     {
                         var validDrinks = new Il2CppSystem.Collections.Generic.List<ItemData>();
-                        GOAPNPCData.AppendDrinkingContainers(contCand, validDrinks);
-                        if (validDrinks.Count > 0 && Il2CppSafe.IsAlive(validDrinks[0]))
+                        if (CompanionSurvivalSystem.TryAppendDrinkingContainers(contCand, validDrinks) &&
+                            validDrinks.Count > 0 && Il2CppSafe.IsAlive(validDrinks[0]))
                             return validDrinks[0];
                     }
                 }

@@ -215,8 +215,11 @@ namespace ZedZone.SmartCompanions
 
         private static void DrawAllGuiContent()
         {
-            var gc = GameController.instance;
-            if (!Il2CppSafe.IsAliveUnity(gc) || !Il2CppSafe.IsAliveUnity(gc.playerCharacter)) return;
+            if (!SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture())
+            {
+                ClearTransientOverlayRects();
+                return;
+            }
 
             EnsureStyles();
 

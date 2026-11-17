@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace ZedZone.SmartCompanions
@@ -545,15 +546,15 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
-                var drinks = agent.GetDrinkingItems();
+                var drinks = TryGetAgentDrinkingItems(agent);
                 if (drinks == null || drinks.Count == 0) return false;
+                float vol = ResolveDefaultDrinkVolume();
                 for (int i = 0; i < drinks.Count; i++)
                 {
                     var d = drinks[i];
                     if (!Il2CppSafe.IsAlive(d)) continue;
                     float beforeT = status.thirst;
-                    float vol = HumanCharacterController.defaultDrinkVolume > 10f ? HumanCharacterController.defaultDrinkVolume : 250f;
-                    try { hc.DrinkLiquidFromContainer(d, vol); } catch { }
+                    TryDrinkLiquidFromContainer(hc, d, vol);
                     if (Il2CppSafe.IsAlive(agent.npcData))
                         agent.npcData.thirst = status.thirst;
                     if (status.thirst > beforeT + 0.01f)
@@ -562,6 +563,155 @@ namespace ZedZone.SmartCompanions
             }
             catch { }
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static Il2CppSystem.Collections.Generic.List<ItemData> TryGetAgentDrinkingItems(GOAPAgent agent)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent)) return null;
+            try
+            {
+                return GetAgentDrinkingItemsNoInline(agent);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Il2CppSystem.Collections.Generic.List<ItemData> GetAgentDrinkingItemsNoInline(GOAPAgent agent)
+        {
+            return agent.GetDrinkingItems();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static Il2CppSystem.Collections.Generic.List<ItemData> TryGetNpcDataDrinkingItems(GOAPNPCData npcData)
+        {
+            if (!Il2CppSafe.IsAlive(npcData)) return null;
+            try
+            {
+                return GetNpcDataDrinkingItemsNoInline(npcData);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Il2CppSystem.Collections.Generic.List<ItemData> GetNpcDataDrinkingItemsNoInline(GOAPNPCData npcData)
+        {
+            return npcData.GetDrinkingItems();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static float ResolveDefaultDrinkVolume()
+        {
+            try
+            {
+                float vol = GetDefaultDrinkVolumeNoInline();
+                return vol > 10f ? vol : 250f;
+            }
+            catch
+            {
+                return 250f;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static float GetDefaultDrinkVolumeNoInline()
+        {
+            return HumanCharacterController.defaultDrinkVolume;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static bool TryDrinkLiquidFromContainer(HumanCharacterController hc, ItemData containerItem, float volume)
+        {
+            if (!Il2CppSafe.IsAliveUnity(hc) || !Il2CppSafe.IsAlive(containerItem)) return false;
+            try
+            {
+                DrinkLiquidFromContainerNoInline(hc, containerItem, volume);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void DrinkLiquidFromContainerNoInline(HumanCharacterController hc, ItemData containerItem, float volume)
+        {
+            hc.DrinkLiquidFromContainer(containerItem, volume);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static bool TryAppendDrinkingContainers(
+            Il2CppSystem.Collections.Generic.List<ItemData> candidates,
+            Il2CppSystem.Collections.Generic.List<ItemData> validDrinks)
+        {
+            if (candidates == null || validDrinks == null) return false;
+            try
+            {
+                AppendDrinkingContainersNoInline(candidates, validDrinks);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void AppendDrinkingContainersNoInline(
+            Il2CppSystem.Collections.Generic.List<ItemData> candidates,
+            Il2CppSystem.Collections.Generic.List<ItemData> validDrinks)
+        {
+            GOAPNPCData.AppendDrinkingContainers(candidates, validDrinks);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Il2CppSystem.Collections.Generic.List<ItemData> TryGetAgentHealingItems(GOAPAgent agent)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent)) return null;
+            try
+            {
+                return GetAgentHealingItemsNoInline(agent);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Il2CppSystem.Collections.Generic.List<ItemData> GetAgentHealingItemsNoInline(GOAPAgent agent)
+        {
+            return agent.GetHealingItems();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool TryOfflineUseItem(GOAPNPCData npcData, ItemData item)
+        {
+            if (!Il2CppSafe.IsAlive(npcData) || !Il2CppSafe.IsAlive(item)) return false;
+            try
+            {
+                OfflineUseItemNoInline(npcData, item);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void OfflineUseItemNoInline(GOAPNPCData npcData, ItemData item)
+        {
+            var mgr = GOAPNPCManager.instance;
+            if (Il2CppSafe.IsAlive(mgr))
+                mgr.OfflineUseItem(npcData, item);
         }
 
         private static bool IsEligibleConsumableFood(
@@ -665,7 +815,7 @@ namespace ZedZone.SmartCompanions
 
             try
             {
-                var heals = agent.GetHealingItems();
+                var heals = TryGetAgentHealingItems(agent);
                 if (heals != null)
                 {
                     ItemData rareCand = null;
@@ -790,8 +940,8 @@ namespace ZedZone.SmartCompanions
                         if (contCand.Count > 0)
                         {
                             var validDrinks = new Il2CppSystem.Collections.Generic.List<ItemData>();
-                            try { GOAPNPCData.AppendDrinkingContainers(contCand, validDrinks); } catch { }
-                            if (validDrinks.Count > 0 && Il2CppSafe.IsAlive(validDrinks[0]))
+                            if (TryAppendDrinkingContainers(contCand, validDrinks) &&
+                                validDrinks.Count > 0 && Il2CppSafe.IsAlive(validDrinks[0]))
                             {
                                 found = validDrinks[0];
                                 foundContainer = true;
@@ -1020,8 +1170,8 @@ namespace ZedZone.SmartCompanions
 
                     if (isDrinkContainer)
                     {
-                        float vol = HumanCharacterController.defaultDrinkVolume > 10f ? HumanCharacterController.defaultDrinkVolume : 250f;
-                        try { curHc.DrinkLiquidFromContainer(taken, vol); } catch { }
+                        float vol = ResolveDefaultDrinkVolume();
+                        TryDrinkLiquidFromContainer(curHc, taken, vol);
                         agent.npcData.thirst = curStatus.thirst;
                     }
                     else if (kind == CampResupplyKind.Heal)
@@ -1067,7 +1217,7 @@ namespace ZedZone.SmartCompanions
             float beforeQty = item.itemNumberFloat;
             float beforeH = npcData.hunger;
             float beforeT = npcData.thirst;
-            try { GOAPNPCManager.instance?.OfflineUseItem(npcData, item); } catch { }
+            TryOfflineUseItem(npcData, item);
 
             if (Il2CppSafe.IsAlive(item) && item.itemNumberFloat >= beforeQty - 0.01f &&
                 InventoryTransfers.Contains(inv, item))
@@ -1104,13 +1254,8 @@ namespace ZedZone.SmartCompanions
             if (npcData.thirst >= 55f && npcData.hunger >= 55f && npcData.health >= maxHp * 0.80f)
                 return;
 
-            bool hasDrinks = false;
-            try
-            {
-                var drinks = npcData.GetDrinkingItems();
-                hasDrinks = drinks != null && drinks.Count > 0;
-            }
-            catch { }
+            var offlineDrinks = TryGetNpcDataDrinkingItems(npcData);
+            bool hasDrinks = offlineDrinks != null && offlineDrinks.Count > 0;
 
             bool hasStockedBase = st.HasHomeAnchor && AutoLootSystem.IsPositionNearPlayerBase(st.HomeAnchorPos, 32f);
 

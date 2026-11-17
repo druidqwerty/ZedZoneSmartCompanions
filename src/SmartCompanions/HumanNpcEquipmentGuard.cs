@@ -140,7 +140,11 @@ namespace ZedZone.SmartCompanions
         [HarmonyPrefix]
         private static void Prefix(HumanCharacterController __instance)
         {
-            HumanNpcEquipmentGuard.EnsureBackingInventory(__instance);
+            try
+            {
+                HumanNpcEquipmentGuard.EnsureBackingInventory(__instance);
+            }
+            catch { }
         }
     }
 
@@ -150,26 +154,40 @@ namespace ZedZone.SmartCompanions
         [HarmonyPrefix]
         private static bool Prefix(HumanCharacterController __instance, ItemData m_weaponData)
         {
-            if (!HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance)) return true;
-            HumanNpcEquipmentGuard.EnsureBackingInventory(__instance);
+            try
+            {
+                if (!HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance)) return true;
+                HumanNpcEquipmentGuard.EnsureBackingInventory(__instance);
 
-            if (HumanNpcEquipmentGuard.IsValidWeaponItem(m_weaponData, expectRanged: true, out string reason))
+                if (HumanNpcEquipmentGuard.IsValidWeaponItem(m_weaponData, expectRanged: true, out string reason))
+                    return true;
+
+                HumanNpcEquipmentGuard.CleanupBrokenRangedState(__instance);
+                HumanNpcEquipmentGuard.LogOnce(__instance, m_weaponData, reason);
+                return false;
+            }
+            catch
+            {
                 return true;
-
-            HumanNpcEquipmentGuard.CleanupBrokenRangedState(__instance);
-            HumanNpcEquipmentGuard.LogOnce(__instance, m_weaponData, reason);
-            return false;
+            }
         }
 
         [HarmonyFinalizer]
         private static Exception Finalizer(Exception __exception, HumanCharacterController __instance, ItemData m_weaponData)
         {
-            if (__exception == null || !HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance))
-                return __exception;
+            try
+            {
+                if (__exception == null || !HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance))
+                    return __exception;
 
-            HumanNpcEquipmentGuard.CleanupBrokenRangedState(__instance);
-            HumanNpcEquipmentGuard.LogOnce(__instance, m_weaponData, "native EquipRangedWeapon threw " + __exception.GetType().Name);
-            return null;
+                HumanNpcEquipmentGuard.CleanupBrokenRangedState(__instance);
+                HumanNpcEquipmentGuard.LogOnce(__instance, m_weaponData, "native EquipRangedWeapon threw " + __exception.GetType().Name);
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 
@@ -179,24 +197,38 @@ namespace ZedZone.SmartCompanions
         [HarmonyPrefix]
         private static bool Prefix(HumanCharacterController __instance, ItemData m_weaponData)
         {
-            if (!HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance)) return true;
-            HumanNpcEquipmentGuard.EnsureBackingInventory(__instance);
+            try
+            {
+                if (!HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance)) return true;
+                HumanNpcEquipmentGuard.EnsureBackingInventory(__instance);
 
-            if (HumanNpcEquipmentGuard.IsValidWeaponItem(m_weaponData, expectRanged: false, out string reason))
+                if (HumanNpcEquipmentGuard.IsValidWeaponItem(m_weaponData, expectRanged: false, out string reason))
+                    return true;
+
+                HumanNpcEquipmentGuard.LogOnce(__instance, m_weaponData, reason);
+                return false;
+            }
+            catch
+            {
                 return true;
-
-            HumanNpcEquipmentGuard.LogOnce(__instance, m_weaponData, reason);
-            return false;
+            }
         }
 
         [HarmonyFinalizer]
         private static Exception Finalizer(Exception __exception, HumanCharacterController __instance, ItemData m_weaponData)
         {
-            if (__exception == null || !HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance))
-                return __exception;
+            try
+            {
+                if (__exception == null || !HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance))
+                    return __exception;
 
-            HumanNpcEquipmentGuard.LogOnce(__instance, m_weaponData, "native EquipMeleeWeapon threw " + __exception.GetType().Name);
-            return null;
+                HumanNpcEquipmentGuard.LogOnce(__instance, m_weaponData, "native EquipMeleeWeapon threw " + __exception.GetType().Name);
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 
@@ -206,18 +238,29 @@ namespace ZedZone.SmartCompanions
         [HarmonyPrefix]
         private static void Prefix(HumanCharacterController __instance)
         {
-            HumanNpcEquipmentGuard.EnsureBackingInventory(__instance);
+            try
+            {
+                HumanNpcEquipmentGuard.EnsureBackingInventory(__instance);
+            }
+            catch { }
         }
 
         [HarmonyFinalizer]
         private static Exception Finalizer(Exception __exception, HumanCharacterController __instance, ItemData m_weaponData)
         {
-            if (__exception == null || !HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance))
-                return __exception;
+            try
+            {
+                if (__exception == null || !HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance))
+                    return __exception;
 
-            HumanNpcEquipmentGuard.CleanupBrokenRangedState(__instance);
-            HumanNpcEquipmentGuard.LogOnce(__instance, m_weaponData, "native EquipWeaponSlot threw " + __exception.GetType().Name);
-            return null;
+                HumanNpcEquipmentGuard.CleanupBrokenRangedState(__instance);
+                HumanNpcEquipmentGuard.LogOnce(__instance, m_weaponData, "native EquipWeaponSlot threw " + __exception.GetType().Name);
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 
@@ -227,9 +270,9 @@ namespace ZedZone.SmartCompanions
         [HarmonyPrefix]
         private static bool Prefix(HumanCharacterController __instance)
         {
-            if (!Il2CppSafe.IsAliveUnity(__instance)) return false;
             try
             {
+                if (!Il2CppSafe.IsAliveUnity(__instance)) return false;
                 var weapon = __instance.rangedWeapon;
                 if (!Il2CppSafe.IsAliveUnity(weapon) || !Il2CppSafe.IsAliveUnity(weapon.weaponAttr))
                     return false;

@@ -7,12 +7,19 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.0"><strong>Скачать релиз v3.1.0 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.1"><strong>Скачать релиз v3.1.1 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English Documentation (README.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Новое в v3.1.1 — Хотфикс: загрузка на патче 1.0.19, защита входа в сохранение и профиля игрока
+
+- **Устранены зависания загрузки мира и преждевременный старт логики (`SmartCompanionsRuntimeGate`):** напарники, обход контейнеров чанков (`EnsureLootGenerated`), выживание на базе и перехват IMGUI/ввода строго заблокированы в `MainMenu` и на всём протяжении загрузки сцены `"Gaming"`, `GameInitPanel` и подгрузки чанков (`timeScale = 0.01`) до полной готовности мира.
+- **Совместимость с патчем ZED ZONE `1.0.19` и изолированные Harmony-патчи (`SafeHarmonyPatcher`):** устранена нативная `/OPT:ICF`-коллизия хука `GOAPAction_SearchForFood` с `SearchForMeleeWeapon`/`SearchForRangedWeapon`, добавлена пометодная изоляция патчей (`[EH>0]` во всех 86 точках входа и `[NoInlining]` обёртки IL2CPP), привязка к `Assembly-CSharp` переведена на версионно-независимую `0.0.0.0` для хотфиксов `2.0.0.x`, а сборка Workshop приведена к однопапочной раскладке.
+- **Защита `CharacterData.characterAttrId` игрока от манекенов меню и автопочинка профиля:** портретные манекены в `MainMenu` / `CharacterSelectOverlay` больше не меняют `characterAttrId` игрока (`0 -> 201`), а при загрузке любого ранее затронутого сохранения/профиля значение автоматически восстанавливается в `0`.
+- **Проверено:** реальные нативные прогоны входа `MainMenu -> Sandbox -> CharacterSelect -> Gaming` + живые прогоны боя, физической переноски и гарнизона + матрица **300/300** графических случаев + **12** наборов регрессий + Win32 OS-пробы ввода (`0.75x`, `2.0x`); все 8 386 файлов сохранений без изменений. [Отчёт и границы](docs/verification-3.1.1.md).
 
 ## Новое в v3.1.0 — Группы Альфа/Браво, выживание на базе, автосбор урожая и логистика
 
@@ -283,8 +290,8 @@
 
 ## Установка и управление
 
-1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`.
-2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-3.1.0.zip` в `<ZED ZONE>`).
+1. Подпишитесь на обязательную стороннюю зависимость **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** (это не мод druidqwerty) и один раз запустите её `install.cmd`. После обновления самой игры ZED ZONE (например, патча `1.0.19`), если моды не подгружаются или запуск зависает на старте, один раз удалите папку `<ZED ZONE>/BepInEx/interop` (или повторно запустите `install.cmd` из `Code Mod Loader`), чтобы BepInEx пересобрал свежие файлы IL2CPP interop.
+2. Подпишитесь на **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** в Steam Workshop (или распакуйте `ZedZoneSmartCompanions-3.1.1.zip` в `<ZED ZONE>`).
 3. Запускайте **ZED ZONE** через Steam.
 4. Нажмите **`F8`** в игре для открытия **Командного центра напарников и логистики базы** (`?` — краткая памятка), **`Alt+1/2/3`** для выбора группы (`Все` / `Альфа` / `Браво`), **`Alt+F`** для сбора лута рядом или **`F7`** для быстрого приказа отсортировать базу.
 

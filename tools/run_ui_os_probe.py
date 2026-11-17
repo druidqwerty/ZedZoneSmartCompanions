@@ -91,9 +91,9 @@ def run(pid, output):
         report.update(width=state["width"], height=state["height"], effective_scale=state["scale"])
         capture(output, "os-start")
 
-        # Header: x=14; four tabs each (w - 28 - 24)/4, with 8-unit gaps.
-        tab_width = (state["w"] - 52) / 4
-        click(hwnd, physical(state, 14 + 3 * (tab_width + 8) + tab_width / 2, 63))
+        # Header: x=14; five tabs (01 Squad, 02 Work, 03 Base, 04 Chatter, 05 Settings), 8-unit gaps.
+        tab_width = (state["w"] - 28 - 32) / 5
+        click(hwnd, physical(state, 14 + 4 * (tab_width + 8) + tab_width / 2, 63))
         state = wait_state(output, lambda s: s["tab"] == 3, "settings tab click")
         report["checks"].append("actual tab switch to settings")
 

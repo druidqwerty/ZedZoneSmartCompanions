@@ -26,6 +26,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
 
         private void Update()
         {
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 60;
             try
             {
                 if (_finished) return;
@@ -50,6 +52,7 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     CompanionConfigStore.UiScale = scale;
                     CompanionConfigStore.ShowHudBadge = false;
                     CompanionConfigStore.LanguageMode = ModLanguage.English;
+                    UiSmokePlugin.AllowMenuFixtureUiRender = true;
                     SmokeFixtures.Create();
                     ContainerFixtures.Create();
                     ContainerFixtures.SetVisible(false, false);

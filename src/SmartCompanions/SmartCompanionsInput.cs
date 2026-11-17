@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using HarmonyLib;
 using UnityEngine;
 
@@ -24,13 +25,15 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
-                MouseController.InvalidateCursorCache();
+                if (!SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture()) return;
+
+                InvalidateCursorCacheSafe();
                 Vector3 mp = Input.mousePosition;
                 bool overOverlay = SmartCompanionsUI.IsPointerOverOverlay(new Vector2(mp.x, Screen.height - mp.y));
-                bool gameplayCursorAllowed = !LockPickingPanel.isHoldingCursor &&
-                                             !HudVisibility.mainCanvasHidden &&
-                                             !GameInputManager.isUsingController &&
-                                             Il2CppSafe.IsAliveUnity(GameController.instance?.playerCharacter);
+                bool gameplayCursorAllowed = !IsLockPickingHoldingCursorSafe() &&
+                                             !IsMainCanvasHiddenSafe() &&
+                                             !IsUsingControllerSafe() &&
+                                             IsLocalPlayerAliveSafe();
                 if (SmartCompanionsUI.ShowMainWindow || overOverlay || gameplayCursorAllowed)
                 {
                     Cursor.lockState = CursorLockMode.None;
@@ -45,8 +48,12 @@ namespace ZedZone.SmartCompanions
             try
             {
                 if (Application.isBatchMode) return;
-                var gc = GameController.instance;
-                if (!Il2CppSafe.IsAliveUnity(gc)) return;
+                if (!SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture())
+                {
+                    _wasMainWindowOpen = false;
+                    return;
+                }
+                if (!IsGameControllerAliveSafe()) return;
 
                 Vector3 mp = Input.mousePosition;
                 bool mouseMoved = (mp - _lastRawMousePos).sqrMagnitude > 4f;
@@ -54,15 +61,14 @@ namespace ZedZone.SmartCompanions
                 bool mouseClicked = Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(2);
                 bool uiActive = SmartCompanionsUI.ShowMainWindow ||
                                 SmartCompanionsUI.IsPointerOverOverlay(new Vector2(mp.x, Screen.height - mp.y));
-                bool wasUsingController = false;
-                try { wasUsingController = GameInputManager.isUsingController; } catch { }
+                bool wasUsingController = IsUsingControllerSafe();
 
                 if (uiActive || mouseMoved || mouseClicked)
                 {
-                    try { GameInputManager.lastKeyboardMouseActivityTime = Time.unscaledTime; } catch { }
+                    SetLastKeyboardMouseActivityTimeSafe(Time.unscaledTime);
                     if (uiActive || (wasUsingController && (mouseMoved || mouseClicked)))
                     {
-                        try { GameInputManager.isUsingController = false; } catch { }
+                        SetIsUsingControllerSafe(false);
                     }
                 }
 
@@ -71,32 +77,24 @@ namespace ZedZone.SmartCompanions
                     if (!Cursor.visible)
                     {
                         Cursor.visible = true;
-                        try { MouseController.InvalidateCursorCache(); } catch { }
+                        InvalidateCursorCacheSafe();
                     }
                     if (Cursor.lockState == CursorLockMode.Locked)
                         Cursor.lockState = CursorLockMode.None;
                 }
                 else if (_wasMainWindowOpen)
                 {
-                    try
-                    {
-                        MouseController.InvalidateCursorCache();
-                        if (!LockPickingPanel.isHoldingCursor && !HudVisibility.mainCanvasHidden && !GameInputManager.isUsingController)
-                            Cursor.visible = true;
-                    }
-                    catch { }
+                    InvalidateCursorCacheSafe();
+                    if (!IsLockPickingHoldingCursorSafe() && !IsMainCanvasHiddenSafe() && !IsUsingControllerSafe())
+                        Cursor.visible = true;
                 }
-                else if (Il2CppSafe.IsAliveUnity(gc.playerCharacter) && wasUsingController && (mouseMoved || mouseClicked))
+                else if (IsLocalPlayerAliveSafe() && wasUsingController && (mouseMoved || mouseClicked))
                 {
-                    try
+                    if (!IsLockPickingHoldingCursorSafe() && !IsMainCanvasHiddenSafe())
                     {
-                        if (!LockPickingPanel.isHoldingCursor && !HudVisibility.mainCanvasHidden)
-                        {
-                            Cursor.visible = true;
-                            MouseController.InvalidateCursorCache();
-                        }
+                        Cursor.visible = true;
+                        InvalidateCursorCacheSafe();
                     }
-                    catch { }
                 }
 
                 _wasMainWindowOpen = SmartCompanionsUI.ShowMainWindow;
@@ -108,9 +106,9 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
-                var player = GameController.instance?.playerCharacter;
-                if (!Il2CppSafe.IsAliveUnity(player)) return false;
-                if (ZedZone.Net.NetChatBar.isTypingChat) return false;
+                if (!SmartCompanionsRuntimeGate.IsGameplayWorldReady()) return false;
+                if (!IsLocalPlayerAliveSafe()) return false;
+                if (IsTypingChatSafe()) return false;
                 if (GUIUtility.keyboardControl != 0) return false;
                 return true;
             }
@@ -126,9 +124,8 @@ namespace ZedZone.SmartCompanions
             {
                 if (!CanProcessWorldHotkeys()) return false;
                 if (SmartCompanionsUI.ShowMainWindow) return false;
-                if (LockPickingPanel.isHoldingCursor) return false;
-                var lootPanel = LootInventoryPanel._instance;
-                if (Il2CppSafe.IsAliveUnity(lootPanel) && lootPanel.gameObject.activeInHierarchy) return false;
+                if (IsLockPickingHoldingCursorSafe()) return false;
+                if (IsLootInventoryPanelActiveSafe()) return false;
                 return true;
             }
             catch
@@ -143,10 +140,19 @@ namespace ZedZone.SmartCompanions
             {
                 try
                 {
+                    if (!SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture())
+                    {
+                        _modalReleasePending = false;
+                        _mouseReleasePending = false;
+                        return false;
+                    }
                     return CaptureUntilReleased(SmartCompanionsUI.ShowMainWindow,
                         ref _modalReleasePending, ref _modalReleasedFrame);
                 }
-                catch { return SmartCompanionsUI.ShowMainWindow; }
+                catch
+                {
+                    return false;
+                }
             }
         }
 
@@ -154,17 +160,128 @@ namespace ZedZone.SmartCompanions
         {
             get
             {
-                if (BlockPlayerControls) return true;
                 try
                 {
+                    if (!SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture())
+                    {
+                        _modalReleasePending = false;
+                        _mouseReleasePending = false;
+                        return false;
+                    }
+                    if (BlockPlayerControls) return true;
                     var cursor = Input.mousePosition;
                     bool overPanel = SmartCompanionsUI.IsPointerOverOverlay(
                         new Vector2(cursor.x, Screen.height - cursor.y));
                     return CaptureUntilReleased(overPanel,
                         ref _mouseReleasePending, ref _mouseReleasedFrame);
                 }
-                catch { return false; }
+                catch
+                {
+                    return false;
+                }
             }
+        }
+
+        // --- Safe wrappers & [NoInlining] interop accessors ---
+
+        private static void InvalidateCursorCacheSafe()
+        {
+            try { CallInvalidateCursorCache(); }
+            catch { }
+        }
+
+        private static bool IsLockPickingHoldingCursorSafe()
+        {
+            try { return ReadLockPickingIsHoldingCursor(); }
+            catch { return false; }
+        }
+
+        private static bool IsMainCanvasHiddenSafe()
+        {
+            try { return ReadMainCanvasHidden(); }
+            catch { return false; }
+        }
+
+        private static bool IsUsingControllerSafe()
+        {
+            try { return ReadIsUsingController(); }
+            catch { return false; }
+        }
+
+        private static void SetIsUsingControllerSafe(bool value)
+        {
+            try { WriteIsUsingController(value); }
+            catch { }
+        }
+
+        private static void SetLastKeyboardMouseActivityTimeSafe(float time)
+        {
+            try { WriteLastKeyboardMouseActivityTime(time); }
+            catch { }
+        }
+
+        private static bool IsTypingChatSafe()
+        {
+            try { return ReadIsTypingChat(); }
+            catch { return false; }
+        }
+
+        private static bool IsLootInventoryPanelActiveSafe()
+        {
+            try { return ReadIsLootInventoryPanelActive(); }
+            catch { return false; }
+        }
+
+        private static bool IsGameControllerAliveSafe()
+        {
+            try { return ReadIsGameControllerAlive(); }
+            catch { return false; }
+        }
+
+        private static bool IsLocalPlayerAliveSafe()
+        {
+            try { return ReadIsLocalPlayerAlive(); }
+            catch { return false; }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void CallInvalidateCursorCache() => MouseController.InvalidateCursorCache();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadLockPickingIsHoldingCursor() => LockPickingPanel.isHoldingCursor;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadMainCanvasHidden() => HudVisibility.mainCanvasHidden;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadIsUsingController() => GameInputManager.isUsingController;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void WriteIsUsingController(bool value) => GameInputManager.isUsingController = value;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void WriteLastKeyboardMouseActivityTime(float time) => GameInputManager.lastKeyboardMouseActivityTime = time;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadIsTypingChat() => ZedZone.Net.NetChatBar.isTypingChat;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadIsLootInventoryPanelActive()
+        {
+            var lootPanel = LootInventoryPanel._instance;
+            return Il2CppSafe.IsAliveUnity(lootPanel)
+                && Il2CppSafe.IsAliveUnity(lootPanel.gameObject)
+                && lootPanel.gameObject.activeInHierarchy;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadIsGameControllerAlive() => Il2CppSafe.IsAliveUnity(GameController.instance);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadIsLocalPlayerAlive()
+        {
+            var gc = GameController.instance;
+            return Il2CppSafe.IsAliveUnity(gc) && Il2CppSafe.IsAliveUnity(gc.playerCharacter);
         }
 
         private static bool CaptureUntilReleased(bool capture, ref bool pending, ref int releasedFrame)
@@ -216,15 +333,24 @@ namespace ZedZone.SmartCompanions
         {
             private static IEnumerable<MethodBase> TargetMethods()
             {
-                yield return AccessTools.PropertyGetter(typeof(CharacterInput), "stopAllInput");
-                yield return AccessTools.PropertyGetter(typeof(CharacterInput), "stopAllInputExceptAreaSwitch");
+                var m1 = AccessTools.PropertyGetter(typeof(CharacterInput), "stopAllInput");
+                if (m1 != null) yield return m1;
+                var m2 = AccessTools.PropertyGetter(typeof(CharacterInput), "stopAllInputExceptAreaSwitch");
+                if (m2 != null) yield return m2;
             }
 
             private static bool Prefix(CharacterInput __instance, ref bool __result)
             {
-                if (!LocalPlayerInput(__instance) || !BlockPlayerControls) return true;
-                __result = true;
-                return false;
+                try
+                {
+                    if (!LocalPlayerInput(__instance) || !BlockPlayerControls) return true;
+                    __result = true;
+                    return false;
+                }
+                catch
+                {
+                    return true;
+                }
             }
         }
 
@@ -233,15 +359,24 @@ namespace ZedZone.SmartCompanions
         {
             private static IEnumerable<MethodBase> TargetMethods()
             {
-                yield return AccessTools.PropertyGetter(typeof(CharacterInput), "CanPressMouse");
-                yield return AccessTools.PropertyGetter(typeof(CharacterInput), "CanControlMouseActions");
+                var m1 = AccessTools.PropertyGetter(typeof(CharacterInput), "CanPressMouse");
+                if (m1 != null) yield return m1;
+                var m2 = AccessTools.PropertyGetter(typeof(CharacterInput), "CanControlMouseActions");
+                if (m2 != null) yield return m2;
             }
 
             private static bool Prefix(CharacterInput __instance, ref bool __result)
             {
-                if (!LocalPlayerInput(__instance) || !BlockPlayerMouse) return true;
-                __result = false;
-                return false;
+                try
+                {
+                    if (!LocalPlayerInput(__instance) || !BlockPlayerMouse) return true;
+                    __result = false;
+                    return false;
+                }
+                catch
+                {
+                    return true;
+                }
             }
         }
 
@@ -250,15 +385,24 @@ namespace ZedZone.SmartCompanions
         {
             private static IEnumerable<MethodBase> TargetMethods()
             {
-                yield return AccessTools.Method(typeof(CharacterInput), "UpdateCharacterInput");
-                yield return AccessTools.Method(typeof(CharacterInput), "UpdateDrivingInput");
+                var m1 = AccessTools.Method(typeof(CharacterInput), "UpdateCharacterInput");
+                if (m1 != null) yield return m1;
+                var m2 = AccessTools.Method(typeof(CharacterInput), "UpdateDrivingInput");
+                if (m2 != null) yield return m2;
             }
 
             private static bool Prefix(CharacterInput __instance)
             {
-                if (!LocalPlayerInput(__instance) || !BlockPlayerControls) return true;
-                StopMovement(__instance);
-                return false;
+                try
+                {
+                    if (!LocalPlayerInput(__instance) || !BlockPlayerControls) return true;
+                    StopMovement(__instance);
+                    return false;
+                }
+                catch
+                {
+                    return true;
+                }
             }
         }
 
@@ -267,7 +411,14 @@ namespace ZedZone.SmartCompanions
         {
             private static bool Prefix(CharacterInput __instance)
             {
-                return !LocalPlayerInput(__instance) || !BlockPlayerMouse;
+                try
+                {
+                    return !LocalPlayerInput(__instance) || !BlockPlayerMouse;
+                }
+                catch
+                {
+                    return true;
+                }
             }
         }
 
@@ -280,10 +431,14 @@ namespace ZedZone.SmartCompanions
             {
                 // The player uses Human overrides. Do not detour the unused base-class
                 // no-op bodies: IL2CPP can merge those stubs with unrelated methods.
-                yield return AccessTools.DeclaredMethod(typeof(HumanCharacterController), "Fire");
-                yield return AccessTools.DeclaredMethod(typeof(HumanCharacterController), "Fire_Gun");
-                yield return AccessTools.DeclaredMethod(typeof(HumanCharacterController), "MeleeAttack");
-                yield return AccessTools.DeclaredMethod(typeof(HumanCharacterController), "OnMeleeWeaponFireHold");
+                var m1 = AccessTools.DeclaredMethod(typeof(HumanCharacterController), "Fire");
+                if (m1 != null) yield return m1;
+                var m2 = AccessTools.DeclaredMethod(typeof(HumanCharacterController), "Fire_Gun");
+                if (m2 != null) yield return m2;
+                var m3 = AccessTools.DeclaredMethod(typeof(HumanCharacterController), "MeleeAttack");
+                if (m3 != null) yield return m3;
+                var m4 = AccessTools.DeclaredMethod(typeof(HumanCharacterController), "OnMeleeWeaponFireHold");
+                if (m4 != null) yield return m4;
             }
 
             private static bool Prefix(BasicCharacterController __instance)

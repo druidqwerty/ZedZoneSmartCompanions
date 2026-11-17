@@ -7,12 +7,19 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.0"><strong>下载 v3.1.0 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.1"><strong>下载 v3.1.1 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## v3.1.1 热修 — 1.0.19 补丁兼容、读档门控保护与玩家档案修复
+
+- **修复存档/世界加载卡死与过早执行（`SmartCompanionsRuntimeGate`）：** 在主菜单（`MainMenu`）以及 `"Gaming"` 场景、`GameInitPanel` 与区块流式加载过渡期（`timeScale = 0.01`）全程严格锁定关闭队友逻辑、区块容器扫描（`EnsureLootGenerated`）、营地生存寻路及 IMGUI/输入拦截，直到进入世界准备就绪。
+- **适配《ZED ZONE》`1.0.19` 补丁并增加逐方法隔离补丁保护（`SafeHarmonyPatcher`）：** 修复原生 `/OPT:ICF` 代码折叠导致的 `GOAPAction_SearchForFood` 与 `SearchForMeleeWeapon`/`SearchForRangedWeapon` 钩子冲突；实现逐方法故障隔离（全部 86 个补丁入口具备 `[EH>0]` 异常保护与 `[NoInlining]` IL2CPP 包装），采用跨 `2.0.0.x` 热修通用的 `Assembly-CSharp` `0.0.0.0` 版本无关绑定，并统一单目录创意工坊打包结构。
+- **修复角色预览模型篡改玩家 `characterAttrId` 并支持自动自愈：** 阻止 `MainMenu` / `CharacterSelectOverlay` 肖像预览人偶将玩家 `CharacterData.characterAttrId` 误改为 `201`（`0 -> 201`），并在加载任何曾受影响的存档/档案时自动修复回 `0`。
+- **已验证：** 完成真实游戏 `MainMenu -> Sandbox -> CharacterSelect -> Gaming` 原生读档实测 + 实机战斗/搬运/驻守测试 + **300/300** 图形界面矩阵 + **12** 组确定性回归测试 + `0.75x`/`2.0x` Win32 系统输入测试；8,386 个真实存档文件均未改变。[测试范围与限制](docs/verification-3.1.1.md)。
 
 ## v3.1.0 更新 — 火力小组、营地生存保障、自动收获作物与双背包整理
 
@@ -257,8 +264,8 @@
 
 ## 安装与快捷键
 
-1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-3.1.0.zip` 解压至 `<ZED ZONE>`）。
+1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。当《ZED ZONE》游戏本体更新后（例如 `1.0.19` 补丁），如果模组未加载或启动卡住，请删除一次 `<ZED ZONE>/BepInEx/interop` 文件夹（或重新运行一次 `Code Mod Loader` 的 `install.cmd`），让 BepInEx 重新生成最新的 IL2CPP interop 文件。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-3.1.1.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开智能队友与基地中心（右上 **`?`** 为快速指南） · **`Alt+1/2/3`** 切换小队频道（全队/A组/B组） · **`Alt+F`** 搜刮附近战利品 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

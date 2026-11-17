@@ -15,29 +15,66 @@ namespace ZedZone.SmartCompanions.LiveSmoke
     {
         internal static string Lab;
         internal static string Original;
+        internal static string OriginalBackslash;
+        internal static string OriginalForward;
+        internal static bool IsRealMenuLoadMode;
         internal static BepInEx.Logging.ManualLogSource Logger;
         public override void Load()
         {
-            var arg = Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith("--sc-live-profile="));
+            var args = Environment.GetCommandLineArgs();
+            var arg = args.FirstOrDefault(a => a.StartsWith("--sc-live-profile="));
             if (arg == null) return;
-            Lab = Path.GetFullPath(arg.Substring("--sc-live-profile=".Length));
+            IsRealMenuLoadMode = args.Contains("--sc-real-menu-load");
+            Lab = Path.GetFullPath(arg.Substring("--sc-live-profile=".Length)).TrimEnd('\\', '/');
             if (!Directory.Exists(Path.Combine(Lab,"GameData","GameData"))) throw new Exception("Missing copied lab profile");
             Original = Application.persistentDataPath;
+            OriginalBackslash = Path.GetFullPath(Original).TrimEnd('\\', '/');
+            OriginalForward = OriginalBackslash.Replace('\\', '/');
             Logger = Log;
             Application.runInBackground = true;
             new Harmony("zedzone.smartcompanions.livesmoke").PatchAll(typeof(LiveSmokePlugin).Assembly);
-            AddComponent<LiveRunner>();
-            Logger.LogInfo("[LiveLab] Save/config paths redirected to disposable copy; cloud saving disabled.");
+            if (IsRealMenuLoadMode)
+            {
+                AddComponent<RealMenuLoadRunner>();
+                Logger.LogInfo("[RealMenuLoad] Save/config paths redirected to disposable copy; cloud saving disabled.");
+            }
+            else
+            {
+                AddComponent<LiveRunner>();
+                Logger.LogInfo("[LiveLab] Save/config paths redirected to disposable copy; cloud saving disabled.");
+            }
         }
     }
     [HarmonyPatch]
     internal static class RedirectPaths
     {
-        static IEnumerable<MethodBase> TargetMethods() => typeof(GameConfigs).GetProperties(BindingFlags.Static|BindingFlags.Public)
-            .Where(p => p.PropertyType == typeof(string) && p.Name.EndsWith("Path") && p.GetMethod != null && p.SetMethod == null).Select(p => p.GetMethod);
+        static IEnumerable<MethodBase> TargetMethods()
+        {
+            foreach (var m in typeof(GameConfigs).GetProperties(BindingFlags.Static | BindingFlags.Public)
+                .Where(p => p.PropertyType == typeof(string) && p.Name.EndsWith("Path") && p.GetMethod != null && p.SetMethod == null)
+                .Select(p => p.GetMethod))
+            {
+                yield return m;
+            }
+
+            const BindingFlags StaticAny = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+            var mpSaveDir = typeof(ZedZone.Net.NetCharacterSave).GetProperty("saveDirectory", StaticAny)?.GetMethod;
+            if (mpSaveDir != null) yield return mpSaveDir;
+
+            var mpProfilePath = typeof(ZedZone.Net.NetCharacterSave).GetMethod("ProfilePath", StaticAny);
+            if (mpProfilePath != null) yield return mpProfilePath;
+
+            var noticeCache = typeof(ZedZone.Net.NetServiceNotice).GetProperty("CachePath", StaticAny)?.GetMethod;
+            if (noticeCache != null) yield return noticeCache;
+        }
         static void Postfix(ref string __result)
         {
-            if (__result != null && __result.StartsWith(LiveSmokePlugin.Original,StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(__result)) return;
+            if (__result.StartsWith(LiveSmokePlugin.OriginalBackslash, StringComparison.OrdinalIgnoreCase))
+                __result = LiveSmokePlugin.Lab + __result.Substring(LiveSmokePlugin.OriginalBackslash.Length);
+            else if (__result.StartsWith(LiveSmokePlugin.OriginalForward, StringComparison.OrdinalIgnoreCase))
+                __result = LiveSmokePlugin.Lab + __result.Substring(LiveSmokePlugin.OriginalForward.Length);
+            else if (__result.StartsWith(LiveSmokePlugin.Original, StringComparison.OrdinalIgnoreCase))
                 __result = LiveSmokePlugin.Lab + __result.Substring(LiveSmokePlugin.Original.Length);
         }
     }
@@ -48,12 +85,21 @@ namespace ZedZone.SmartCompanions.LiveSmoke
     [HarmonyPatch(typeof(GameController), nameof(GameController.UpdateFocusAutoPause))]
     internal static class KeepLabRunning { static void Prefix(ref bool hasFocus) { hasFocus = true; } }
     [HarmonyPatch(typeof(GameController), "get_isSoftPaused")]
-    internal static class UnpauseIsolatedLab { static bool Prefix(ref bool __result) { __result=false;return false; } }
+    internal static class UnpauseIsolatedLab
+    {
+        static bool Prefix(ref bool __result)
+        {
+            if (LiveSmokePlugin.IsRealMenuLoadMode) return true;
+            __result = false;
+            return false;
+        }
+    }
     [HarmonyPatch(typeof(Time), "set_timeScale")]
     internal static class PinLabTimeScale
     {
         static void Prefix(ref float value)
         {
+            if (LiveSmokePlugin.IsRealMenuLoadMode) return;
             if (LiveRunner.WorldLoaded && value < 1f) value = 1f;
         }
     }
@@ -96,6 +142,20 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     Time.timeScale=1f;
                     QualitySettings.vSyncCount=0;
                     Application.targetFrameRate=60;
+                    if (!SmartCompanionsRuntimeGate.IsGameplayWorldReady())
+                        return;
+                    var cp = GenericConfirmPanel._instance;
+                    if (Il2CppSafe.IsAliveUnity(cp) && (cp.isVisible || Time.frameCount <= GenericConfirmPanel.s_lastHideFrame + 1))
+                    {
+                        if (cp.isVisible)
+                        {
+                            LiveSmokePlugin.Logger.LogInfo("[LiveLab] Dismissing in-game GenericConfirmPanel via OnCancelClick/Hide.");
+                            if (cp.onCancel != null) cp.OnCancelClick();
+                            else if (cp.onRequiredDismiss != null) cp.OnConfirmClick();
+                            else cp.Hide();
+                        }
+                        return;
+                    }
                     if (!_loaded)
                     {
                         _loaded=true;

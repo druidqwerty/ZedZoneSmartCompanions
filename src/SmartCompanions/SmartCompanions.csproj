@@ -7,7 +7,7 @@
 
     <AssemblyName>SmartCompanions</AssemblyName>
     <RootNamespace>ZedZone.SmartCompanions</RootNamespace>
-    <Version>3.1.0</Version>
+    <Version>3.1.1</Version>
     <TargetFramework>net6.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
@@ -98,5 +98,9 @@
       <Private>false</Private>
     </Reference>
   </ItemGroup>
+
+  <Target Name="NormalizeInteropAssemblyRef" AfterTargets="Build" Condition="Exists('$(MSBuildProjectDirectory)\..\..\tools\normalize_assembly_refs.ps1')">
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\tools\normalize_assembly_refs.ps1&quot; -DllPath &quot;$(TargetPath)&quot;" />
+  </Target>
 
 </Project>

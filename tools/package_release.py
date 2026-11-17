@@ -39,14 +39,16 @@ def main():
     if f'PluginVersion = "{VERSION}"' not in source_plugin.read_text(encoding="utf-8-sig"):
         raise SystemExit("Wrong plugin version.")
 
-    # Only project staging is mutated. The active game/Workshop cache is left alone.
-    for relative in ("workshop/Contents/SmartCompanions", "workshop/Contents/Mods/SmartCompanions"):
-        target = ROOT / relative
-        target.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(DLL, target / "SmartCompanions.dll")
-        if (target / "mod.json").resolve() != canonical.resolve():
-            shutil.copy2(canonical, target / "mod.json")
-        assert digest(target / "SmartCompanions.dll") == dll_hash
+    # Only single-folder project Workshop staging is mutated; remove any legacy duplicate Mods/ tree.
+    legacy_dup = ROOT / "workshop/Contents/Mods"
+    if legacy_dup.exists():
+        shutil.rmtree(legacy_dup)
+    target = ROOT / "workshop/Contents/SmartCompanions"
+    target.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(DLL, target / "SmartCompanions.dll")
+    if (target / "mod.json").resolve() != canonical.resolve():
+        shutil.copy2(canonical, target / "mod.json")
+    assert digest(target / "SmartCompanions.dll") == dll_hash
 
     files = ["README.md", "README_RU.md", "README_CN.md", "LICENSE",
              str(REPORT.relative_to(ROOT)), str(NOTES.relative_to(ROOT)),
