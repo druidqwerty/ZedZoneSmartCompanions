@@ -1,17 +1,17 @@
-title=ZED ZONE: Smart Companions 3.1.2 — 智能队友
+title=ZED ZONE: Smart Companions 3.2.0 — 智能队友
 visibility=public
-description=[h1]智能队友 3.1.2[/h1]
+description=[h1]智能队友 3.2.0[/h1]
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=喜欢这个模组吗？欢迎在 Boosty 支持开发。
-description=打造可靠的幸存者小队：智能战术战斗、真实走位搜刮与基地搬运，以及中英俄三语共 1,215 条实时台词。
-description=[h2]3.1.2 更新亮点（适配 1.0.20 补丁）[/h2]
-description=[list][*]完整适配《ZED ZONE》1.0.20 补丁：F8 队伍/工作面板、战术提示与语录日志全面显示玩家为队友设置的自定义昵称。[*]修复无限座位载具上车问题（passengerSeatLimit < 0），消除取消营地驻守后的 ReturnToBase 千米瞬移，并恢复自由/常规距离下原汁原味的跟随表现。[*]超过 12 米或无视线的远处敌人不再打断或清空基地搬运缓冲；支持卸下已装备背包、扫描半径扩展至 80 米、修复单人取消箱子标记后规则复活（SC142:）、无路可达时安全改道不隔空传物，且自动搜刮避开基地 18 米内尸体。[*]队友可在 78% 及以上血量时从套娃背包/小包（最多 3 层）取绷带和急救包止血（不再把普通食物牛排误当药品），更快切回远程武器，修复鼠标光标恢复而不影响手柄搜刮，并根据性别与特殊头饰适配三语台词。[/list]
+description=打造可靠的幸存者小队：智能战术战斗、真实走位搜刮、基地物理搬运、装备自动维修，以及中英俄三语共 1,215 条实时台词。
+description=[h2]3.2.0 更新亮点（自动修装与 1.0.20 补丁）[/h2]
+description=[list][*]队友已穿戴装备与背包自动维修：全面覆盖全部 18 个装备槽（枪械、近战、盾牌、头盔、防毒面具、护甲衣物、靴子、披风、背包、外骨骼、推进器、工具）以及个人背包、共享背包、已背背包与嵌套小包（最多 3 层）内的可修装备——连完全损坏（0%）的装备也能修好。[*]原生枪械与配件养护：按《ZED ZONE》1.0.20 原生耐久逻辑恢复远程武器耐久并清除卡壳，同步维修已安装配件、弹匣与独立枪械零件，严格排除食物、弹药与消耗品。[*]F8 -> 设置 内置 4 种即时切换模式（无需重启）：材料优先+维护（默认，优先按原版配方/零件维修，缺料时脱战缓慢维护）、仅消耗材料（零瞬移，仅用自带背包或 2.45 米内已标记基地箱的材料）、免费维护、或关闭；离线营地驻守队友同样自动养护装备。[*]全面适配《ZED ZONE》1.0.20 补丁：支持队友自定义昵称、无限座位载具上车、防乱逛与零瞬移卸货，以及嵌套小包绷带急救。[/list]
 description=[h2]快速上手：如何使用[/h2]
-description=[list][*]1. 按 F8 打开智能队友中心（右上 [?] 查看快速指南）。在「队伍」页配置学说、阵型、[A]/[B] 火力小组或切换「营地驻守」。[*]2. 在基地打开任意箱子（或进 F8 -> 基地页）勾选储物分类，并将一个箱子设为 [中转箱] —— 队友仅搬运玩家主动标记的箱子。[*]3. 把战利品放进 [中转箱] 后按 F7，队友会亲自走位搬进对应分类箱（绝不隔空传物）。在「工作」页可一键套用专精并开关自动收获作物。[*]快捷键：F8 面板 · Alt+1/2/3 全队/A组/B组 · Alt+F 搜刮附近 · F7 整理基地 · F6（与 AVO 共用 Alt+F6）分口粮 · Alt+G 扇形定点 · Alt+H 治疗烟 · F9 战吼。[/list]
+description=[list][*]1. 按 F8 打开智能队友中心（右上 [?] 查看快速指南）。在「队伍」页配置学说、阵型、[A]/[B] 火力小组或切换「营地驻守」。[*]2. 在基地打开任意箱子（或进 F8 -> 基地页）勾选储物分类，并将一个箱子设为 [中转箱] —— 队友仅搬运玩家主动标记的箱子。[*]3. 把战利品放进 [中转箱] 后按 F7，队友会亲自走位搬进对应分类箱（绝不隔空传物）。在「工作」页套用专精与自动收获，在「设置」页随时切换队友装备自动维修模式。[*]快捷键：F8 面板 · Alt+1/2/3 全队/A组/B组 · Alt+F 搜刮附近 · F7 整理基地 · F6（与 AVO 共用 Alt+F6）分口粮 · Alt+G 扇形定点 · Alt+H 治疗烟 · F9 战吼。[/list]
 description=[h2]小队与基地[/h2]
-description=六种战术学说、最高 15 人队伍、火力小组、战地急救与弹药支援、营地自主生存、农田发电维护及 12 类储物规则。兼容现有存档，无需重开。
+description=六种战术学说、最高 15 人队伍、火力小组、战地急救与弹药支援、营地自主生存与自动修装、农田发电维护及 12 类储物规则。兼容现有存档，无需重开。
 description=[h2]安装与联机提示[/h2]
-description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 3.1.2。当《ZED ZONE》更新（例如 1.0.20 补丁）后若模组未加载或启动卡住，请删除一次 <ZED ZONE>/BepInEx/interop 文件夹（或重运行 Code Mod Loader 的 install.cmd）以重建 IL2CPP interop 文件。
+description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 3.2.0。当《ZED ZONE》更新（例如 1.0.20 补丁）后若模组未加载或启动卡住，请删除一次 <ZED ZONE>/BepInEx/interop 文件夹（或重运行 Code Mod Loader 的 install.cmd）以重建 IL2CPP interop 文件。
 description=联机说明：主机校验队友指令并同步倒地状态。真实双机主机 + 客户端联机会话仍待双人实测反馈，欢迎在讨论区留言。
 description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]GitHub 源码、完整更新与验证报告[/url]
 description=Workshop ID: 3836613312

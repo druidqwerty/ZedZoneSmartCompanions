@@ -149,8 +149,209 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             // (d) Live CampGarrison exit resetting stale >120m npcStayPosition + ShouldBlockVanillaReturnToBase
             RunLiveGarrisonExitStayPosCheck();
 
+            // (e) Live automatic NPC equipment & inventory repair (equipped ranged/parts/mag/broken armor + personal/shared/nested inventory + MaterialsOnly vs MaterialsOrField)
+            RunLiveAutoGearRepairCheck();
+
             // (a) Prepare equipped backpack + sharedInventoryData material unload check
             return SetupBackpackAndSharedUnloadTest(now);
+        }
+
+        private static void RunLiveAutoGearRepairCheck()
+        {
+            var hc = _agent.humanCharacter;
+            var cd = _agent.npcData.characterData;
+            var eq = cd.characterEquipmentData;
+            var im = ItemManager.instance;
+            if (!Il2CppSafe.IsAlive(eq) || !Il2CppSafe.IsAlive(im))
+                throw new Exception("BLOCKED [V312Live(e)]: missing equipment or ItemManager.");
+
+            var origMode = CompanionConfigStore.AutoRepairMode;
+            var origWeapon0 = eq.GetWeaponData(0);
+            var origCurWeapon = eq.currentWeaponItemData;
+            var origTorso = eq.torseItemData;
+            var origBackpack = eq.backpackItemData;
+            var origPersonal = SnapshotAndClearInventory(cd.inventoryData);
+            var origShared = SnapshotAndClearInventory(_agent.npcData.GetOrCreateSharedInventory());
+
+            try
+            {
+                // Find real repairable ranged weapon (with rw.hp > 100 and repairData), repairable clothing, repairable gun part, and repairable magazine
+                ItemAttr_RangedWeapon rangedAttr = null;
+                var rangedList = im.GetEligibleLootAttrsByType(ItemType.RangedWeapon);
+                if (rangedList != null)
+                {
+                    for (int i = 0; i < rangedList.Count; i++)
+                    {
+                        var rw = rangedList[i]?.TryCast<ItemAttr_RangedWeapon>();
+                        if (Il2CppSafe.IsAliveUnity(rw) && rw.hp > 100f && (rw.Repairable || Il2CppSafe.IsAliveUnity(im.GetItemAttrById(rw.itemId + 1000))))
+                        {
+                            rangedAttr = rw;
+                            if ((int)rw.feedingType == 0) break;
+                        }
+                    }
+                }
+
+                ItemAttr clothingAttr = null;
+                var clothList = im.GetEligibleLootAttrsByType(ItemType.Clothing);
+                if (clothList != null)
+                {
+                    for (int i = 0; i < clothList.Count; i++)
+                    {
+                        var ca = clothList[i];
+                        if (Il2CppSafe.IsAliveUnity(ca) && ca.Repairable &&
+                            Il2CppSafe.IsAlive(ca.repairData) && ca.repairData.recipeItems != null && ca.repairData.recipeItems.Count > 0)
+                        {
+                            bool allSolid = true;
+                            for (int r = 0; r < ca.repairData.recipeItems.Count; r++)
+                            {
+                                var rid = ca.repairData.recipeItems[r];
+                                if (!Il2CppSafe.IsAlive(rid) || RepairLiquidMaterial.IsLiquidMaterial(rid.itemId) || !Il2CppSafe.IsAliveUnity(im.GetItemAttrById(rid.itemId)))
+                                {
+                                    allSolid = false;
+                                    break;
+                                }
+                            }
+                            if (allSolid) { clothingAttr = ca; break; }
+                        }
+                    }
+                }
+
+                ItemAttr_GunPart gunPartAttr = null;
+                var gpList = im.GetEligibleLootAttrsByType(ItemType.GunPart);
+                if (gpList != null)
+                {
+                    for (int i = 0; i < gpList.Count; i++)
+                    {
+                        var gp = gpList[i]?.TryCast<ItemAttr_GunPart>();
+                        if (Il2CppSafe.IsAliveUnity(gp) && gp.Repairable && gp.firingDurability > 10f)
+                        {
+                            gunPartAttr = gp;
+                            break;
+                        }
+                    }
+                }
+
+                if (!Il2CppSafe.IsAliveUnity(rangedAttr) || !Il2CppSafe.IsAliveUnity(clothingAttr))
+                    throw new Exception("BLOCKED [V312Live(e)]: could not resolve real rangedWeapon or repairable clothing ItemAttr.");
+
+                // 1. Equipped damaged & jammed ranged weapon (properties[0] at 30% of rw.hp + attached damaged gun part if found)
+                var eqRifle = im.GetRandomDataByAttr(rangedAttr, false, true);
+                if (eqRifle.properties == null || eqRifle.properties.Length < 14)
+                    eqRifle.properties = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<float>(14);
+                float rifleStartHp = rangedAttr.hp * 0.30f;
+                eqRifle.properties[0] = rifleStartHp;
+                eqRifle.SetProperty("MalfunctionFlag", "true");
+                float attachedPartStart = -1f;
+                if (Il2CppSafe.IsAliveUnity(gunPartAttr))
+                {
+                    eqRifle.properties[8] = gunPartAttr.itemId;
+                    attachedPartStart = gunPartAttr.firingDurability * 0.25f;
+                    eqRifle.properties[9] = attachedPartStart;
+                }
+                eq.SetWeaponData(eqRifle, 0);
+                eq.currentWeaponItemData = eqRifle;
+
+                // 2. Equipped completely broken armor (durability == 0f!)
+                var eqArmor = im.GetRandomDataByAttr(clothingAttr, false, true);
+                eqArmor.durability = 0f;
+                eq.torseItemData = eqArmor;
+
+                // 3. Inventory damaged gear: personal inv + shared inv + nested pouch inside equipped backpack + non-repairable food
+                var invArmorPersonal = im.GetRandomDataByAttr(clothingAttr, false, true);
+                invArmorPersonal.durability = 25f;
+                cd.inventoryData.itemList.Add(invArmorPersonal);
+
+                var invRifleShared = im.GetRandomDataByAttr(rangedAttr, false, true);
+                if (invRifleShared.properties == null || invRifleShared.properties.Length == 0)
+                    invRifleShared.properties = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<float>(14);
+                float sharedRifleStart = rangedAttr.hp * 0.40f;
+                invRifleShared.properties[0] = sharedRifleStart;
+                var sharedInv = _agent.npcData.GetOrCreateSharedInventory();
+                sharedInv.itemList.Add(invRifleShared);
+
+                var nonRepairableFood = im.GetRandomDataByAttr(im.GetItemAttrById(232), false, true);
+                nonRepairableFood.durability = 35f;
+                sharedInv.itemList.Add(nonRepairableFood);
+
+                ItemData nestedGunPart = null;
+                float nestedGpStart = -1f;
+                var equippedPack = CreateEmptyBackpackItem(8, 8, clothingAttr);
+                var nestedPouch = CreateEmptyBackpackItem(6, 6, clothingAttr);
+                var invArmorNested = im.GetRandomDataByAttr(clothingAttr, false, true);
+                invArmorNested.durability = 20f;
+                nestedPouch.inventoryData.itemList.Add(invArmorNested);
+                if (Il2CppSafe.IsAliveUnity(gunPartAttr))
+                {
+                    nestedGunPart = im.GetRandomDataByAttr(gunPartAttr, false, true);
+                    if (nestedGunPart.properties == null || nestedGunPart.properties.Length == 0)
+                        nestedGunPart.properties = new Il2CppInterop.Runtime.InteropTypes.Arrays.Il2CppStructArray<float>(4);
+                    nestedGpStart = gunPartAttr.firingDurability * 0.20f;
+                    nestedGunPart.properties[0] = nestedGpStart;
+                    nestedPouch.inventoryData.itemList.Add(nestedGunPart);
+                }
+                equippedPack.inventoryData.itemList.Add(nestedPouch);
+                eq.backpackItemData = equippedPack;
+
+                // Phase e1: MaterialsOnly WITHOUT materials -> MUST repair 0 items
+                CompanionConfigStore.AutoRepairMode = GearAutoRepairMode.MaterialsOnly;
+                var noMatRes = CompanionGearRepairSystem.TryRunGearRepairCycleForAgent(_agent, _state, Time.unscaledTime + 100f, ignoreCooldown: true, allowSpeak: false);
+                if (noMatRes.TotalRepaired != 0 || eqArmor.durability > 0.01f)
+                    throw new Exception($"MaterialsOnly repaired without materials: count={noMatRes.TotalRepaired}, armor={eqArmor.durability:F1}");
+
+                // Phase e2: Add exact real repairData materials for clothingAttr into sharedInv -> MaterialsOnly MUST repair eqArmor (0 -> 100) and consume exact materials!
+                int firstMatId = clothingAttr.repairData.recipeItems[0].itemId;
+                int matAddedTotal = 0;
+                for (int r = 0; r < clothingAttr.repairData.recipeItems.Count; r++)
+                {
+                    var rid = clothingAttr.repairData.recipeItems[r];
+                    var matAttr = im.GetItemAttrById(rid.itemId);
+                    var matItem = im.GetRandomDataByAttr(matAttr, false, true);
+                    int qty = Mathf.CeilToInt(rid.itemNumber);
+                    matItem.itemNumberFloat = qty;
+                    sharedInv.itemList.Add(matItem);
+                    if (rid.itemId == firstMatId) matAddedTotal += qty;
+                }
+                var matRes = CompanionGearRepairSystem.TryRunGearRepairCycleForAgent(_agent, _state, Time.unscaledTime + 200f, ignoreCooldown: true, allowSpeak: false);
+                int firstMatLeft = CountItemUnits(sharedInv, firstMatId);
+                if (matRes.MaterialsUsed < 1 || matRes.EquippedRepaired < 1 || eqArmor.durability < 99.5f || firstMatLeft >= matAddedTotal)
+                    throw new Exception($"MaterialsOnly with real recipe failed: matUsed={matRes.MaterialsUsed}, eqRep={matRes.EquippedRepaired}, armor={eqArmor.durability:F1}, matLeft={firstMatLeft}/{matAddedTotal}");
+
+                // Phase e3: MaterialsOrField -> run cycles until equipped rifle (properties[0] + MalfunctionFlag), attached part, personal armor, shared rifle, nested armor & nested gun part are ALL repaired while food(232) stays at 35f!
+                CompanionConfigStore.AutoRepairMode = GearAutoRepairMode.MaterialsOrField;
+                int totalCyclesRepaired = 0;
+                for (int c = 0; c < 6; c++)
+                {
+                    var r = CompanionGearRepairSystem.TryRunGearRepairCycleForAgent(_agent, _state, Time.unscaledTime + 300f + c * 30f, ignoreCooldown: true, allowSpeak: false);
+                    totalCyclesRepaired += r.TotalRepaired;
+                }
+
+                bool rifleRepaired = eqRifle.properties[0] > rifleStartHp + 10f &&
+                                     !string.Equals(eqRifle.GetProperty("MalfunctionFlag"), "true", StringComparison.OrdinalIgnoreCase);
+                bool attachedOk = !Il2CppSafe.IsAliveUnity(gunPartAttr) || eqRifle.properties[9] > attachedPartStart + 1f;
+                bool personalOk = invArmorPersonal.durability > 30f;
+                bool sharedRifleOk = invRifleShared.properties[0] > sharedRifleStart + 10f;
+                bool nestedArmorOk = invArmorNested.durability > 25f;
+                bool nestedGpOk = !Il2CppSafe.IsAlive(nestedGunPart) || nestedGunPart.properties[0] > nestedGpStart + 1f;
+                bool foodUntouched = Mathf.Abs(nonRepairableFood.durability - 35f) < 0.01f;
+
+                if (!rifleRepaired || !attachedOk || !personalOk || !sharedRifleOk || !nestedArmorOk || !nestedGpOk || !foodUntouched)
+                    throw new Exception(
+                        $"MaterialsOrField repair incomplete: cycles={totalCyclesRepaired}, rifle={eqRifle.properties[0]:F1}/{rangedAttr.hp:F1} jam={eqRifle.GetProperty("MalfunctionFlag")}, attached={attachedOk}, personal={invArmorPersonal.durability:F1}, sharedRifle={invRifleShared.properties[0]:F1}, nestedArmor={invArmorNested.durability:F1}, nestedGp={nestedGpOk}, food={nonRepairableFood.durability:F1}");
+
+                LiveSmokePlugin.Logger.LogInfo(
+                    $"[V312Live] PASS (e) Auto Gear Repair: MaterialsOnly armor 0->{eqArmor.durability:F0} (mat {matAddedTotal}->{firstMatLeft}), MaterialsOrField eqRifle {rifleStartHp:F0}->{eqRifle.properties[0]:F0}/{rangedAttr.hp:F0} (unjammed), attachedPart={attachedOk}, personalArmor 25->{invArmorPersonal.durability:F0}, sharedRifle {sharedRifleStart:F0}->{invRifleShared.properties[0]:F0}, nestedArmor 20->{invArmorNested.durability:F0}, nestedGunPart={nestedGpOk}, foodUntouched={foodUntouched}.");
+            }
+            finally
+            {
+                CompanionConfigStore.AutoRepairMode = origMode;
+                eq.SetWeaponData(origWeapon0, 0);
+                eq.currentWeaponItemData = origCurWeapon;
+                eq.torseItemData = origTorso;
+                eq.backpackItemData = origBackpack;
+                RestoreInventory(cd.inventoryData, origPersonal);
+                RestoreInventory(_agent.npcData.GetOrCreateSharedInventory(), origShared);
+                try { hc.RefreshEquipmentGains(); } catch { }
+            }
         }
 
         private static void RunLiveNestedBagAndBandageCheck()

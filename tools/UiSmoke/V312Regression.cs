@@ -43,8 +43,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
 
             try
             {
-                Assert(SmartCompanionsPlugin.PluginVersion == "3.1.2",
-                    "Expected SmartCompanionsPlugin.PluginVersion == 3.1.2, got " + SmartCompanionsPlugin.PluginVersion);
+                Assert(SmartCompanionsPlugin.PluginVersion == "3.2.0",
+                    "Expected SmartCompanionsPlugin.PluginVersion == 3.2.0, got " + SmartCompanionsPlugin.PluginVersion);
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(npcGuid, "V312Tester");
                 st.RosterMode = CompanionRosterMode.ActiveSquad;
@@ -461,6 +461,50 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 finally
                 {
                     npcCharData.nickname = origNick;
+                }
+
+                // (i) 3.2.0 automatic NPC equipment & inventory repair config persistence & pure checks
+                var origRepairMode = CompanionConfigStore.AutoRepairMode;
+                try
+                {
+                    foreach (GearAutoRepairMode arMode in Enum.GetValues(typeof(GearAutoRepairMode)))
+                    {
+                        foreach (var lang in new[] { ModLanguage.Russian, ModLanguage.English, ModLanguage.Chinese })
+                        {
+                            string lbl = CompanionConfigStore.FormatAutoRepairModeLabel(arMode, lang);
+                            Assert(!string.IsNullOrWhiteSpace(lbl), $"Missing AutoRepairMode label for {arMode}/{lang}");
+                        }
+                    }
+
+                    CompanionConfigStore.AutoRepairMode = GearAutoRepairMode.MaterialsOnly;
+                    string savedTxt = CompanionConfigStore.BuildSaveText();
+                    Assert(savedTxt.Contains("SET|AutoRepairMode|1"), "BuildSaveText missing SET|AutoRepairMode|1");
+
+                    CompanionConfigStore.AutoRepairMode = GearAutoRepairMode.Off;
+                    CompanionConfigStore.LoadFromText(savedTxt);
+                    Assert(CompanionConfigStore.AutoRepairMode == GearAutoRepairMode.MaterialsOnly,
+                        $"LoadFromText failed to restore AutoRepairMode (got {CompanionConfigStore.AutoRepairMode})");
+
+                    CompanionConfigStore.LoadFromText("SET|AutoRepairMode|FreeMaintenance\n");
+                    Assert(CompanionConfigStore.AutoRepairMode == GearAutoRepairMode.FreeMaintenance,
+                        "LoadFromText failed to parse enum AutoRepairMode name");
+
+                    // CycleAutoRepairMode without disk side effects check via Off -> MaterialsOnly -> MaterialsOrField -> FreeMaintenance -> Off
+                    CompanionConfigStore.AutoRepairMode = GearAutoRepairMode.Off;
+                    var offRes = CompanionGearRepairSystem.TryRunGearRepairCycleForAgent(npcAgent, st, Time.unscaledTime + 100f, ignoreCooldown: true, allowSpeak: false);
+                    Assert(offRes.TotalRepaired == 0, "AutoRepairMode.Off repaired items");
+
+                    // Non-repairable food/material safety check
+                    var foodAttr = ItemManager.instance?.GetItemAttrById(232);
+                    if (Il2CppSafe.IsAliveUnity(foodAttr))
+                    {
+                        Assert(!CompanionGearRepairSystem.IsEligibleStandardRepairableEquipment(foodAttr, false),
+                            "Canned food (232) must never be eligible for gear repair");
+                    }
+                }
+                finally
+                {
+                    CompanionConfigStore.AutoRepairMode = origRepairMode;
                 }
             }
             finally

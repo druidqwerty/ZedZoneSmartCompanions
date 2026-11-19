@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.2"><strong>Release v3.1.2 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.2.0"><strong>Release v3.2.0 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
@@ -20,6 +20,15 @@
 2. **Mark Base Chests & `[Drop-off]`:** Open any container at your base (or use **`03 BASE`**) to select storage categories, and mark **one** box as **`[Drop-off]`**. Companions only touch player-marked chests.
 3. **Sort & Scavenge Physically:** Drop raid loot into **`[Drop-off]`** and press **`F7`** — companions physically walk and carry items into matching chests (`0` item teleportation). Use **`02 WORK`** for specializations (`Fighter / Medic / Supplier / Scavenger`) and **`[x] Auto-harvest crops`**.
 4. **Hotkeys:** **`F8`** hub · **`Alt+1/2/3`** All / Alpha / Bravo · **`Alt+F`** sweep nearby loot · **`F7`** physical sort · **`F6`** (`Alt+F6` with AVO) share rations · **`Alt+G`** fan to cursor · **`Alt+H`** healing smoke · **`F9`** battle cry.
+
+## New in v3.2.0 — Automatic NPC Equipment & Inventory Repair (Patch 1.0.20)
+
+- **All 18 Equipped Slots + Companion Inventories & Nested Pouches (`CompanionGearRepairSystem`):** companions automatically repair active & holstered firearms, melee weapons, shields, helmets, gas masks (plus `SavedEverydayMaskByGuid`), layered torso/leg armor, boots, cloaks, backpacks, exoskeletons, thrusters, special gear, lighting & handheld tools, and repairable items in personal, shared, backpack, and nested pouches (`depth <= 3`) — including completely broken (`0%`) gear.
+- **Exact Native ZED ZONE `1.0.20` Durability & Jam Clearing:** restores `ItemType.RangedWeapon` HP (`properties[0]` out of `rw.hp`), clears weapon jams (`MalfunctionFlag` + `CoolDownOnMalfunctionCleared`), repairs attached gun parts (`properties[9, 11, 13]`), attached magazines (`properties[2]`), standalone `ItemType.GunPart`, and all `ItemAttr.Repairable` equipment (`item.durability`), while strictly excluding food, ammo, liquids, and non-tool materials.
+- **4 Live Modes in `F8 → Settings` (`AutoRepairMode`, zero teleportation):** switch anytime between **Materials + Maint** *(default, exact native `repairData` & spare parts first + gradual field maintenance fallback)*, **Materials only** *(atomic two-phase consume from own bags or marked base chests within `2.45 m`, protecting equipped gear & non-empty bags)*, **Free maint**, or **Off**; also runs for unloaded `CampGarrison` defenders (`SustainOfflineGarrisonCompanion`).
+- **Verified on Patch `1.0.20` (`buildid 26773715`):** `0` build warnings/errors (`AssemblyRef = 0.0.0.0`, **90** Harmony patches `failed=0`, **100%** `[EH>0]`, `0` lazy `.instance` reads) + full live acceptance (`backups/live-20261119-202926`, `V312Live (e)` AutoRepair PASS) + real menu save load (`backups/menuload-20261119-203049`) + **300/300** UI matrix & **13/13** suites (`V312Regression (i)`, `backups/ui320-20261119-203339`) + Win32 OS probes (`0.75x` `230711`, `2.0x` `230849`); `8,386/8,386` real `GameData` files unchanged and `0` exceptions in `Player.log` across all 5 runs. [Scope and limits](docs/verification-3.2.0.md).
+
+![F8 Settings tab v3.2.0 with NPC Gear Auto-Repair mode selector (real ZED ZONE 1.0.20 engine, isolated test fixtures)](docs/images/ui-3.2.0-settings-en.png)
 
 ## New in v3.1.2 — Patch 1.0.20, Companion Nicknames, Logistics & Stability Overhaul
 

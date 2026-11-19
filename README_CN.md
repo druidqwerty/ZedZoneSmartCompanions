@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.2"><strong>下载 v3.1.2 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.2.0"><strong>下载 v3.2.0 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
@@ -20,6 +20,15 @@
 2. **标记基地储物箱与 `[中转箱]`：** 在基地打开任意箱子（或进入 **`03 基地`**）勾选分类，并将 **一个** 箱子设为 **`[中转箱]`** —— 队友仅在玩家主动标记的箱子间搬运。
 3. **无瞬移物理分拣：** 将战利品放进 **`[中转箱]`** 后按 **`F7`**，队友会亲自走位搬运入库（零隔空传物）。在 **`02 工作`** 页可切换专精预设与 **`[x] 自动收获成熟作物`**。
 4. **常用快捷键：** **`F8`** 中心 · **`Alt+1/2/3`** 全队/A组/B组 · **`Alt+F`** 搜刮附近 · **`F7`** 整理基地 · **`F6`**（与 AVO 共用 `Alt+F6`）分口粮 · **`Alt+G`** 扇形定点 · **`Alt+H`** 治疗烟雾 · **`F9`** 战吼突击。
+
+## v3.2.0 更新 — 队友已穿戴装备与背包自动维修（适配 1.0.20 补丁）
+
+- **全 18 装备槽 + 个人/共享/嵌套背包全面覆盖（`CompanionGearRepairSystem`）：** 自动维护队友已装备的主副武器、盾牌、头盔、防毒面具（含 `SavedEverydayMaskByGuid` 备份面罩）、多层躯干/腿部护甲与衣物、靴子、披风、背包、外骨骼、推进器、特殊装备与照明/手持工具，以及个人背包、共享背包、已背背包与嵌套小包（`depth <= 3`）内的可修装备——包括完全损坏（`0%`）装备。
+- **精准对接《ZED ZONE》`1.0.20` 原生耐久与清卡壳逻辑：** 远程武器通过 `properties[0]` 恢复至 `rw.hp` 并清除卡壳（`MalfunctionFlag` + `CoolDownOnMalfunctionCleared`），同步维护已安装配件（`properties[9, 11, 13]`）、弹匣（`properties[2]`）、独立枪械配件（`ItemType.GunPart`）与其他 `ItemAttr.Repairable` 装备（`item.durability`），严格不触碰食物、弹药、液体与非工具材料。
+- **`F8 → 设置` 4 种即时模式（零瞬移，无需重启）：** 随时切换 **材料优先+维护** *（默认，优先按原版配方 `repairData` 与枪械零件维修，缺料时脱战缓慢维护）*、**仅消耗材料** *（两阶段原子扣料，仅取自身背包或 `2.45 米` 内已标记基地箱，保护已穿装备与非空包袋）*、**免费维护** 与 **关闭**；离线驻守营地的队友同样维持装备养护（`SustainOfflineGarrisonCompanion`）。
+- **已在 `1.0.20`（`buildid 26773715`）实测通过：** `0` 警告/错误编译（`AssemblyRef 0.0.0.0`，`90` 项 Harmony 补丁 `failed=0`，**100%** `[EH>0]`，`0` 处懒加载 `.instance`）+ 全套实机战斗/搬运/修装测试（`backups/live-20261119-202926`，`V312Live (e)` 通过）+ 真实主菜单读档（`backups/menuload-20261119-203049`）+ **300/300** 图形界面矩阵与 **13/13** 组测试（`V312Regression (i)`，`backups/ui320-20261119-203339`）+ `0.75x`/`2.0x` Win32 输入测试（`230711`、`230849`）；全部 5 轮 8,386 个真实存档文件 SHA-256 完全一致，`Player.log` `0` 异常。[测试范围与限制](docs/verification-3.2.0.md)。
+
+![3.2.0 设置界面简体中文版：队友装备自动维修模式切换（ZED ZONE 1.0.20 游戏引擎实测）](docs/images/ui-3.2.0-settings-zh.png)
 
 ## v3.1.2 更新 — 1.0.20 补丁适配、队友昵称、物流与稳定性全面修复
 

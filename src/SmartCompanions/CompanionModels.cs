@@ -298,6 +298,15 @@ namespace ZedZone.SmartCompanions
         Bravo = 2
     }
 
+    // 3.2.0: automatic NPC equipment & inventory gear repair policy.
+    public enum GearAutoRepairMode
+    {
+        Off = 0,
+        MaterialsOnly = 1,
+        MaterialsOrField = 2,
+        FreeMaintenance = 3
+    }
+
     public enum CompanionBlockReason
     {
         None = 0,
@@ -406,6 +415,7 @@ namespace ZedZone.SmartCompanions
         public float LastOutOfCombatPrepTime = -999f;
         public float LastOverweightWarnTime = -999f;
         public float LastChoreTime = -999f;
+        public float LastGearRepairTime = -999f;
         public float LastPlayerRescueTime = -999f;
         public float LastFlashlightCheckTime = -999f;
 
@@ -680,6 +690,7 @@ namespace ZedZone.SmartCompanions
         public static bool EnableBaseAutoDropoff = true;
         public static bool EnableWorldNpcChatter = true;
         public static bool EnableBaseChores = true;
+        public static GearAutoRepairMode AutoRepairMode = GearAutoRepairMode.MaterialsOrField;
         public static bool BaseWorkPaused = false;
         public static BaseWorkPriority BasePriorityMode = BaseWorkPriority.SortFirst;
         public static float LootSweepRadius = 24f;
@@ -778,6 +789,23 @@ namespace ZedZone.SmartCompanions
             return L(lang, $"{MaxTeamSize} чел.", $"{MaxTeamSize} NPCs", $"{MaxTeamSize} 人");
         }
 
+        public static void CycleAutoRepairMode()
+        {
+            AutoRepairMode = (GearAutoRepairMode)(((int)AutoRepairMode + 1) % 4);
+            Save();
+        }
+
+        public static string FormatAutoRepairModeLabel(GearAutoRepairMode mode, ModLanguage lang)
+        {
+            return mode switch
+            {
+                GearAutoRepairMode.Off             => L(lang, "Выкл", "Off", "关闭"),
+                GearAutoRepairMode.MaterialsOnly   => L(lang, "Только материалы", "Materials only", "仅消耗材料"),
+                GearAutoRepairMode.FreeMaintenance => L(lang, "Бесплатное ТО", "Free maint", "免费维护"),
+                _                                  => L(lang, "Материалы + ТО", "Materials + Maint", "材料优先+维护")
+            };
+        }
+
         public static void ResetUiPositions()
         {
             ShowHudBadge = true;
@@ -811,6 +839,7 @@ namespace ZedZone.SmartCompanions
             EnableBaseAutoDropoff = true;
             EnableWorldNpcChatter = true;
             EnableBaseChores = true;
+            AutoRepairMode = GearAutoRepairMode.MaterialsOrField;
             BaseWorkPaused = false;
             BasePriorityMode = BaseWorkPriority.SortFirst;
             LootSweepRadius = 24f;
@@ -1071,6 +1100,7 @@ namespace ZedZone.SmartCompanions
             sb.AppendLine($"SET|EnableBaseAutoDropoff|{EnableBaseAutoDropoff}");
             sb.AppendLine($"SET|EnableWorldNpcChatter|{EnableWorldNpcChatter}");
             sb.AppendLine($"SET|EnableBaseChores|{EnableBaseChores}");
+            sb.AppendLine($"SET|AutoRepairMode|{(int)AutoRepairMode}");
             sb.AppendLine($"SET|BasePriorityMode|{(int)BasePriorityMode}");
             sb.AppendLine($"SET|LootSweepRadius|{LootSweepRadius.ToString("F1", CultureInfo.InvariantCulture)}");
             sb.AppendLine($"SET|AllowSpendRareFood|{AllowSpendRareFood}");
@@ -1140,6 +1170,7 @@ namespace ZedZone.SmartCompanions
                     $"  \"EnableChatter\": {EnableChatter.ToString().ToLowerInvariant()},\n" +
                     $"  \"EnableSmartCombat\": {EnableSmartCombat.ToString().ToLowerInvariant()},\n" +
                     $"  \"EnableBaseChores\": {EnableBaseChores.ToString().ToLowerInvariant()},\n" +
+                    $"  \"AutoRepairMode\": \"{AutoRepairMode}\",\n" +
                     $"  \"AutoHarvestCrops\": {AutoHarvestCrops.ToString().ToLowerInvariant()},\n" +
                     $"  \"EnableSmartFlashlight\": {EnableSmartFlashlight.ToString().ToLowerInvariant()},\n" +
                     $"  \"EnablePlayerRescue\": {EnablePlayerRescue.ToString().ToLowerInvariant()},\n" +
@@ -1208,6 +1239,8 @@ namespace ZedZone.SmartCompanions
                     else if (key == "EnableBaseAutoDropoff" && bool.TryParse(val, out var bDrop)) EnableBaseAutoDropoff = bDrop;
                     else if (key == "EnableWorldNpcChatter" && bool.TryParse(val, out var bWorld)) EnableWorldNpcChatter = bWorld;
                     else if (key == "EnableBaseChores" && bool.TryParse(val, out var bChores)) EnableBaseChores = bChores;
+                    else if (key == "AutoRepairMode" && int.TryParse(val, out var arInt)) AutoRepairMode = (GearAutoRepairMode)Mathf.Clamp(arInt, 0, 3);
+                    else if (key == "AutoRepairMode" && Enum.TryParse<GearAutoRepairMode>(val, true, out var arEnum)) AutoRepairMode = arEnum;
                     else if (key == "BasePriorityMode" && int.TryParse(val, out var bpInt)) BasePriorityMode = (BaseWorkPriority)Mathf.Clamp(bpInt, 0, 2);
                     else if (key == "LootSweepRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var lsr)) LootSweepRadius = Mathf.Clamp(lsr, 10f, 60f);
                     else if (key == "AllowSpendRareFood" && bool.TryParse(val, out var bRareF)) AllowSpendRareFood = bRareF;

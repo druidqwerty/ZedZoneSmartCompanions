@@ -1041,6 +1041,22 @@ namespace ZedZone.SmartCompanions
             }
             ly += 36f;
 
+            string repairModeLbl = CompanionConfigStore.FormatAutoRepairModeLabel(CompanionConfigStore.AutoRepairMode, lang);
+            if (GUI.Button(new Rect(lx, ly, lw, 30f), UiTip(
+                CompanionConfigStore.L(lang,
+                    $"Авторемонт снаряжения NPC (экипировка + инвентарь): {repairModeLbl}",
+                    $"NPC Gear Auto-Repair (equipped + inventory): {repairModeLbl}",
+                    $"队友装备自动维修（已穿戴 + 背包）：{repairModeLbl}"),
+                CompanionConfigStore.L(lang,
+                    "Автоматически чинит всё экипированное (огнестрел, обвесы, магазины, броню, щит, противогаз, экзоскелет, рюкзак) и снаряжение в инвентаре/сумках NPC. Режимы: Материалы + ТО / Только материалы / Бесплатное ТО / Выкл.",
+                    "Automatically repairs all equipped gear (firearms, attachments, mags, armor, shield, mask, exo, backpack) and repairable items in companion inventories/pouches. Modes: Materials + Maint / Materials only / Free maint / Off.",
+                    "自动维修队友所有已穿戴装备（枪械、配件、弹匣、护甲、盾牌、面具、外骨骼、背包）及背包/共享包内可修装备。模式：材料优先+维护 / 仅消耗材料 / 免费维护 / 关闭。")),
+                CompanionConfigStore.AutoRepairMode != GearAutoRepairMode.Off ? _catOnStyle : _catOffStyle))
+            {
+                CompanionConfigStore.CycleAutoRepairMode();
+            }
+            ly += 36f;
+
             if (GUI.Button(new Rect(lx, ly, lw, 30f),
                 (CompanionConfigStore.EnableSmartFlashlight ? "[x] " : "[ ] ") +
                 CompanionConfigStore.L(lang, "Умный фонарь (вкл. ночью / гашение в стелсе) и Реанимация", "Smart Flashlight (Night/Stealth) & Emergency Rescue", "智能手电筒（夜间开启/潜行熄灯）与濒死强心抢救"),

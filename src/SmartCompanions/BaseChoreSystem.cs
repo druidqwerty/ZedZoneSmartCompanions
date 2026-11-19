@@ -618,62 +618,41 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
-                float repairBonus = st.EffectiveArchetype == CompanionArchetype.Veteran ? 14f : 9f;
-                if (st.Rank >= CompanionRank.Veteran) repairBonus += 5f;
+                var mode = CompanionConfigStore.AutoRepairMode;
+                if (mode == GearAutoRepairMode.Off)
+                    return false;
 
-                int repairedItems = RepairCharacterEquippedGear(ag.npcData?.characterData, repairBonus);
-                if (Il2CppSafe.IsAliveUnity(player) && Vector2.Distance(ag.humanCharacter.transform.position, player.transform.position) <= 2.8f)
+                var npcResult = CompanionGearRepairSystem.TryRunGearRepairCycleForAgent(
+                    ag, st, now, ignoreCooldown: false, allowSpeak: false);
+                int repairedItems = npcResult.TotalRepaired;
+
+                if ((mode == GearAutoRepairMode.MaterialsOrField || mode == GearAutoRepairMode.FreeMaintenance) &&
+                    Il2CppSafe.IsAliveUnity(player) &&
+                    Vector2.Distance(ag.humanCharacter.transform.position, player.transform.position) <= 2.8f)
                 {
-                    repairedItems += RepairCharacterEquippedGear(player.characterData, repairBonus);
+                    float maintFraction = CompanionGearRepairSystem.ComputeMaintenanceFraction(st);
+                    repairedItems += CompanionGearRepairSystem.RepairEquippedGearMaintenanceOnly(
+                        player, player.characterData, maintFraction);
                 }
 
                 if (repairedItems > 0)
                 {
                     st.LastChoreTime = now;
-                    st.ChoresDoneThisSession++;
-                    st.AddExperience(10, ag);
-                    st.CurrentTaskText = CompanionConfigStore.L(
-                        "🔧 Чистка оружия и ремонт брони",
-                        "🔧 Weapon & armor maintenance",
-                        "🔧 武器擦拭与护具维护");
+                    if (npcResult.TotalRepaired == 0)
+                    {
+                        st.ChoresDoneThisSession++;
+                        st.AddExperience(10, ag);
+                        st.CurrentTaskText = CompanionConfigStore.L(
+                            "🔧 Чистка оружия и ремонт брони",
+                            "🔧 Weapon & armor maintenance",
+                            "🔧 武器擦拭与护具维护");
+                    }
                     SmartChatterSystem.Speak(ag, ChatterTopic.ChoreWeaponMaint, minCooldown: 12f, bubbleDuration: 5.5f);
                     return true;
                 }
             }
             catch { }
             return false;
-        }
-
-        private static int RepairCharacterEquippedGear(CharacterData cd, float repairAmount)
-        {
-            if (!Il2CppSafe.IsAlive(cd) || !Il2CppSafe.IsAlive(cd.characterEquipmentData)) return 0;
-            int count = 0;
-            var eq = cd.characterEquipmentData;
-
-            var candidates = new List<ItemData>
-            {
-                eq.currentWeaponItemData,
-                eq.torseItemData,
-                eq.hatItemData,
-                eq.legItemData,
-                eq.feetItemData
-            };
-            if (eq.weaponItemDataAry != null)
-            {
-                for (int i = 0; i < eq.weaponItemDataAry.Length; i++)
-                    candidates.Add(eq.weaponItemDataAry[i]);
-            }
-
-            foreach (var it in candidates)
-            {
-                if (!Il2CppSafe.IsAlive(it)) continue;
-                if (it.durability > 1f && it.durability < 92f)
-                {
-                    it.durability = Mathf.Min(100f, it.durability + repairAmount);
-                    count++;
-                }
-            }
-            return count;
         }
 
         private static bool TryPerformVehicleCheckAndUnload(GOAPAgent ag, CompanionRuntimeState st, HumanCharacterController player, float now)

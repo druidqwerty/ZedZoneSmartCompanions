@@ -286,6 +286,8 @@ namespace ZedZone.SmartCompanions
             UpdateBioProtectionMask(hc, cd, status, eq, guid, gc);
             TryTreatSurvivalDebuffs(agent, cd, status, eq, st, guid, now);
             TryAutonomousEatDrinkAndBandage(agent, hc, cd, status, st, guid, now, inCombat);
+            if (!inCombat && !hc.isSleeping)
+                CompanionGearRepairSystem.TickCompanionGearRepair(agent, st, now);
 
             if (!inCombat && now >= _nextSleepScanAt)
             {
@@ -710,7 +712,7 @@ namespace ZedZone.SmartCompanions
                 stillNeedsThirst, stillNeedsHunger, stillNeedsHeal, isBleeding || hasUnbandagedWound, maxT, maxHp);
         }
 
-        private static List<InventoryData> CollectCompanionInventories(CharacterData cd, GOAPNPCData npcData)
+        internal static List<InventoryData> CollectCompanionInventories(CharacterData cd, GOAPNPCData npcData)
         {
             var invs = new List<InventoryData>(6);
             var seen = new HashSet<IntPtr>();
@@ -1633,9 +1635,11 @@ namespace ZedZone.SmartCompanions
                 if (npcData.health > 0.5f)
                     status.hp = Mathf.Clamp(npcData.health, 1f, statusMaxHp);
             }
+
+            CompanionGearRepairSystem.TryRepairOfflineGarrisonGear(npcData, st);
         }
 
-        private static void SyncNpcEquipment(HumanCharacterController hc)
+        internal static void SyncNpcEquipment(HumanCharacterController hc)
         {
             if (!MultiplayerSyncSystem.IsMultiplayerHost || !Il2CppSafe.IsAliveUnity(hc)) return;
             try

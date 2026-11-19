@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "3.1.2";
+        public const string PluginVersion = "3.2.0";
 
         internal static ManualLogSource Logs;
 
@@ -245,6 +245,16 @@ namespace ZedZone.SmartCompanions
                     MultiplayerSyncSystem.IsAnyAlliedPlayerCharacterId(null))
                 {
                     throw new Exception("MultiplayerSyncSystem native MonsterAttr / player ID invariants failed!");
+                }
+
+                // Verify GearAutoRepairMode labels across all 3 languages
+                foreach (GearAutoRepairMode arMode in Enum.GetValues(typeof(GearAutoRepairMode)))
+                {
+                    foreach (var lang in new[] { ModLanguage.Russian, ModLanguage.English, ModLanguage.Chinese })
+                    {
+                        if (string.IsNullOrWhiteSpace(CompanionConfigStore.FormatAutoRepairModeLabel(arMode, lang)))
+                            throw new Exception($"GearAutoRepairMode label missing for {arMode} ({lang})");
+                    }
                 }
 
                 // Verify runtime gate reports world not ready during startup Load()
