@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 3.2.0 READY FOR RELEASE (Auto NPC Equipment & Inventory Repair; 5/5 live runs PASS on Patch 1.0.20)
+## Status: 3.2.0 RELEASED (GitHub + Steam Workshop 3836613312 + Boosty queue; Patch 1.0.20)
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -377,7 +377,7 @@
   - **Steam Workshop `3836613312`:** uploaded single-folder `workshop/Contents/SmartCompanions/` (`2737f80b...`), `preview.png`, `EN`/`RU`/`ZH` pages (`3,454` / `5,424` / `3,321` UTF-8 bytes), dependency `3834614258` (`EResult=29`); API `GetPublishedFileDetails`: `result=1, visibility=0, file_size=657528, time_updated=1795069517, title="ZED ZONE: Smart Companions 3.1.2"`. Refreshed local cache `G:\Steam\steamapps\workshop\content\1211600\3836613312\SmartCompanions\SmartCompanions.dll` (`ItemState=5`, SHA-256 `2737f80b...` exact match).
   - **Boosty Queue:** added `BOOSTY_3.1.2.md` via `queue.py add` and removed only superseded `BOOSTY_3.1.1.md` via `queue.py done` (remaining queued PZ posts intact; queued for publishing automation, not yet verified published on Boosty).
 
-## 3.2.0 — Automatic NPC Equipment & Inventory Repair (2026-11-19, Local Build Verified on Patch 1.0.20)
+## 3.2.0 — Automatic NPC Equipment & Inventory Repair (2026-11-19, Released on Patch 1.0.20)
 
 - **Native ZED ZONE `1.0.20` Disassembly Audit (`GameAssembly.dll`):**
   - Disassembled `ItemAttr.get_Repairable` (`0x1461420`), `ItemAttr.GetRepairedDurabilityPerRepair` (`0x145BA30`), `ItemAttr_RangedWeapon.GetRepairedDurabilityPerRepair` (`0x1465230`), `CharacterActionManager.OnItemRepairFinish` (`0xB0F770`), `BasicItemUI.RepairRangedWeaponWithParts` (`0x13FA710`), and `BasicItemUI.BuildGunPartsRepairPlan` (`0x13D2CE0`).
@@ -397,3 +397,8 @@
 - **Local Install & Sync (`2026-11-19`):**
   - Backed up `3.1.2` to `backups/before-install-3.2.0/`, installed `3.2.0` (`cad63c2b...`) to `Mods\SmartCompanions\`, local Workshop cache `3836613312\SmartCompanions\`, and `workshop\Contents\SmartCompanions\`, and synced `61` files (`60 .cs + SmartCompanions.csproj`) to `ZedModKit\src\SmartCompanions\`.
 - **Open verification boundaries:** automated hardware mouse-wheel scroll (`wheel_verified=false`), live two-machine / two-account Steam `Host + Client` session (`UiSmoke` exercises co-op authority logic `13/13` in-fixture only), and manual in-match `NPCNickname` UI dialog click (`1.0.20` nickname resolution tested via `UiSmoke V312Regression (h)`).
+- **Publication, Packaging & Local Sync (`2026-11-19`):**
+  - **Release ZIP:** `dist/ZedZoneSmartCompanions-3.2.0.zip` (`3,263,158` B, SHA-256 `5184c4055825871161cc7af638ef79480d2e6609cb6f4a3403464a391fb8109b`, `12` entries, `testzip() == None`, embedded `Mods/SmartCompanions/SmartCompanions.dll` `cad63c2bb8e1ae5dbcbf543aea2373f6073dd3cbada2e843e6c9eca672ef1533`).
+  - **GitHub:** commit `7518cae0da1c37d293d75d132db5f770f0a0c2b2`, tag `v3.2.0`, release `https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.2.0` (`isDraft=false`, `isPrerelease=false`, uploaded asset `ZedZoneSmartCompanions-3.2.0.zip`, `3,263,158` B, `digest=sha256:5184c4055825871161cc7af638ef79480d2e6609cb6f4a3403464a391fb8109b`).
+  - **Steam Workshop `3836613312`:** uploaded single-folder `workshop/Contents/SmartCompanions/` (`cad63c2b...`), `preview.png`, `EN`/`RU`/`ZH` pages (`3,712` / `5,828` / `3,583` UTF-8 bytes), dependency `3834614258` (`EResult=29`); anonymous API `GetPublishedFileDetails`: `result=1, visibility=0, banned=0, file_size=674424, time_updated=1795119229, title="ZED ZONE: Smart Companions 3.2.0"`. Refreshed local cache via `DownloadItem` (`ItemState=5`, `2.5s`) and verified 5-way DLL SHA-256 parity (`src/bin`, `workshop/Contents`, `Mods\SmartCompanions`, Steam Workshop cache `3836613312`, and ZIP embedded == `cad63c2b...`).
+  - **Boosty Queue:** added `BOOSTY_3.2.0.md` via `queue.py add` and removed only superseded `BOOSTY_3.1.2.md` via `queue.py done` (remaining queued PZ posts untouched; queued for publishing automation, not yet verified published on Boosty).
