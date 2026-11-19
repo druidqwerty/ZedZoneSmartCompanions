@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 3.1.2 VERIFIED / Ready for Packaging & Release on Patch 1.0.20
+## Status: 3.1.2 VERIFIED / Locally Installed / Released on GitHub, Steam Workshop & Boosty Queue
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -370,3 +370,9 @@
   - `run_live_acceptance.py` #1 (`backups/live-20261119-090907`, `53.8s`) & #2 (`backups/live-20261119-091019`, `64.8s`): `CombatLive`, `PhysicalLive` (`0` teleports), `TacticalLive` (`0.00m` Hold), `Soak230` (`0.12ms`), `GarrisonLive` (`0.00m` Hold, SafeDismiss `0` teleports), and **`V312Live`** `(a)`–`(d)` ALL PASS.
   - `run_ui_smoke.py` (`backups/ui312-20261119-091139`): `13/13` suites (incl. `V312Regression (a)-(h)`), `300/300` actual repaint cases + `3` QuickGuide PNGs (`10` PNGs copied to `docs/images/ui-3.1.2-*.png` and visually inspected); Win32 OS probes at `0.75x` (`backups/ui312-20261119-091727`) and `2.0x` (`backups/ui312-20261119-091802`, `effective_scale=1.6167665`, `wheel_verified=false`) PASS.
 - **Open verification boundaries:** automated hardware mouse-wheel scroll (`wheel_verified=false`), live two-machine / two-account Steam `Host + Client` session (`UiSmoke` exercises co-op authority logic `13/13` in-fixture only), and manual in-match `NPCNickname` UI dialog click (`1.0.20` nickname resolution tested via `UiSmoke V312Regression (h)`).
+- **Publication, Packaging & Local Sync (`2026-11-19`):**
+  - **Release ZIP:** `dist/ZedZoneSmartCompanions-3.1.2.zip` (`7,279,221` B, SHA-256 `dd26378caf3cf6c9760eff731e01e4e3a4e2c036306e78a39dd21bb714cc7ad4`, `19` entries, `testzip() == None`, embedded `Mods/SmartCompanions/SmartCompanions.dll` `2737f80bb1e3a329a142f07f1296318d0d4dfb8c51db33ae395f02e2166d93a6`).
+  - **Local Install & SDK:** backed up `3.1.1` to `backups/before-install-3.1.2/`, installed frozen `3.1.2` DLL (`2737f80b...`) + `mod.json` into `G:\Steam\steamapps\common\ZED ZONE\Mods\SmartCompanions\`, and synced `59` `.cs` files + `SmartCompanions.csproj` to `G:\Steam\steamapps\common\ZED ZONE\ZedModKit\src\SmartCompanions\`.
+  - **GitHub:** commit `0ddc7bf1d47af89d0ffc00949ec94a105ee33887`, tag `v3.1.2`, release `https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.2` (uploaded asset `ZedZoneSmartCompanions-3.1.2.zip`, `7,279,221` B, SHA-256 `dd26378caf3cf6c9760eff731e01e4e3a4e2c036306e78a39dd21bb714cc7ad4`).
+  - **Steam Workshop `3836613312`:** uploaded single-folder `workshop/Contents/SmartCompanions/` (`2737f80b...`), `preview.png`, `EN`/`RU`/`ZH` pages (`3,454` / `5,424` / `3,321` UTF-8 bytes), dependency `3834614258` (`EResult=29`); API `GetPublishedFileDetails`: `result=1, visibility=0, file_size=657528, time_updated=1795069517, title="ZED ZONE: Smart Companions 3.1.2"`. Refreshed local cache `G:\Steam\steamapps\workshop\content\1211600\3836613312\SmartCompanions\SmartCompanions.dll` (`ItemState=5`, SHA-256 `2737f80b...` exact match).
+  - **Boosty Queue:** added `BOOSTY_3.1.2.md` via `queue.py add` and removed only superseded `BOOSTY_3.1.1.md` via `queue.py done` (remaining queued PZ posts intact; queued for publishing automation, not yet verified published on Boosty).
