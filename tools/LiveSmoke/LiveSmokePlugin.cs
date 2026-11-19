@@ -19,6 +19,35 @@ namespace ZedZone.SmartCompanions.LiveSmoke
         internal static string OriginalForward;
         internal static bool IsRealMenuLoadMode;
         internal static BepInEx.Logging.ManualLogSource Logger;
+        internal static void Trace(string message)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(Lab)) return;
+                string tracePath = Path.Combine(Lab, "live-trace.log");
+                string line = $"[{DateTime.UtcNow:HH:mm:ss.fff}] {message}{Environment.NewLine}";
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(line);
+                using var fs = new FileStream(tracePath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                fs.Write(bytes, 0, bytes.Length);
+                fs.Flush(flushToDisk: true);
+            }
+            catch { }
+        }
+        internal static void FlushLogs()
+        {
+            try
+            {
+                foreach (var listener in BepInEx.Logging.Logger.Listeners)
+                {
+                    if (listener is BepInEx.Logging.DiskLogListener disk && disk.LogWriter != null)
+                        disk.LogWriter.Flush();
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace("FlushLogs exception: " + ex);
+            }
+        }
         public override void Load()
         {
             var args = Environment.GetCommandLineArgs();
@@ -107,11 +136,34 @@ namespace ZedZone.SmartCompanions.LiveSmoke
     {
         public LiveRunner(IntPtr ptr) : base(ptr) { }
         internal static bool WorldLoaded;
-        private bool _loading, _loaded;
+        private bool _loading, _loaded, _quitPending;
         private float _started, _nextReport;
-        private void LateUpdate() { if(_loaded) Time.timeScale=1f; }
+        private int _quitDelayFrames, _quitCode;
+        private void RequestQuit(int exitCode, string reason, bool captureScreenshot = true)
+        {
+            if (_quitPending) return;
+            _quitPending = true;
+            _quitCode = exitCode;
+            _quitDelayFrames = 2;
+            LiveSmokePlugin.Trace($"RequestQuit(code={exitCode}, screenshot={captureScreenshot}): {reason}");
+            if (captureScreenshot)
+                ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab, "live-world.png"));
+            LiveSmokePlugin.FlushLogs();
+        }
+        private void LateUpdate() { if(_loaded && !_quitPending) Time.timeScale=1f; }
         private void Update()
         {
+            if (_quitPending)
+            {
+                LiveSmokePlugin.FlushLogs();
+                if (--_quitDelayFrames <= 0)
+                {
+                    LiveSmokePlugin.Trace($"Calling Application.Quit({_quitCode})");
+                    enabled = false;
+                    Application.Quit(_quitCode);
+                }
+                return;
+            }
             QualitySettings.vSyncCount=0;
             Application.targetFrameRate=60;
             try
@@ -119,7 +171,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 if(Environment.GetCommandLineArgs().Contains("--sc-dump-native"))
                 {
                     if(Time.realtimeSinceStartup<5f)return;
-                    NativeAddressDump.Write();enabled=false;Application.Quit();return;
+                    NativeAddressDump.Write();RequestQuit(0,"--sc-dump-native complete",captureScreenshot:false);return;
                 }
                 if (!_loading)
                 {
@@ -198,40 +250,42 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                     if(Environment.GetCommandLineArgs().Contains("--sc-equip-trace") && Time.realtimeSinceStartup-_started>17f)
                     {
                         LiveSmokePlugin.Logger.LogInfo("[NativeEquipTrace] Diagnostic-only run complete; not an acceptance test.");
-                        enabled=false;Application.Quit();return;
+                        RequestQuit(0,"--sc-equip-trace complete",captureScreenshot:false);return;
                     }
                     if(CombatLiveRegression.Tick())
                     {
                         if(!CombatLiveRegression.Succeeded)
                         {
-                            ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
-                            enabled=false;Application.Quit(1);return;
+                            RequestQuit(1,"CombatLiveRegression failed");return;
                         }
                         if(PhysicalCarryLiveRegression.Tick())
                         {
                             if(!PhysicalCarryLiveRegression.Succeeded)
                             {
-                                ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
-                                enabled=false;Application.Quit(1);return;
+                                RequestQuit(1,"PhysicalCarryLiveRegression failed");return;
                             }
                             if(TacticalLiveRegression.Tick())
                             {
                                 if(!TacticalLiveRegression.Succeeded)
                                 {
-                                    ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
-                                    enabled=false;Application.Quit(1);return;
+                                    RequestQuit(1,"TacticalLiveRegression failed");return;
                                 }
                                 if(SoakAndScaleLiveRegression.Tick())
                                 {
                                     if(!SoakAndScaleLiveRegression.Succeeded)
                                     {
-                                        ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
-                                        enabled=false;Application.Quit(1);return;
+                                        RequestQuit(1,"SoakAndScaleLiveRegression failed");return;
                                     }
                                     if(GarrisonLiveRegression.Tick())
                                     {
-                                        ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
-                                        enabled=false;Application.Quit(GarrisonLiveRegression.Succeeded ? 0 : 1);return;
+                                        if(!GarrisonLiveRegression.Succeeded)
+                                        {
+                                            RequestQuit(1,"GarrisonLiveRegression failed");return;
+                                        }
+                                        if(V312LiveRegression.Tick())
+                                        {
+                                            RequestQuit(V312LiveRegression.Succeeded ? 0 : 1, $"V312LiveRegression Finished (Succeeded={V312LiveRegression.Succeeded})");return;
+                                        }
                                     }
                                 }
                             }
@@ -241,12 +295,20 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 if(Time.realtimeSinceStartup-_started>105f)
                 {
                     if(!_loaded) throw new Exception("World did not load within 105 seconds");
-                    ScreenCapture.CaptureScreenshot(Path.Combine(LiveSmokePlugin.Lab,"live-world.png"));
-                    LiveSmokePlugin.Logger.LogError("[LiveLab] FAIL Overall 105s timeout reached before acceptance completed.");
-                    enabled=false;Application.Quit();
+                    const string timeoutMsg = "[LiveLab] FAIL Overall 105s timeout reached before acceptance completed.";
+                    LiveSmokePlugin.Logger.LogError(timeoutMsg);
+                    LiveSmokePlugin.Trace(timeoutMsg);
+                    RequestQuit(1, timeoutMsg);
                 }
             }
-            catch(Exception e){LiveSmokePlugin.Logger.LogError("[LiveLab] FAIL "+e);enabled=false;Application.Quit();}
+            catch(Exception e)
+            {
+                string failMsg = "[LiveLab] FAIL " + e;
+                LiveSmokePlugin.Logger.LogError(failMsg);
+                LiveSmokePlugin.Trace(failMsg);
+                LiveSmokePlugin.FlushLogs();
+                RequestQuit(1, "LiveRunner catch: " + e.GetType().Name + ": " + e.Message, captureScreenshot:false);
+            }
         }
     }
 }

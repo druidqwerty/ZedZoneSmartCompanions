@@ -7,12 +7,29 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam Workshop (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.1"><strong>Release v3.1.1 ZIP</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.2"><strong>Release v3.1.2 ZIP</strong></a> ·
   <a href="README_RU.md"><strong>Русская документация (README_RU.md)</strong></a> ·
   <a href="README_CN.md"><strong>简体中文文档 (README_CN.md)</strong></a>
 </p>
 
 ---
+
+## Quick Start — How to Use
+
+1. **Open the Hub (`F8`) & Quick Guide (`?`):** In **`01 SQUAD`**, set companion doctrines, formations, **`[--] / [A] / [B]`** fireteams, or toggle **Garrison** to leave guards at camp.
+2. **Mark Base Chests & `[Drop-off]`:** Open any container at your base (or use **`03 BASE`**) to select storage categories, and mark **one** box as **`[Drop-off]`**. Companions only touch player-marked chests.
+3. **Sort & Scavenge Physically:** Drop raid loot into **`[Drop-off]`** and press **`F7`** — companions physically walk and carry items into matching chests (`0` item teleportation). Use **`02 WORK`** for specializations (`Fighter / Medic / Supplier / Scavenger`) and **`[x] Auto-harvest crops`**.
+4. **Hotkeys:** **`F8`** hub · **`Alt+1/2/3`** All / Alpha / Bravo · **`Alt+F`** sweep nearby loot · **`F7`** physical sort · **`F6`** (`Alt+F6` with AVO) share rations · **`Alt+G`** fan to cursor · **`Alt+H`** healing smoke · **`F9`** battle cry.
+
+## New in v3.1.2 — Patch 1.0.20, Companion Nicknames, Logistics & Stability Overhaul
+
+- **ZED ZONE Patch `1.0.20` (`buildid 26773715`) & Companion Nicknames (`CharacterData.GetDisplayName`):** verified full compatibility (`0` missing TypeRefs/MemberRefs, `0` Harmony signature diffs across `90` patched methods, `0` new `/OPT:ICF` RVA collisions) and added `[NoInlining]` `CompanionConfigStore.GetCharacterDisplayName` (with clean fallback on empty/whitespace nicknames or `1.0.19`) across **F8 → Squad / Work**, tactical banners, combat callouts, chatter logs, and `LastKnownName` refreshes.
+- **Vehicles, Anti-Wandering & 1000 m Teleport Fix:** fixed unlimited-seat (`passengerSeatLimit < 0`) vehicle boarding and Layer-18/overflow refresh; synced `npcStayPosition` / `agentState["basePosition"]` on `CampGarrison` exit, guarded `GOAPGoal_ReturnToBase` / `GOAPAction_ReturnToBase` against `(0,0)` / `>120 m` leaps, capped worker jobs by `zLayer`/radius, suppressed `TerritoryPatrol` / `LootResource`, and restored vanilla-faithful `Free + Normal` following.
+- **Physical Base Unloading & Zero-Teleportation Logistics:** `CombatResponse.Refresh` keeps `CarryBuffer` intact past distant (`>12 m`) or no-LoS threats (`ClearNonCloseThreatDuringSorting`), unloads equipped backpacks (`characterEquipmentData.backpackItemData`), extends `BaseScanRadius` up to `80 m`, fixes `F7` with `LootInventoryPanel` / nearby `CampGarrison`, reroutes unreachable chests without teleporting items, clears SP `SC142:` tags cleanly on unmark (`WriteRuleToTerrainObject` + `BaseSortingSystem_PhysicalCarry`), and skips base corpses (`<= 18 m`) during passive `AutoLoot`.
+- **Shared-Bag Healing, MainMenu/Combat Stability & Persona Chatter:** added recursive nested-pouch medicine/food/water scanning (`depth <= 3`), pure bandages (`hp <= 0`), bleeding treatment at `>= 78%` HP, safe in-combat bandaging (`> 4.5 m`/no-LoS), strict rejection of ordinary food/steaks (`hp > 0`) as medicine, `CampGarrison` resupply, scoped `HumanNpcEquipmentGuard` (`InGameController` + `!isReturningToMainMenu`) & raw `TeamNPCPanel._instance`, hardened `NPCGearOwnership`, fixed `rangedWeapon` switch-back / `goalReselectDeferred` / `SecondIslandEndingDirector.Busy`, restored mouse cursor without breaking gamepad looting, and added gender- & novelty-headgear-aware EN/RU/ZH dialogue.
+- **Verified on Patch `1.0.20` (`buildid 26773715`):** `0` build warnings/errors (`AssemblyRef = 0.0.0.0`, **90** Harmony patches `failed=0`, **100%** `[EH>0]`, `0` lazy `.instance` reads) + **2×** real menu save loads (`backups/menuload-20261119-090723` & `090806`) + **2×** full live acceptance (`backups/live-20261119-090907` & `091019`, `V312Live` PASS) + **300/300** UI matrix & **13/13** suites (`V312Regression (a)-(h)`, `backups/ui312-20261119-091139`) + Win32 OS input probes (`0.75x`, `2.0x`); `8,386/8,386` real `GameData` files unchanged across all 7 runs. [Scope and limits](docs/verification-3.1.2.md).
+
+![F8 Squad hub and Quick Guide v3.1.2 (real ZED ZONE 1.0.20 engine, isolated test fixtures)](docs/images/ui-3.1.2-squad-en.png)
 
 ## New in v3.1.1 — Hotfix: Patch 1.0.19 loading, save-entry gating & player profile fix
 
@@ -309,8 +326,8 @@
 
 ## Requirements & Installation
 
-1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once. After a ZED ZONE game update (such as Patch `1.0.19`), if mods do not load or the game stalls at startup, delete `<ZED ZONE>/BepInEx/interop` (or re-run `Code Mod Loader`'s `install.cmd`) once so BepInEx regenerates fresh IL2CPP interop files.
-2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-3.1.1.zip` into the `<ZED ZONE>` game folder).
+1. Subscribe to the required third-party dependency **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)** ([Workshop ID `3834614258`](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)), which is not a mod by druidqwerty, and run its `install.cmd` once. After a ZED ZONE game update (such as Patch `1.0.20`), if mods do not load or the game stalls at startup, delete `<ZED ZONE>/BepInEx/interop` (or re-run `Code Mod Loader`'s `install.cmd`) once so BepInEx regenerates fresh IL2CPP interop files.
+2. Subscribe to **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)** on Steam Workshop (or extract `ZedZoneSmartCompanions-3.1.2.zip` into the `<ZED ZONE>` game folder).
 3. Launch **ZED ZONE** through Steam. `ZedModsLoader` automatically loads `SmartCompanions.dll`.
 4. Press **`F8`** in-game to open the **Smart Companions & Base Logistics Hub** (click **`?`** for the Quick Guide), **`Alt+1/2/3`** to switch command channel (`All` / `Alpha` / `Bravo`), **`Alt+F`** to sweep nearby loot, or **`F7`** to issue a quick Base Sort order.
 

@@ -88,17 +88,44 @@ namespace ZedZone.SmartCompanions
 
                 Vector2 playerPos = gc.playerCharacter.transform.position;
                 sbyte playerZ = gc.playerCharacter.characterData != null ? gc.playerCharacter.characterData.zLevel : (sbyte)0;
-                float maxRadius = Mathf.Min(32f, CompanionConfigStore.BaseScanRadius);
+                float maxRadius = Mathf.Clamp(CompanionConfigStore.BaseScanRadius, 16f, 80f);
                 float maxSqr = maxRadius * maxRadius;
                 var seenInvs = new HashSet<IntPtr>();
 
-                // 1. Scan active world TerrainObjects across current chunks, buildings, and floors
+                var activeZLayers = new HashSet<sbyte> { playerZ };
+                var garrisonAnchors = new List<(Vector2 pos, sbyte z)>();
+                try
+                {
+                    var activeMates = SmartChatterSystem.GetActiveTeammateAgents();
+                    for (int i = 0; i < activeMates.Count; i++)
+                    {
+                        var mate = activeMates[i];
+                        if (Il2CppSafe.IsAliveUnity(mate) && Il2CppSafe.IsAlive(mate.npcData) &&
+                            Il2CppSafe.IsAliveUnity(mate.humanCharacter) && !mate.humanCharacter.deadFlag)
+                        {
+                            activeZLayers.Add(mate.npcData.zLevel);
+                        }
+                    }
+                    foreach (var kv in CompanionConfigStore.CompanionStates)
+                    {
+                        var gst = kv.Value;
+                        if (gst != null && gst.RosterMode == CompanionRosterMode.CampGarrison && gst.HasHomeAnchor)
+                        {
+                            sbyte gz = (sbyte)gst.HomeAnchorZ;
+                            activeZLayers.Add(gz);
+                            garrisonAnchors.Add((gst.HomeAnchorPos, gz));
+                        }
+                    }
+                }
+                catch { }
+
+                // 1. Scan active world TerrainObjects across current chunks, buildings, and all active teammate floors
                 var worldObjs = CollectWorldTerrainObjects(playerPos, maxRadius);
                 for (int i = 0; i < worldObjs.Count; i++)
                 {
                     var tobj = worldObjs[i];
                     if (!Il2CppSafe.IsAliveUnity(tobj) || !Il2CppSafe.IsAlive(tobj.objectData)) continue;
-                    if (tobj.objectData.zLayer != playerZ) continue;
+                    if (!activeZLayers.Contains(tobj.objectData.zLayer)) continue;
 
                     var inv = ResolveOrInitTerrainObjectInventory(tobj, allowEnsureLoot: true);
                     if (!Il2CppSafe.IsAlive(inv) || inv.isLocked) continue;
@@ -107,31 +134,36 @@ namespace ZedZone.SmartCompanions
 
                     RegisterInventoryTerrainObject(inv, tobj);
                     Vector2 pos = tobj.transform.position;
-                    AddDiscoveredContainer(inv, tobj, pos, Vector2.Distance(playerPos, pos));
+                    AddDiscoveredContainer(inv, tobj, pos, Vector2.Distance(playerPos, pos), explicitZ: tobj.objectData.zLayer);
                 }
 
                 // 1b. Also include chests around any garrisoned companion's HomeAnchorPos when player is away on a raid
-                Vector2 scannedGarrisonCenter = new Vector2(-99999f, -99999f);
-                int scannedGarrisonZ = -999;
-                foreach (var kv in CompanionConfigStore.CompanionStates)
+                var scannedGarrisons = new List<(Vector2 pos, sbyte z)>();
+                for (int gIdx = 0; gIdx < garrisonAnchors.Count; gIdx++)
                 {
-                    var gst = kv.Value;
-                    if (gst == null || gst.RosterMode != CompanionRosterMode.CampGarrison || !gst.HasHomeAnchor)
-                        continue;
-                    if ((gst.HomeAnchorPos - playerPos).sqrMagnitude <= 144f && gst.HomeAnchorZ == playerZ)
-                        continue;
-                    if ((gst.HomeAnchorPos - scannedGarrisonCenter).sqrMagnitude <= 64f && gst.HomeAnchorZ == scannedGarrisonZ)
+                    var gar = garrisonAnchors[gIdx];
+                    if (Vector2.Distance(gar.pos, playerPos) + 28f <= maxRadius)
                         continue;
 
-                    scannedGarrisonCenter = gst.HomeAnchorPos;
-                    scannedGarrisonZ = gst.HomeAnchorZ;
+                    bool alreadyScanned = false;
+                    for (int sIdx = 0; sIdx < scannedGarrisons.Count; sIdx++)
+                    {
+                        if (scannedGarrisons[sIdx].z == gar.z && (gar.pos - scannedGarrisons[sIdx].pos).sqrMagnitude <= 64f)
+                        {
+                            alreadyScanned = true;
+                            break;
+                        }
+                    }
+                    if (alreadyScanned) continue;
+
+                    scannedGarrisons.Add(gar);
                     InvalidateTerrainScanCache();
-                    var garObjs = CollectWorldTerrainObjects(gst.HomeAnchorPos, 20f);
+                    var garObjs = CollectWorldTerrainObjects(gar.pos, 28f);
                     for (int i = 0; i < garObjs.Count; i++)
                     {
                         var tobj = garObjs[i];
                         if (!Il2CppSafe.IsAliveUnity(tobj) || !Il2CppSafe.IsAlive(tobj.objectData)) continue;
-                        if (tobj.objectData.zLayer != gst.HomeAnchorZ) continue;
+                        if (tobj.objectData.zLayer != gar.z) continue;
 
                         var inv = ResolveOrInitTerrainObjectInventory(tobj, allowEnsureLoot: true);
                         if (!Il2CppSafe.IsAlive(inv) || inv.isLocked) continue;
@@ -140,11 +172,11 @@ namespace ZedZone.SmartCompanions
 
                         RegisterInventoryTerrainObject(inv, tobj);
                         Vector2 pos = tobj.transform.position;
-                        AddDiscoveredContainer(inv, tobj, pos, Vector2.Distance(playerPos, pos));
+                        AddDiscoveredContainer(inv, tobj, pos, Vector2.Distance(playerPos, pos), explicitZ: tobj.objectData.zLayer);
                     }
                 }
 
-                // 2. Scan deployed BasicItem containers on the ground
+                // 2. Scan deployed BasicItem containers on the ground across active floors and garrison zones
                 var activeItems = BasicItem.ActiveObjects;
                 if (activeItems != null)
                 {
@@ -154,10 +186,23 @@ namespace ZedZone.SmartCompanions
                         if (!Il2CppSafe.IsAliveUnity(bi) || !bi.gameObject.activeInHierarchy || !Il2CppSafe.IsAlive(bi.itemData))
                             continue;
                         if (!bi.itemData.deployedFlag) continue;
-                        if (bi.itemData.zLevel != playerZ) continue;
+                        if (!activeZLayers.Contains(bi.itemData.zLevel)) continue;
 
                         Vector2 pos = bi.transform.position;
-                        if ((pos - playerPos).sqrMagnitude > maxSqr) continue;
+                        bool inRange = (pos - playerPos).sqrMagnitude <= maxSqr;
+                        if (!inRange)
+                        {
+                            for (int gIdx = 0; gIdx < garrisonAnchors.Count; gIdx++)
+                            {
+                                if (garrisonAnchors[gIdx].z == bi.itemData.zLevel &&
+                                    (pos - garrisonAnchors[gIdx].pos).sqrMagnitude <= 28f * 28f)
+                                {
+                                    inRange = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!inRange) continue;
 
                         var inv = bi.itemData.inventoryData;
                         if (!Il2CppSafe.IsAlive(inv) || inv.isLocked || inv.inventorySizeX <= 0 || inv.inventorySizeY <= 0)
@@ -169,7 +214,7 @@ namespace ZedZone.SmartCompanions
                         inv.inventoryId = MultiplayerSyncSystem.BuildPositionBoxKey(pos, bi.itemData.zLevel);
                         string itemName = bi.itemData.GetItemName();
                         RegisterExternalInventoryAnchor(inv, bi.transform, itemName);
-                        AddDiscoveredContainer(inv, null, pos, Vector2.Distance(playerPos, pos), itemName);
+                        AddDiscoveredContainer(inv, null, pos, Vector2.Distance(playerPos, pos), itemName, bi.itemData.zLevel);
                     }
                 }
 
@@ -185,12 +230,15 @@ namespace ZedZone.SmartCompanions
                         ? (Vector2)openTobj.transform.position
                         : (openInv.worldposition.sqrMagnitude > 0.001f ? openInv.worldposition : playerPos);
                     float openDist = Vector2.Distance(playerPos, openPos);
+                    sbyte openZ = (Il2CppSafe.IsAliveUnity(openTobj) && Il2CppSafe.IsAlive(openTobj.objectData))
+                        ? openTobj.objectData.zLayer
+                        : playerZ;
                     string openName = !string.IsNullOrEmpty(openPanel.lootObjectName)
                         ? openPanel.lootObjectName
                         : (!string.IsNullOrEmpty(openInv.inventoryTitleName)
                             ? openInv.inventoryTitleName
                             : CompanionConfigStore.L("Открытый ящик", "Open Container", "当前打开的箱子"));
-                    AddDiscoveredContainer(openInv, openTobj, openPos, openDist, openName);
+                    AddDiscoveredContainer(openInv, openTobj, openPos, openDist, openName, openZ);
                 }
 
                 // Sort: closest container (< 2.2m) first so standing next to a box puts it at index 0,
@@ -225,8 +273,71 @@ namespace ZedZone.SmartCompanions
             return CachedContainers;
         }
 
-        private static void AddDiscoveredContainer(InventoryData inv, TerrainObject tobj, Vector2 pos, float dist, string overrideName = null)
+        private static readonly Dictionary<IntPtr, sbyte> KnownInvToZLayer = new Dictionary<IntPtr, sbyte>();
+
+        internal static sbyte ResolveContainerZLayer(DiscoveredContainer c, sbyte fallbackZ = 0)
         {
+            if (c == null) return fallbackZ;
+            try
+            {
+                if (Il2CppSafe.IsAliveUnity(c.TerrainObj) && Il2CppSafe.IsAlive(c.TerrainObj.objectData))
+                    return c.TerrainObj.objectData.zLayer;
+                if (Il2CppSafe.IsAlive(c.Inventory) && KnownInvToZLayer.TryGetValue(c.Inventory.Pointer, out sbyte knownZ))
+                    return knownZ;
+            }
+            catch { }
+            return fallbackZ;
+        }
+
+        internal static bool IsContainerInWorkerZone(DiscoveredContainer c, GOAPAgent ag, CompanionRuntimeState st)
+        {
+            if (c == null || !Il2CppSafe.IsAlive(c.Inventory)) return false;
+            if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter))
+                return true;
+
+            sbyte workerZ = ag.npcData.zLevel;
+            if (ResolveContainerZLayer(c, workerZ) != workerZ)
+                return false;
+
+            if (st != null && st.RosterMode == CompanionRosterMode.CampGarrison && st.HasHomeAnchor)
+                return Vector2.Distance(c.WorldPos, st.HomeAnchorPos) <= 28.0f;
+
+            float maxFollowRadius = Mathf.Clamp(Mathf.Min(CompanionConfigStore.BaseScanRadius, 40.0f), 16.0f, 40.0f);
+            Vector2 selfPos = ag.humanCharacter.transform.position;
+            if (Vector2.Distance(c.WorldPos, selfPos) > maxFollowRadius)
+                return false;
+
+            var player = GameController.instance?.playerCharacter;
+            if (Il2CppSafe.IsAliveUnity(player))
+            {
+                Vector2 playerPos = player.transform.position;
+                if (Vector2.Distance(c.WorldPos, playerPos) > maxFollowRadius)
+                    return false;
+            }
+            return true;
+        }
+
+        internal static List<DiscoveredContainer> FilterContainersForWorker(
+            List<DiscoveredContainer> all,
+            GOAPAgent ag,
+            CompanionRuntimeState st)
+        {
+            if (all == null || all.Count == 0) return all ?? new List<DiscoveredContainer>();
+            var filtered = new List<DiscoveredContainer>(all.Count);
+            for (int i = 0; i < all.Count; i++)
+            {
+                if (IsContainerInWorkerZone(all[i], ag, st))
+                    filtered.Add(all[i]);
+            }
+            return filtered;
+        }
+
+        private static void AddDiscoveredContainer(InventoryData inv, TerrainObject tobj, Vector2 pos, float dist, string overrideName = null, sbyte? explicitZ = null)
+        {
+            if (explicitZ.HasValue && Il2CppSafe.IsAlive(inv))
+                KnownInvToZLayer[inv.Pointer] = explicitZ.Value;
+            else if (Il2CppSafe.IsAliveUnity(tobj) && Il2CppSafe.IsAlive(tobj.objectData) && Il2CppSafe.IsAlive(inv))
+                KnownInvToZLayer[inv.Pointer] = tobj.objectData.zLayer;
             string id = GetContainerStableId(inv, tobj);
             string baseName = overrideName;
             if (string.IsNullOrEmpty(baseName))
@@ -239,14 +350,16 @@ namespace ZedZone.SmartCompanions
                     baseName = CompanionConfigStore.L("Контейнер", "Container", "储物箱");
             }
 
-            var rule = CompanionConfigStore.GetOrCreateRule(id, baseName);
+            string ruleKey = string.IsNullOrEmpty(id) ? "unknown" : id;
+            bool hadConfigEntry = CompanionConfigStore.ContainerRules.ContainsKey(ruleKey);
+            var rule = CompanionConfigStore.GetOrCreateRule(ruleKey, baseName);
             rule.LastKnownPos = pos;
             if (rule.IsDropoffSource || rule.Categories != StorageCategory.None)
                 rule.IsMarkedByPlayer = true;
 
             if (Il2CppSafe.IsAliveUnity(tobj))
             {
-                if (!rule.IsMarkedByPlayer)
+                if (!rule.IsMarkedByPlayer && (MultiplayerSyncSystem.IsMultiplayerOnline || !hadConfigEntry))
                     MultiplayerSyncSystem.TryReadRuleFromTerrainObject(tobj, ref rule);
                 else
                     MultiplayerSyncSystem.WriteRuleToTerrainObject(tobj, rule);

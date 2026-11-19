@@ -19,7 +19,7 @@ namespace ZedZone.SmartCompanions
             foreach (var ag in teammates)
             {
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData)) continue;
-                var s = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                var s = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 var kind = GetStatusKind(ag, s);
                 if (kind == CompanionStatusKind.Busy) busy++;
                 if (kind == CompanionStatusKind.Blocked) stopped++;
@@ -204,7 +204,7 @@ namespace ZedZone.SmartCompanions
 
         private static void DrawWorkRow(Rect r, GOAPAgent ag, ModLanguage lang, bool baseEnabled)
         {
-            string name = ag.npcData.characterData?.characterName ?? "NPC";
+            string name = CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData, "NPC");
             var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, name);
             bool canCommand = !MultiplayerSyncSystem.IsMultiplayerOnline || MultiplayerSyncSystem.CanLocalPlayerCommand(ag.npcData);
             GUI.Box(r, GUIContent.none, _boxStyle);

@@ -69,8 +69,12 @@ namespace ZedZone.SmartCompanions
         }
 
         public static bool AllowsCampChoresOrGarrison(CompanionRuntimeState st) =>
-            !BaseWorkManager.Paused && st != null &&
-            (st.RosterMode == CompanionRosterMode.CampGarrison || (st.AllowBaseChores && BaseWorkManager.AllowsChores(st)));
+            !BaseWorkManager.Paused &&
+            CompanionConfigStore.EnableBaseChores &&
+            st != null &&
+            st.AllowBaseChores &&
+            st.WorkRole != CompanionWorkRole.Off &&
+            (st.RosterMode == CompanionRosterMode.CampGarrison || BaseWorkManager.AllowsChores(st));
 
         public static void TickBaseChoresAndCampLife()
         {
@@ -108,7 +112,7 @@ namespace ZedZone.SmartCompanions
                 if (Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && !ag.mostThreateningCharacter.deadFlag)
                     continue;
 
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 if (st.HasAnyPhysicalTask || !AllowsCampChoresOrGarrison(st)) continue;
                 if (now - st.LastChoreTime < 22f) continue;
 
@@ -203,11 +207,13 @@ namespace ZedZone.SmartCompanions
             try
             {
                 Vector2 selfPos = ag.humanCharacter.transform.position;
-                Vector2 scanOrigin = (st.RosterMode == CompanionRosterMode.CampGarrison && st.HasHomeAnchor)
-                    ? st.HomeAnchorPos
-                    : selfPos;
+                Vector2 playerPos = Il2CppSafe.IsAliveUnity(gc.playerCharacter) ? (Vector2)gc.playerCharacter.transform.position : selfPos;
+                bool isGarrison = st.RosterMode == CompanionRosterMode.CampGarrison && st.HasHomeAnchor;
+                Vector2 scanOrigin = isGarrison ? st.HomeAnchorPos : selfPos;
+                const float maxGardenRadius = 28f;
                 sbyte selfZ = ag.npcData.zLevel;
-                var worldObjs = BaseSortingSystem.CollectWorldTerrainObjects(scanOrigin, 32f);
+                BaseSortingSystem.InvalidateTerrainScanCache();
+                var worldObjs = BaseSortingSystem.CollectWorldTerrainObjects(scanOrigin, maxGardenRadius);
 
                 TerrainObject_PlantingPot carePot = null;
 
@@ -223,8 +229,14 @@ namespace ZedZone.SmartCompanions
                         if (!Il2CppSafe.IsAlive(pot.currentDef) || pot.IsHarvested())
                             continue;
                         Vector2 potPos = pot.transform.position;
-                        if (!AutoLootSystem.IsPositionNearPlayerBase(potPos, 24f) &&
-                            (!Il2CppSafe.IsAlive(pot.objectData) || !pot.objectData.isPlayerBuilt))
+                        if (Vector2.Distance(potPos, scanOrigin) > maxGardenRadius)
+                            continue;
+                        if (!isGarrison && Vector2.Distance(potPos, playerPos) > 40f)
+                            continue;
+                        bool allowedPot = isGarrison ||
+                                          AutoLootSystem.IsPositionNearPlayerBase(potPos, 28f) ||
+                                          (Il2CppSafe.IsAlive(pot.objectData) && pot.objectData.isPlayerBuilt);
+                        if (!allowedPot)
                             continue;
                         string potKey = $"pot_{pot.Pointer.ToInt64():X}";
                         if (PhysicalMovementHelper.IsTargetTemporarilyUnreachable(potKey))
@@ -265,7 +277,7 @@ namespace ZedZone.SmartCompanions
                     }
 
                     if (!CompanionConfigStore.AutoHarvestCrops) continue;
-                    if (TryStartWorldCropHarvestChore(ag, st, tobj, now))
+                    if (TryStartWorldCropHarvestChore(ag, st, tobj, scanOrigin, playerPos, isGarrison, now))
                         return true;
                 }
 
@@ -420,11 +432,13 @@ namespace ZedZone.SmartCompanions
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool TryStartWorldCropHarvestChore(GOAPAgent ag, CompanionRuntimeState st, TerrainObject tobj, float now)
+        private static bool TryStartWorldCropHarvestChore(
+            GOAPAgent ag, CompanionRuntimeState st, TerrainObject tobj,
+            Vector2 scanOrigin, Vector2 playerPos, bool isGarrison, float now)
         {
             try
             {
-                return TryStartWorldCropHarvestChoreNoInline(ag, st, tobj, now);
+                return TryStartWorldCropHarvestChoreNoInline(ag, st, tobj, scanOrigin, playerPos, isGarrison, now);
             }
             catch
             {
@@ -433,14 +447,20 @@ namespace ZedZone.SmartCompanions
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static bool TryStartWorldCropHarvestChoreNoInline(GOAPAgent ag, CompanionRuntimeState st, TerrainObject tobj, float now)
+        private static bool TryStartWorldCropHarvestChoreNoInline(
+            GOAPAgent ag, CompanionRuntimeState st, TerrainObject tobj,
+            Vector2 scanOrigin, Vector2 playerPos, bool isGarrison, float now)
         {
             var crop = tobj.TryCast<TerrainObject_Crop>();
             if (!Il2CppSafe.IsAliveUnity(crop) || !TryIsWorldCropRipe(crop))
                 return false;
 
             Vector2 cropPos = crop.transform.position;
-            if (!AutoLootSystem.IsPositionNearPlayerBase(cropPos, 24f))
+            if (Vector2.Distance(cropPos, scanOrigin) > 28f)
+                return false;
+            if (!isGarrison && Vector2.Distance(cropPos, playerPos) > 40f)
+                return false;
+            if (!AutoLootSystem.IsPositionNearPlayerBase(cropPos, 24f) && !isGarrison)
                 return false;
 
             string cropKey = $"crop_{crop.Pointer.ToInt64():X}";

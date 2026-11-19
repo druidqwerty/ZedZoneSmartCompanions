@@ -31,7 +31,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
 
         internal static bool AllowArenaThreat(GOAPAgent instance, BasicCharacterController character, ref GOAPAgent.ThreatData result)
         {
-            if (PhysicalCarryLiveRegression.ArenaActive && !PhysicalCarryLiveRegression.Finished &&
+            if (((PhysicalCarryLiveRegression.ArenaActive && !PhysicalCarryLiveRegression.Finished) ||
+                 (V312LiveRegression.ArenaActive && !V312LiveRegression.Finished)) &&
                 Il2CppSafe.IsAliveUnity(instance) && instance.IsPlayerTeammate())
             {
                 if (Il2CppSafe.IsAliveUnity(character) && !character.isPlayer && character.gameObject.activeSelf)
@@ -72,7 +73,8 @@ namespace ZedZone.SmartCompanions.LiveSmoke
         internal static void ParkIfUnexpectedHostile(BasicCharacterController character)
         {
             bool combatActive = _arenaActive && !Finished;
-            bool logisticsActive = PhysicalCarryLiveRegression.ArenaActive && !PhysicalCarryLiveRegression.Finished;
+            bool logisticsActive = (PhysicalCarryLiveRegression.ArenaActive && !PhysicalCarryLiveRegression.Finished) ||
+                (V312LiveRegression.ArenaActive && !V312LiveRegression.Finished);
             if (!combatActive && !logisticsActive) return;
             if (!Il2CppSafe.IsAliveUnity(character) || character.isPlayer ||
                 (combatActive && Il2CppSafe.IsAliveUnity(_agent) && character.Pointer == _agent.humanCharacter.Pointer) ||

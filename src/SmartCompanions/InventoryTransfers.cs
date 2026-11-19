@@ -341,12 +341,6 @@ namespace ZedZone.SmartCompanions
                     var copy1 = carriedItem.CopyItemData(null);
                     if (Il2CppSafe.IsAlive(copy1) && fallbackSource.TryAddItemWithAutoSorting(copy1)) return true;
                 }
-                if (Il2CppSafe.IsAlive(fallbackDest))
-                {
-                    if (TryDepositOrStackWhole(fallbackDest, carriedItem)) return true;
-                    var copy2 = carriedItem.CopyItemData(null);
-                    if (Il2CppSafe.IsAlive(copy2) && fallbackDest.TryAddItemWithAutoSorting(copy2)) return true;
-                }
                 var gc = GameController.instance;
                 if (Il2CppSafe.IsAliveUnity(gc))
                 {

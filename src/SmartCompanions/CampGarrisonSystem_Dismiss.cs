@@ -35,7 +35,7 @@ namespace ZedZone.SmartCompanions
             bool toPlayer = false;
             float bestDist = 28.0f;
 
-            var containers = BaseSortingSystem.ScanNearbyContainers(force: true);
+            var containers = BaseSortingSystem.FilterContainersForWorker(BaseSortingSystem.ScanNearbyContainers(force: true), ag, st);
             for (int i = 0; i < containers.Count; i++)
             {
                 var c = containers[i];
@@ -154,13 +154,21 @@ namespace ZedZone.SmartCompanions
                 }
                 BaseSortingSystem.ReturnCarryBufferWithoutTeleport(ag, st);
 
-                // 2. Shared & personal inventories (atomic: remove from source only after deposit succeeds)
-                moved += TransferAllPossibleItems(ag.npcData.sharedInventoryData, destInv);
-                moved += TransferAllPossibleItems(ag.npcData.characterData?.inventoryData, destInv);
+                // 2. Shared, personal & equipped backpack sub-inventories (atomic, deduped by Pointer)
+                var eq = ag.npcData.characterData?.characterEquipmentData;
+                var seenInvs = new HashSet<IntPtr>();
+                void TryHandoverInv(InventoryData inv)
+                {
+                    if (Il2CppSafe.IsAlive(inv) && seenInvs.Add(inv.Pointer))
+                        moved += TransferAllPossibleItems(inv, destInv);
+                }
+                TryHandoverInv(ag.npcData.sharedInventoryData);
+                TryHandoverInv(ag.npcData.characterData?.inventoryData);
+                if (Il2CppSafe.IsAlive(eq) && Il2CppSafe.IsAlive(eq.backpackItemData))
+                    TryHandoverInv(eq.backpackItemData.inventoryData);
 
                 // 3. Unequip weapons & armor safely without leaving dangling weaponAttr/IK references
                 var hc = ag.humanCharacter;
-                var eq = ag.npcData.characterData?.characterEquipmentData;
                 if (Il2CppSafe.IsAlive(eq))
                 {
                     for (int s = 0; s < 3; s++)
@@ -179,6 +187,16 @@ namespace ZedZone.SmartCompanions
                     if (TryMoveSlot(eq.legItemData, destInv)) { eq.legItemData = null; moved++; }
                     if (TryMoveSlot(eq.feetItemData, destInv)) { eq.feetItemData = null; moved++; }
                     if (TryMoveSlot(eq.cloakItemData, destInv)) { eq.cloakItemData = null; moved++; }
+                    if (Il2CppSafe.IsAlive(eq.backpackItemData))
+                    {
+                        var packSub = eq.backpackItemData.inventoryData;
+                        bool packEmpty = !Il2CppSafe.IsAlive(packSub) || packSub.itemList == null || packSub.itemList.Count == 0;
+                        if (packEmpty && TryMoveSlot(eq.backpackItemData, destInv))
+                        {
+                            eq.backpackItemData = null;
+                            moved++;
+                        }
+                    }
                     if (Il2CppSafe.IsAliveUnity(hc))
                     {
                         HumanNpcEquipmentGuard.CleanupBrokenRangedState(hc);

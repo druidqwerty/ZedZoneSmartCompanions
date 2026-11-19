@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace ZedZone.SmartCompanions
@@ -148,7 +149,7 @@ namespace ZedZone.SmartCompanions
             float now = Time.unscaledTime;
             float scaledCooldown = minCooldown * CompanionConfigStore.ChatterIntervalMultiplier;
             var npcGuid = Il2CppSafe.IsAlive(agent.npcData) ? agent.npcData.npcGUID : "npc";
-            var npcName = agent.npcData?.characterData?.characterName ?? "NPC";
+            var npcName = CompanionConfigStore.GetCharacterDisplayName(agent.npcData?.characterData, "NPC");
             var st = CompanionConfigStore.GetOrCreateCompanion(npcGuid, npcName);
 
             if (!force)
@@ -158,12 +159,13 @@ namespace ZedZone.SmartCompanions
             }
 
             string line = null;
+            var persona = ResolveNpcPersona(agent);
             if ((topic == ChatterTopic.AmbientBaseIdle || topic == ChatterTopic.CampfireStory) && Rng.NextDouble() < 0.35)
             {
-                line = ChatterDatabase.TryGetArchetypeBonusLine(st.EffectiveArchetype, topic, CompanionConfigStore.EffectiveLanguage, CompanionConfigStore.Profanity);
+                line = ChatterDatabase.TryGetArchetypeBonusLine(st.EffectiveArchetype, topic, CompanionConfigStore.EffectiveLanguage, CompanionConfigStore.Profanity, persona);
             }
             if (string.IsNullOrEmpty(line))
-                line = PickLine(topic);
+                line = PickLine(topic, persona);
             if (string.IsNullOrEmpty(line)) return false;
 
             return SpeakCustom(agent, line, bubbleDuration, force);
@@ -175,9 +177,13 @@ namespace ZedZone.SmartCompanions
                 return false;
             try
             {
+                var persona = ResolveNpcPersona(agent);
+                line = ChatterDatabase.AdaptLineForPersona(line, CompanionConfigStore.EffectiveLanguage, persona);
+                if (string.IsNullOrEmpty(line)) return false;
+
                 float now = Time.unscaledTime;
                 var npcGuid = Il2CppSafe.IsAlive(agent.npcData) ? agent.npcData.npcGUID : "npc";
-                var npcName = agent.npcData?.characterData?.characterName ?? "NPC";
+                var npcName = CompanionConfigStore.GetCharacterDisplayName(agent.npcData?.characterData, "NPC");
                 var st = CompanionConfigStore.GetOrCreateCompanion(npcGuid, npcName);
 
                 st.LastChatterTime = now;
@@ -199,9 +205,11 @@ namespace ZedZone.SmartCompanions
             }
         }
 
-        private static string PickLine(ChatterTopic topic)
+        private static string PickLine(ChatterTopic topic) => PickLine(topic, NpcChatterPersona.Neutral);
+
+        private static string PickLine(ChatterTopic topic, NpcChatterPersona persona)
         {
-            var lines = ChatterDatabase.GetLines(topic, CompanionConfigStore.EffectiveLanguage, CompanionConfigStore.Profanity);
+            var lines = ChatterDatabase.GetLines(topic, CompanionConfigStore.EffectiveLanguage, CompanionConfigStore.Profanity, persona);
             if (lines == null || lines.Length == 0) return null;
 
             if (topic == ChatterTopic.PlayerEatSteakMeat && !_steakSignatureSpokenThisSession)
@@ -294,7 +302,7 @@ namespace ZedZone.SmartCompanions
             {
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter)) continue;
                 if (!fromAutoShare && MultiplayerSyncSystem.IsMultiplayerOnline && !MultiplayerSyncSystem.CanLocalPlayerCommand(ag.npcData)) continue;
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 if (now - st.LastRationTime < 30f) continue;
 
                 float distToPlayer = Il2CppSafe.IsAliveUnity(player)
@@ -591,7 +599,7 @@ namespace ZedZone.SmartCompanions
                     if (Rng.NextDouble() < 0.35)
                     {
                         WorldNpcLastSpeakTime[guid] = now;
-                        string line = PickLine(ChatterTopic.WorldNpcEncounter);
+                        string line = PickLine(ChatterTopic.WorldNpcEncounter, ResolveNpcPersona(ag));
                         if (!string.IsNullOrEmpty(line))
                         {
                             ag.humanCharacter.ShowDialogueBubble(line, 5.0f);
@@ -605,6 +613,201 @@ namespace ZedZone.SmartCompanions
                     WorldNpcLastSpeakTime.Clear();
             }
             catch { }
+        }
+
+        private static readonly string[] NoveltyHeadgearKeywords = new[]
+        {
+            "头套", "玩偶", "猫耳", "兔耳", "狐耳", "兽耳", "二次元", "动漫", "萌妹", "萝莉", "女仆", "布偶", "皮套", "手办",
+            "anime", "kawaii", "mascot", "kigurumi", "cosplay", "vtuber", "cat ear", "catear", "bunny ear", "maid", "waifu", "chibi", "fursuit", "plush", "doll head", "anime head"
+        };
+
+        internal static NpcChatterPersona ResolveNpcPersona(GOAPAgent agent)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(agent))
+                    return NpcChatterPersona.Neutral;
+
+                CharacterData cd = null;
+                try
+                {
+                    if (Il2CppSafe.IsAliveUnity(agent.humanCharacter) && Il2CppSafe.IsAlive(agent.humanCharacter.characterData))
+                        cd = agent.humanCharacter.characterData;
+                    else if (Il2CppSafe.IsAlive(agent.npcData) && Il2CppSafe.IsAlive(agent.npcData.characterData))
+                        cd = agent.npcData.characterData;
+                }
+                catch { }
+
+                if (!Il2CppSafe.IsAlive(cd))
+                    return NpcChatterPersona.Neutral;
+
+                var gender = ReadCharacterGenderSafe(cd);
+                bool hasNoveltyHeadgear = ReadEquipmentHasNoveltyHeadgearSafe(cd);
+                return new NpcChatterPersona(gender, hasNoveltyHeadgear);
+            }
+            catch
+            {
+                return NpcChatterPersona.Neutral;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static NpcBiologicalGender ReadCharacterGenderSafe(CharacterData cd)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAlive(cd)) return NpcBiologicalGender.Unknown;
+                return cd.gender != 0 ? NpcBiologicalGender.Female : NpcBiologicalGender.Male;
+            }
+            catch
+            {
+                return NpcBiologicalGender.Unknown;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadEquipmentHasNoveltyHeadgearSafe(CharacterData cd)
+        {
+            try
+            {
+                var eq = cd.characterEquipmentData;
+                if (!Il2CppSafe.IsAlive(eq)) return false;
+
+                int hiddenMode = eq.headgearHiddenMode;
+                int hideHatMask = CharacterEquipmentData.HEADGEAR_HIDE_HAT_MASK;
+                int hideAll = CharacterEquipmentData.HEADGEAR_HIDE_HAT_MASK_HELMET;
+
+                if (hiddenMode < hideAll && IsNoveltyHeadgearItem(eq.headDecorationItemData, isHeadDecoSlot: true))
+                    return true;
+
+                if (hiddenMode < hideHatMask)
+                {
+                    if (IsNoveltyHeadgearItem(eq.hatItemData, isHeadDecoSlot: false))
+                        return true;
+                    if (IsNoveltyHeadgearItem(eq.faceMaskItemData, isHeadDecoSlot: false))
+                        return true;
+                }
+
+                return false;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool IsNoveltyHeadgearItem(ItemData item, bool isHeadDecoSlot)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAlive(item)) return false;
+                int itemId = item.itemId;
+                if (itemId <= 0) return false;
+
+                if (IsModHeadDecorationRegisteredSafe(itemId))
+                    return true;
+
+                try
+                {
+                    if (ContainsNoveltyHeadgearKeyword(item.GetItemName()))
+                        return true;
+                }
+                catch { }
+
+                var attr = ReadItemAttrSafe(itemId);
+                if (!Il2CppSafe.IsAliveUnity(attr))
+                    return false;
+
+                try
+                {
+                    if (ContainsNoveltyHeadgearKeyword(attr.ItemName) ||
+                        ContainsNoveltyHeadgearKeyword(attr.ItemName_EN) ||
+                        ContainsNoveltyHeadgearKeyword(attr.itemName) ||
+                        ContainsNoveltyHeadgearKeyword(attr.modLocaleName))
+                    {
+                        return true;
+                    }
+                }
+                catch { }
+
+                bool hasModGuid = false;
+                try { hasModGuid = !string.IsNullOrEmpty(attr.modGuid); } catch { }
+
+                bool isHeadDeco = false;
+                try { isHeadDeco = attr.IsHeadDecoration; } catch { }
+
+                bool coversHairAsHeadDeco = ReadHeadDecorationCoverHairSafe(attr);
+
+                if (isHeadDecoSlot)
+                    return hasModGuid || (isHeadDeco && coversHairAsHeadDeco);
+
+                return hasModGuid && (isHeadDeco || coversHairAsHeadDeco);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool IsModHeadDecorationRegisteredSafe(int itemId)
+        {
+            try
+            {
+                var dict = ModHeadDecorationRegistry.entries;
+                return Il2CppSafe.IsAlive(dict) && dict.ContainsKey(itemId);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static ItemAttr ReadItemAttrSafe(int itemId)
+        {
+            try
+            {
+                var im = ItemManager.instance;
+                return Il2CppSafe.IsAlive(im) ? im.GetItemAttrById(itemId) : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadHeadDecorationCoverHairSafe(ItemAttr attr)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(attr)) return false;
+                bool hasHeadDecoFeature = attr.IsHeadDecoration ||
+                    (attr.itemFeatures != null && attr.itemFeatures.Contains(ItemFeatureType.HeadDecoration)) ||
+                    (attr.itemFeatureDataDic != null && attr.itemFeatureDataDic.ContainsKey(ItemFeatureType.HeadDecoration));
+                if (!hasHeadDecoFeature) return false;
+
+                var feat = attr.GetItemFeatureByFeatureType(ItemFeatureType.HeadDecoration);
+                var headDeco = feat?.TryCast<ItemFeature_HeadDecoration>();
+                return Il2CppSafe.IsAlive(headDeco) && headDeco.CoverHair;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool ContainsNoveltyHeadgearKeyword(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return false;
+            for (int i = 0; i < NoveltyHeadgearKeywords.Length; i++)
+            {
+                if (text.IndexOf(NoveltyHeadgearKeywords[i], StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
+            }
+            return false;
         }
     }
 }

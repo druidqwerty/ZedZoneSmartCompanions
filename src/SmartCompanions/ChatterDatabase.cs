@@ -3,28 +3,123 @@ using System.Collections.Generic;
 
 namespace ZedZone.SmartCompanions
 {
+    public enum NpcBiologicalGender
+    {
+        Unknown = 0,
+        Male = 1,
+        Female = 2
+    }
+
+    public readonly struct NpcChatterPersona : IEquatable<NpcChatterPersona>
+    {
+        public readonly NpcBiologicalGender Gender;
+        public readonly bool HasNoveltyHeadgear;
+
+        public bool IsFemale => Gender == NpcBiologicalGender.Female;
+        public bool AvoidGruffMacho => IsFemale || HasNoveltyHeadgear;
+
+        internal int CacheKey => ((int)Gender << 1) | (HasNoveltyHeadgear ? 1 : 0);
+
+        public NpcChatterPersona(NpcBiologicalGender gender, bool hasNoveltyHeadgear = false)
+        {
+            Gender = gender;
+            HasNoveltyHeadgear = hasNoveltyHeadgear;
+        }
+
+        public static readonly NpcChatterPersona Neutral = new NpcChatterPersona(NpcBiologicalGender.Unknown, false);
+        public static readonly NpcChatterPersona Male = new NpcChatterPersona(NpcBiologicalGender.Male, false);
+        public static readonly NpcChatterPersona Female = new NpcChatterPersona(NpcBiologicalGender.Female, false);
+        public static readonly NpcChatterPersona AnimeHoodMale = new NpcChatterPersona(NpcBiologicalGender.Male, true);
+        public static readonly NpcChatterPersona AnimeHoodFemale = new NpcChatterPersona(NpcBiologicalGender.Female, true);
+
+        public bool Equals(NpcChatterPersona other) => Gender == other.Gender && HasNoveltyHeadgear == other.HasNoveltyHeadgear;
+        public override bool Equals(object obj) => obj is NpcChatterPersona other && Equals(other);
+        public override int GetHashCode() => CacheKey;
+    }
+
     public static partial class ChatterDatabase
     {
+        private readonly struct PersonaCacheSlot : IEquatable<PersonaCacheSlot>
+        {
+            public readonly ChatterTopic Topic;
+            public readonly ModLanguage Lang;
+            public readonly ProfanityMode Mode;
+            public readonly int PersonaKey;
+
+            public PersonaCacheSlot(ChatterTopic topic, ModLanguage lang, ProfanityMode mode, int personaKey)
+            {
+                Topic = topic;
+                Lang = lang;
+                Mode = mode;
+                PersonaKey = personaKey;
+            }
+
+            public bool Equals(PersonaCacheSlot other)
+                => Topic == other.Topic && Lang == other.Lang && Mode == other.Mode && PersonaKey == other.PersonaKey;
+
+            public override bool Equals(object obj) => obj is PersonaCacheSlot other && Equals(other);
+
+            public override int GetHashCode()
+                => ((((int)Topic * 397) ^ (int)Lang) * 397 ^ (int)Mode) * 7 ^ PersonaKey;
+        }
+
+        private static readonly object PersonaCacheLock = new object();
+        private static readonly Dictionary<PersonaCacheSlot, string[]> PersonaLineCache = new Dictionary<PersonaCacheSlot, string[]>();
+
         public static string[] GetLines(ChatterTopic topic)
         {
-            return GetLines(topic, CompanionConfigStore.EffectiveLanguage, CompanionConfigStore.Profanity);
+            return GetLines(topic, CompanionConfigStore.EffectiveLanguage, CompanionConfigStore.Profanity, NpcChatterPersona.Neutral);
         }
 
         public static string[] GetLines(ChatterTopic topic, bool ru)
         {
-            return GetLines(topic, ru ? ModLanguage.Russian : ModLanguage.English, CompanionConfigStore.Profanity);
+            return GetLines(topic, ru ? ModLanguage.Russian : ModLanguage.English, CompanionConfigStore.Profanity, NpcChatterPersona.Neutral);
         }
 
         public static string[] GetLines(ChatterTopic topic, bool ru, ProfanityMode mode)
         {
-            return GetLines(topic, ru ? ModLanguage.Russian : ModLanguage.English, mode);
+            return GetLines(topic, ru ? ModLanguage.Russian : ModLanguage.English, mode, NpcChatterPersona.Neutral);
         }
 
         public static string[] GetLines(ChatterTopic topic, ModLanguage lang, ProfanityMode mode)
         {
+            return GetLines(topic, lang, mode, NpcChatterPersona.Neutral);
+        }
+
+        public static string[] GetLines(ChatterTopic topic, ModLanguage lang, ProfanityMode mode, NpcChatterPersona persona)
+        {
             if (lang == ModLanguage.Auto)
                 lang = CompanionConfigStore.EffectiveLanguage;
 
+            ProfanityMode effectiveMode = persona.HasNoveltyHeadgear ? ProfanityMode.Clean : mode;
+
+            if (!persona.AvoidGruffMacho)
+                return GetBaseLines(topic, lang, effectiveMode);
+
+            var key = new PersonaCacheSlot(topic, lang, effectiveMode, persona.CacheKey);
+            lock (PersonaCacheLock)
+            {
+                if (PersonaLineCache.TryGetValue(key, out var cached))
+                    return cached;
+            }
+
+            string[] raw = GetBaseLines(topic, lang, effectiveMode);
+            if (raw == null || raw.Length == 0)
+                return raw;
+
+            var adapted = new string[raw.Length];
+            for (int i = 0; i < raw.Length; i++)
+                adapted[i] = AdaptLineForPersona(raw[i], lang, persona);
+
+            lock (PersonaCacheLock)
+            {
+                PersonaLineCache[key] = adapted;
+            }
+            return adapted;
+        }
+
+        private static string[] GetBaseLines(ChatterTopic topic, ModLanguage lang, ProfanityMode mode)
+        {
             if (TryGetV130Lines(topic, lang, mode, out var v130Lines))
                 return v130Lines;
 
@@ -55,6 +150,224 @@ namespace ZedZone.SmartCompanions
             Array.Copy(rude, 0, combined, 0, rude.Length);
             Array.Copy(clean, 0, combined, rude.Length, clean.Length);
             return combined;
+        }
+
+        public static string AdaptLineForPersona(string line, ModLanguage lang, NpcChatterPersona persona)
+        {
+            if (string.IsNullOrEmpty(line) || !persona.AvoidGruffMacho)
+                return line;
+
+            if (lang == ModLanguage.Auto)
+                lang = CompanionConfigStore.EffectiveLanguage;
+
+            return lang switch
+            {
+                ModLanguage.Chinese => AdaptZhLineForPersona(line),
+                ModLanguage.Russian => AdaptRuLineForPersona(line, persona),
+                _ => AdaptEnLineForPersona(line, persona)
+            };
+        }
+
+        private static string AdaptZhLineForPersona(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+            if (s.IndexOf("兄弟", StringComparison.Ordinal) >= 0)
+            {
+                s = s.Replace("谢了兄弟", "谢了队长")
+                     .Replace("给兄弟", "给队友")
+                     .Replace("记着兄弟", "记着队友")
+                     .Replace("兄弟", "队友");
+            }
+            if (s.IndexOf("你小子", StringComparison.Ordinal) >= 0)
+                s = s.Replace("你小子", "你这家伙");
+            if (s.IndexOf("老子", StringComparison.Ordinal) >= 0)
+            {
+                s = s.Replace("老子的", "我的")
+                     .Replace("老子", "我");
+            }
+            return s;
+        }
+
+        private static string AdaptEnLineForPersona(string s, NpcChatterPersona persona)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+            string brotherReplacement = persona.IsFemale ? "sister" : "partner";
+            if (s.IndexOf("brother", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                s = s.Replace("Respect, brother!", $"Respect, {brotherReplacement}!")
+                     .Replace(", brother!", $", {brotherReplacement}!")
+                     .Replace(", brother", $", {brotherReplacement}")
+                     .Replace("brother", brotherReplacement);
+            }
+            if (persona.AvoidGruffMacho)
+            {
+                s = s.Replace("what the fuck, man?!", "what the fuck?!")
+                     .Replace("Man, sitting by the fire", "Sitting by the fire");
+            }
+            return s;
+        }
+
+        private static readonly (string From, string To)[] RuFemaleReplacements = new[]
+        {
+            ("За пацанов и чтоб хуй стоял и патроны были! Вздрогнем, блядь!", "За наш отряд, боевой фарт и полные магазины! Вздрогнем, блядь!"),
+            ("Ебать мой хуй, сколько их тут вывалило!", "Охуеть, сколько их тут вывалило!"),
+            ("С пустым стволом тут только хуй сосать остаётся!", "С пустым стволом тут даже отбиться нечем!"),
+            ("В такую холодину без огня можно и бубенцы отморозить, блядь!", "В такую холодину без огня до костей промёрзнуть можно, блядь!"),
+            ("Грей клешни у костра, братва...", "Грей руки у костра, отряд..."),
+            ("ЗАРЯЖАЙ И ВПЕРЁД, БРАТВА!", "ЗАРЯЖАЙ И ВПЕРЁД, ОТРЯД!"),
+            ("Пацаны не местные нарисовались", "Чужаки не местные нарисовались"),
+            ("Вскрываем хату, пацаны!", "Вскрываем хату, ребята!"),
+            ("нормальный пацан,", "свой человек,"),
+            ("по-пацански", "по-нашему"),
+            ("по-братски", "по-дружески"),
+            ("братуха", "командир"),
+            ("братан", "командир"),
+            ("а братве даже косточки", "а своим даже косточки"),
+            ("дыши, родной!", "дыши, командир!"),
+            ("Я тебе чё, ишак вьючный,", "Я тебе чё, ломовая лошадь,"),
+            ("нанимался в колхозники", "нанималась в фермеры"),
+            ("выбраться отсюда живым.", "выбраться отсюда живой."),
+            ("я первый в очереди", "я первая в очереди"),
+            ("я ж тебя сам на угли посажу", "я ж тебя сама на угли посажу"),
+            ("сытый и пиздец какой злой", "сытая и пиздец какая злая"),
+            ("давиться должен!", "давиться должна!"),
+            ("Устал я как собака", "Устала я как собака"),
+            ("Устал как собака", "Устала как собака"),
+            ("Готов! Минус один", "Готова! Минус один"),
+            ("готов к любым испытаниям!", "готова к любым испытаниям!"),
+            ("Ранен, но ещё в строю!", "Ранена, но ещё в строю!"),
+            ("Ранен, сука!", "Ранена, сука!"),
+            ("стал выносливее и крепче!", "стала выносливее и крепче!"),
+            ("Тихо спиздил и ушёл — называется нашёл!", "Тихо спиздила и ушла — называется нашла!"),
+            ("Глянь чё нашёл,", "Глянь чё нашла,"),
+            ("Я заебался в доску", "Я заебалась в доску"),
+            ("Заебался я сегодня", "Заебалась я сегодня"),
+            ("я не предупреждал!", "я не предупреждала!"),
+            ("я вот стейк никогда не пробовал", "я вот стейк никогда не пробовала"),
+            ("сухпайков не видел.", "сухпайков не видела."),
+            ("я часто жарил такие стейки", "я часто жарила такие стейки"),
+            ("от кусочка лосося не отказался...", "от кусочка лосося не отказалась..."),
+            ("Сто лет не держал в руках", "Сто лет не держала в руках"),
+            ("химозу сладкую не пил!", "химозу сладкую не пила!"),
+            ("я уже ложку приготовил.", "я уже ложку приготовила."),
+            ("я ствол навёл!", "я ствол навела!"),
+            ("я за сегодня уложил больше", "я за сегодня уложила больше"),
+            ("я сегодня больше этих гнилых пидоров уложил", "я сегодня больше этих гнилых пидоров уложила"),
+            ("я успел!", "я успела!"),
+            ("я последний раз такой кусок мяса видел", "я последний раз такой кусок мяса видела"),
+            ("угли жрать я не подписывался!", "угли жрать я не подписывалась!"),
+            ("С линии огня ушёл,", "С линии огня ушла,"),
+            ("Ушёл вбок", "Ушла вбок"),
+            ("клин поймал!", "клин поймала!"),
+            ("Клин поймал на ровном месте", "Клин поймала на ровном месте"),
+            ("Поймал клин затвора!", "Поймала клин затвора!"),
+            ("движок и колёса проверил, командир!", "движок и колёса проверила, командир!"),
+            ("проверил состояние кузова!", "проверила состояние кузова!"),
+            ("привёл экипировку отряда в порядок и восстановил часть", "привела экипировку отряда в порядок и восстановила часть"),
+            ("Принял!", "Приняла!"),
+            ("Навёл порядок", "Навела порядок"),
+            ("Забрал несортированный", "Забрала несортированный"),
+            ("Забрал твоё барахло", "Забрала твоё барахло"),
+            ("Разложил пушки", "Разложила пушки"),
+            ("разложил по полочкам", "разложила по полочкам"),
+            ("разложил твоё барахло", "разложила твоё барахло"),
+            ("разложил по складу", "разложила по складу"),
+            ("разложил по категориям", "разложила по категориям"),
+            ("разложил ровненько", "разложила ровненько"),
+            ("убрал на хранение", "убрала на хранение"),
+            ("убрал на склад", "убрала на склад"),
+            ("Сложил стройматериалы", "Сложила стройматериалы"),
+            ("сложил в", "сложила в"),
+            ("сложил отдельно", "сложила отдельно"),
+            ("перенёс в профильный ящик", "перенесла в профильный ящик"),
+            ("Перенёс все трофеи", "Перенесла все трофеи"),
+            ("Подобрал припасы!", "Подобрала припасы!"),
+            ("Выгрузил собранные", "Выгрузила собранные"),
+            ("Выгрузил трофеи", "Выгрузила трофеи"),
+            ("Сгрузил всю добычу", "Сгрузила всю добычу"),
+            ("Скинул весь собранный", "Скинула весь собранный"),
+            ("уложил как в аптеке", "уложила как в аптеке"),
+            ("уложил в продуктовый", "уложила в продуктовый"),
+            ("уложил в рабочие", "уложила в рабочие"),
+            ("Уложил! Кто следующий?", "Уложила! Кто следующий?"),
+            ("закинул в оружейку", "закинула в оружейку"),
+            ("закинул в медицинский", "закинула в медицинский"),
+            ("закинул в топку", "закинула в топку"),
+            ("закинул сладкого", "закинула сладкого"),
+            ("Закинул хавки", "Закинула хавки"),
+            ("распихал по продуктовым", "распихала по продуктовым"),
+            ("распихал по мастерским", "распихала по мастерским"),
+            ("Закончил ебаться", "Закончила ебаться"),
+            ("Отогнал их!", "Отогнала их!"),
+            ("Отогнал тварей!", "Отогнала тварей!"),
+            ("Вколол стимулятор и наложил", "Вколола стимулятор и наложила"),
+            ("Вколол стимулятор и перевязал", "Вколола стимулятор и перевязала"),
+            ("Вколол адреналин и замотал", "Вколола адреналин и замотала"),
+            ("Перевязал твои раны", "Перевязала твои раны"),
+            ("Перевязал критические раны", "Перевязала критические раны"),
+            ("Перевязал и откачал", "Перевязала и откачала"),
+            ("Перевязал тебя на бегу", "Перевязала тебя на бегу"),
+            ("Передал тебе запасные", "Передала тебе запасные"),
+            ("Пожрал от пуза", "Поела от пуза"),
+            ("Отпрыгнул в сторону", "Отпрыгнула в сторону"),
+            ("Сектор освободил,", "Сектор освободила,"),
+            ("Вынес нахуй!", "Вынесла нахуй!"),
+            ("Прикрыл тебя", "Прикрыла тебя"),
+            ("замотал своей аптечкой!", "замотала своей аптечкой!"),
+            ("Заштопал твои дырки", "Заштопала твои дырки"),
+            ("Отсыпал тебе свинца", "Отсыпала тебе свинца"),
+            ("накатил пивка", "накатила пивка"),
+            ("Разорвал дистанцию!", "Разорвала дистанцию!"),
+            ("Пришил гада", "Пришила гада"),
+            ("Залепил твои раны", "Залепила твои раны"),
+            ("Подкинул тебе боекомплекта", "Подкинула тебе боекомплекта"),
+            ("Сгрёб весь этот бардак", "Сгребла весь этот бардак"),
+            ("Подбросил дровишек", "Подбросила дровишек"),
+            ("Подбросил дров", "Подбросила дров"),
+            ("Полил твою ботву", "Полила твою ботву"),
+            ("полил и удобрил", "полила и удобрила"),
+            ("Всыпал удобрений", "Всыпала удобрений"),
+            ("Почистил затвор и смазал", "Почистила затвор и смазала"),
+            ("Почистил и смазал наше оружие, подтянул", "Почистила и смазала наше оружие, подтянула"),
+            ("Подлатал нашу снарягу и протёр", "Подлатала нашу снарягу и протёрла"),
+            ("Подтянул ремни на броне и вычистил", "Подтянула ремни на броне и вычистила"),
+            ("Подтянул гайки на кузове и перекинул", "Подтянула гайки на кузове и перекинула"),
+            ("Проверил бойки и подправил", "Проверила бойки и подправила"),
+            ("Проверил наши грядки: полил растения и добавил", "Проверила наши грядки: полила растения и добавила"),
+            ("Осмотрел нашу ласточку и выгрузил", "Осмотрела нашу ласточку и выгрузила"),
+            ("Осмотрел автомобиль и разгрузил", "Осмотрела автомобиль и разгрузила"),
+            ("Вытряхнул всё добро из тачки в ящики и подстучал", "Вытряхнула всё добро из тачки в ящики и подстучала"),
+            ("зажал артерию и всадил стимулятор", "зажала артерию и всадила стимулятор"),
+            ("Остановил кровотечение и поднял тебя", "Остановила кровотечение и подняла тебя"),
+            ("Вырубил свет", "Вырубила свет"),
+            ("Погасил свет", "Погасила свет"),
+            ("Поднял боевой ранг", "Подняла боевой ранг"),
+            ("Повысил свой ветеранский ранг", "Повысила свой ветеранский ранг"),
+            ("Провёл полевое ТО", "Провела полевое ТО"),
+        };
+
+        private static string AdaptRuLineForPersona(string s, NpcChatterPersona persona)
+        {
+            if (string.IsNullOrEmpty(s)) return s;
+            if (persona.IsFemale)
+            {
+                for (int i = 0; i < RuFemaleReplacements.Length; i++)
+                {
+                    var pair = RuFemaleReplacements[i];
+                    if (s.IndexOf(pair.From, StringComparison.Ordinal) >= 0)
+                        s = s.Replace(pair.From, pair.To);
+                }
+            }
+            else if (persona.HasNoveltyHeadgear)
+            {
+                // Clean mode is already selected for novelty headgear; guard custom lines just in case
+                s = s.Replace("братан", "командир")
+                     .Replace("братуха", "командир")
+                     .Replace("БРАТВА", "ОТРЯД")
+                     .Replace("братва", "отряд")
+                     .Replace("пацаны", "ребята");
+            }
+            return s;
         }
 
         private static string[] GetLinesRu(ChatterTopic topic)

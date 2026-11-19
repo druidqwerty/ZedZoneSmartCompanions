@@ -104,6 +104,8 @@ namespace ZedZone.SmartCompanions
                 var corpse = tobj.TryCast<TerrainObject_Corpse>();
                 if (Il2CppSafe.IsAliveUnity(corpse))
                 {
+                    if (isPassiveAutoLoot && IsPositionNearPlayerBase(tobj.transform.position, 18f))
+                        continue;
                     inv = corpse.objectData.inventoryData;
                     kind = PhysicalLootKind.Corpse;
                     label = CompanionConfigStore.L("Труп", "Corpse", "尸体");

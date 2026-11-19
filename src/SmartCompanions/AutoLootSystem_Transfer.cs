@@ -130,7 +130,7 @@ namespace ZedZone.SmartCompanions
                 if (Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && !ag.mostThreateningCharacter.deadFlag)
                     continue;
 
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 if (st.HasAnyPhysicalTask) continue;
 
                 string basicCmd = ag.npcData.basicCommand ?? "";
@@ -183,7 +183,7 @@ namespace ZedZone.SmartCompanions
                 int totalCells = Mathf.Max(1, shared.inventorySizeX * shared.inventorySizeY);
                 int freeCells = shared.CountFreeCells();
                 float fillRatio = 1f - ((float)freeCells / totalCells);
-                var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID, agent.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(agent.npcData.characterData));
                 float maxRatio = st.EffectiveArchetype == CompanionArchetype.JollyScavenger ? 0.84f : 0.70f;
 
                 if (fillRatio >= maxRatio)

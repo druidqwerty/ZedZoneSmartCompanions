@@ -19,10 +19,26 @@ namespace ZedZone.SmartCompanions
 
         public static void WriteRuleToTerrainObject(TerrainObject tobj, ContainerRuleProfile rule)
         {
-            if (!Il2CppSafe.IsAliveUnity(tobj) || !Il2CppSafe.IsAlive(tobj.objectData) || rule == null) return;
+            if (!Il2CppSafe.IsAliveUnity(tobj) || !Il2CppSafe.IsAlive(tobj.objectData)) return;
             try
             {
-                if (!rule.IsMarkedByPlayer || (rule.Categories == StorageCategory.None && !rule.IsDropoffSource))
+                bool shouldClear = rule == null || !rule.IsMarkedByPlayer || (rule.Categories == StorageCategory.None && !rule.IsDropoffSource);
+                if (!IsMultiplayerOnline)
+                {
+                    if (shouldClear)
+                    {
+                        string raw = tobj.objectData.GetProperty(ContainerRulePropertyIndex);
+                        if (!string.IsNullOrEmpty(raw) &&
+                            (raw.StartsWith("SC142:", StringComparison.Ordinal) || raw.StartsWith("SC14:", StringComparison.Ordinal)))
+                        {
+                            tobj.objectData.SetProperty(ContainerRulePropertyIndex, "");
+                        }
+                    }
+                    return;
+                }
+
+                if (rule == null) return;
+                if (shouldClear)
                 {
                     tobj.objectData.SetProperty(ContainerRulePropertyIndex, "");
                     return;
@@ -622,7 +638,7 @@ namespace ZedZone.SmartCompanions
                         if (!Il2CppSafe.IsAliveUnity(rescuer) ||
                             Vector2.Distance(rescuer.transform.position, ag.humanCharacter.transform.position) <= 6.5f)
                         {
-                            var st = CompanionConfigStore.GetOrCreateCompanion(guid, ag.npcData?.characterData?.characterName);
+                            var st = CompanionConfigStore.GetOrCreateCompanion(guid, CompanionConfigStore.GetCharacterDisplayName(ag.npcData?.characterData));
                             PerformHostOrLocalCompanionRevive(ag.humanCharacter, st, rescuer ?? GameController.instance?.playerCharacter);
                         }
                     }

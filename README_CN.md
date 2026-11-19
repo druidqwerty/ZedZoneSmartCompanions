@@ -7,12 +7,29 @@
 
 <p align="center">
   <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312"><strong>Steam 创意工坊 (3836613312)</strong></a> ·
-  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.1"><strong>下载 v3.1.1 发布包 (ZIP)</strong></a> ·
+  <a href="https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.1.2"><strong>下载 v3.1.2 发布包 (ZIP)</strong></a> ·
   <a href="README.md"><strong>English (README.md)</strong></a> ·
   <a href="README_RU.md"><strong>Русский (README_RU.md)</strong></a>
 </p>
 
 ---
+
+## 快速上手 — 如何使用
+
+1. **打开控制中心 (`F8`) 与快速指南 (`?`)：** 在 **`01 队伍`** 页选择战术学说、阵型、**`[--] / [A] / [B]`** 火力小组，或开启 **营地驻守** 让队友留守基地。
+2. **标记基地储物箱与 `[中转箱]`：** 在基地打开任意箱子（或进入 **`03 基地`**）勾选分类，并将 **一个** 箱子设为 **`[中转箱]`** —— 队友仅在玩家主动标记的箱子间搬运。
+3. **无瞬移物理分拣：** 将战利品放进 **`[中转箱]`** 后按 **`F7`**，队友会亲自走位搬运入库（零隔空传物）。在 **`02 工作`** 页可切换专精预设与 **`[x] 自动收获成熟作物`**。
+4. **常用快捷键：** **`F8`** 中心 · **`Alt+1/2/3`** 全队/A组/B组 · **`Alt+F`** 搜刮附近 · **`F7`** 整理基地 · **`F6`**（与 AVO 共用 `Alt+F6`）分口粮 · **`Alt+G`** 扇形定点 · **`Alt+H`** 治疗烟雾 · **`F9`** 战吼突击。
+
+## v3.1.2 更新 — 1.0.20 补丁适配、队友昵称、物流与稳定性全面修复
+
+- **适配《ZED ZONE》`1.0.20` 补丁（`buildid 26773715`）与队友昵称支持（`CharacterData.GetDisplayName`）：** 完成 `1.0.20` 全面二进制与互操作校验（`0` 个缺失引用、`90` 个 Harmony 补丁 `0` 个签名差异、`0` 个新增 `/OPT:ICF` 地址碰撞；`AssemblyRef` `0.0.0.0`），新增 `[NoInlining]` 封装方法 `CompanionConfigStore.GetCharacterDisplayName`（空昵称或 `1.0.19` 自动回退 `characterName`），在 **F8 → 队伍 / 工作**、战术提示与语录日志中实时显示自定义昵称。
+- **载具乘员与防乱逛 / 千米瞬移修复：** 将 `BasicVehicle.passengerSeatLimit < 0` 识别为无限座位并修复下车溢出恢复；退出「营地驻守」时同步刷新 `npcStayPosition` 与 `agentState["basePosition"]`，拦截 `GOAPGoal_ReturnToBase` / `GOAPAction_ReturnToBase` 的 `(0,0)` 与 `> 120 米` 错误拉回，按楼层与半径约束内务工作，屏蔽 `TerritoryPatrol` / `LootResource`，并恢复原版标准的自由阵型/常规距离跟随。
+- **基地物理卸货与零瞬移保障：** `CombatResponse.Refresh` 整理基地期间忽略 `> 12 米` 或无视线威胁而不清空 `CarryBuffer`；支持自动卸下已装备背包并将基地扫描半径扩至 `80 米`；修复开箱界面或驻守队友在场时的 `F7` 分拣、无路可达箱子的安全改道（零隔空传物）、单人取消标记后 `SC142:` 规则复活问题，以及自动搜刮避开基地 `18 米` 内尸体。
+- **嵌套小包急救、主菜单安全、战斗稳定性与性别/头饰语录：** 递归扫描个人与共享背包中的嵌套包袋（`depth <= 3`），支持 `>= 78%` 血量下使用纯绷带/急救包止血及 `> 4.5 米`/无视线安全自救，严格排除普通食物牛排误当药品；限定 `HumanNpcEquipmentGuard` 仅在进入世界后生效并使用原生 `TeamNPCPanel._instance`，加固 `NPCGearOwnership`、切回主枪与 `goalReselectDeferred`、兼容 `SecondIslandEndingDirector.Busy`、修复鼠标光标恢复而不影响手柄搜刮，并为三语台词新增性别与特殊头饰适配。
+- **已在 `1.0.20`（`buildid 26773715`）实测通过：** `0` 警告/错误编译（`AssemblyRef 0.0.0.0`，`90` 项 Harmony 补丁 `failed=0`，**100%** `[EH>0]`，`0` 处懒加载 `.instance`）+ **2×** 真实主菜单读档进入游戏（`backups/menuload-20261119-090723` 与 `090806`）+ **2×** 全套实机战斗/搬运/驻守测试（`backups/live-20261119-090907` 与 `091019`，`V312Live` 全部通过）+ **300/300** 图形界面矩阵与 **13/13** 组确定性测试（含 `V312Regression (a)-(h)`，`backups/ui312-20261119-091139`）+ `0.75x`/`2.0x` Win32 输入测试；全部 7 轮 8,386 个真实存档文件 SHA-256 完全一致。[测试范围与限制](docs/verification-3.1.2.md)。
+
+![3.1.2 队伍总览界面简体中文版（ZED ZONE 1.0.20 游戏引擎实测）](docs/images/ui-3.1.2-squad-zh.png)
 
 ## v3.1.1 热修 — 1.0.19 补丁兼容、读档门控保护与玩家档案修复
 
@@ -264,8 +281,8 @@
 
 ## 安装与快捷键
 
-1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。当《ZED ZONE》游戏本体更新后（例如 `1.0.19` 补丁），如果模组未加载或启动卡住，请删除一次 `<ZED ZONE>/BepInEx/interop` 文件夹（或重新运行一次 `Code Mod Loader` 的 `install.cmd`），让 BepInEx 重新生成最新的 IL2CPP interop 文件。
-2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-3.1.1.zip` 解压至 `<ZED ZONE>`）。
+1. 订阅必需的第三方依赖 **[ZED ZONE Code Mod Loader (BepInEx IL2CPP)](https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258)**（创意工坊 ID `3834614258`，并非 druidqwerty 制作的模组），运行一次其中的 `install.cmd`。当《ZED ZONE》游戏本体更新后（例如 `1.0.20` 补丁），如果模组未加载或启动卡住，请删除一次 `<ZED ZONE>/BepInEx/interop` 文件夹（或重新运行一次 `Code Mod Loader` 的 `install.cmd`），让 BepInEx 重新生成最新的 IL2CPP interop 文件。
+2. 订阅本模组 **[ZED ZONE: Smart Companions](https://steamcommunity.com/sharedfiles/filedetails/?id=3836613312)**（或将 `ZedZoneSmartCompanions-3.1.2.zip` 解压至 `<ZED ZONE>`）。
 3. 快捷键：**`F8`** 打开智能队友与基地中心（右上 **`?`** 为快速指南） · **`Alt+1/2/3`** 切换小队频道（全队/A组/B组） · **`Alt+F`** 搜刮附近战利品 · **`F7`** 命令整理基地储物箱 · **`F6`** 向小队分享口粮。
 
 © 2026 druidqwerty. 基于 MIT 许可证开源发布。免费开源模组；AI 辅助代码编写，由 druid 设计与测试。

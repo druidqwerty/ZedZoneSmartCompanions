@@ -339,7 +339,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 gc.playerCharacter.characterData.RemoveTeamNPC(dismissTarget.npcData);
                 if (GOAPNPCManager.instance?.teammateNPCs != null)
                     GOAPNPCManager.instance.teammateNPCs.Remove(dismissTarget.npcData);
-                dismissTarget.npcData.ExecuteNPCCommand("QuitTeam");
+                dismissTarget.npcData.ExecuteNPCCommand("OneTime.QuitTeam");
                 MultiplayerSyncSystem.SyncCompanionOwnerAndLeader(dismissTarget);
                 MultiplayerSyncSystem.SyncCompanionOwnerAndLeader(dismissTarget);
                 if (!string.IsNullOrEmpty(dismissTarget.npcData.leaderCharacterGUID) ||
@@ -443,6 +443,7 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 _state.Doctrine = TacticalDoctrine.SniperKite;
                 SmartCombatAI.ApplyDoctrineToNpcData(_agent, _state);
                 MultiplayerSyncSystem.NormalizeHumanCharacterData(_hostileHuman.characterData, isLooterHint: true);
+                _agent.SelectPriorityGoalExecute();
             }
             else
             {

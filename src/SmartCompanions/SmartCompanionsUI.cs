@@ -12,9 +12,28 @@ namespace ZedZone.SmartCompanions
             get => _showMainWindow;
             set
             {
-                if (_showMainWindow && !value) ReleaseUiGestures();
+                if (_showMainWindow && !value)
+                {
+                    ReleaseUiGestures();
+                    _showMainWindow = false;
+                    SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: true);
+                    return;
+                }
                 _showMainWindow = value;
             }
+        }
+
+        internal static bool IsChestBarVisibleForCursor()
+        {
+            try
+            {
+                if (ShowMainWindow) return false;
+                var openPanel = LootInventoryPanel._instance;
+                var openInv = LootInventoryPanel.CurrentOpenInventoryData;
+                return Il2CppSafe.IsAlive(openInv) && !openInv.isPlayerInventory &&
+                       Il2CppSafe.IsAliveUnity(openPanel) && openPanel.gameObject.activeInHierarchy;
+            }
+            catch { return false; }
         }
         public static bool CollapseChestBar = false;
         private static int _activeTab = 0; // 0=Squad, 1=BaseBoxes, 2=Chatter, 3=Settings
@@ -204,7 +223,11 @@ namespace ZedZone.SmartCompanions
             {
                 // A tab/panel may disappear before its own drag handler sees MouseUp.
                 if (Event.current != null && Event.current.rawType == EventType.MouseUp)
+                {
                     ReleaseUiGestures();
+                    if (ShowMainWindow || IsPointerOverOverlay(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y)))
+                        SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: false);
+                }
                 GUI.matrix = oldMatrix;
                 GUI.color = oldColor;
                 GUI.contentColor = oldContentColor;
@@ -272,22 +295,11 @@ namespace ZedZone.SmartCompanions
                 DrawMainHubWindow();
             }
 
-            // 5. Crisp software pointer fallback if Unity/OS hides the hardware cursor over our UI
+            // 5. Proactively restore the real OS cursor if Unity/OS hides or locks it over our UI
             if ((ShowMainWindow || IsPointerOverOverlay(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y))) &&
-                !Cursor.visible && Event.current != null && Event.current.type == EventType.Repaint)
+                (!Cursor.visible || Cursor.lockState == CursorLockMode.Locked))
             {
-                Vector2 mp = Event.current.mousePosition;
-                var prevColor = GUI.color;
-                try
-                {
-                    GUI.color = Color.white;
-                    GUI.Box(new Rect(mp.x, mp.y, 10f, 14f), GUIContent.none, _winStyle);
-                    GUI.Box(new Rect(mp.x + 2f, mp.y + 2f, 6f, 10f), GUIContent.none, _catOnStyle);
-                }
-                finally
-                {
-                    GUI.color = prevColor;
-                }
+                SmartCompanionsInput.ForceRestoreOsCursorFromUi();
             }
         }
 
@@ -323,11 +335,13 @@ namespace ZedZone.SmartCompanions
                 {
                     ShowMainWindow = !ShowMainWindow;
                     if (ShowMainWindow) OnMainWindowOpened();
+                    SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: !ShowMainWindow);
                 }
                 if (GUI.Button(new Rect(pos.x + 66f, pos.y + 3f, 22f, 26f), "+", _btnStyle))
                 {
                     CompanionConfigStore.HudBadgeCollapsed = false;
                     CompanionConfigStore.Save();
+                    SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: true);
                 }
                 return;
             }
@@ -340,26 +354,31 @@ namespace ZedZone.SmartCompanions
             {
                 ShowMainWindow = !ShowMainWindow;
                 if (ShowMainWindow) OnMainWindowOpened();
+                SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: !ShowMainWindow);
             }
             if (GUI.Button(new Rect(pos.x + 177f, pos.y + 3f, 68f, 26f), CompanionConfigStore.L(" Сорт.", " Sort", " 整理"), _btnStyle))
             {
                 BaseSortingSystem.CommandSortBase(null, null, instant: false);
+                SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: false);
             }
             if (GUI.Button(new Rect(pos.x + 248f, pos.y + 3f, 66f, 26f),
                 UiTip(CompanionConfigStore.L(" Лут", " Loot", " 搜刮"),
                     CompanionConfigStore.L("Собрать лут вокруг [Alt+F]", "Sweep nearby loot [Alt+F]", "搜刮周围物资 [Alt+F]")), _btnStyle))
             {
                 AutoLootSystem.CommandSweepNearbyLoot(null, 20f);
+                SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: false);
             }
             if (GUI.Button(new Rect(pos.x + 317f, pos.y + 3f, 22f, 26f), "-", _btnStyle))
             {
                 CompanionConfigStore.HudBadgeCollapsed = true;
                 CompanionConfigStore.Save();
+                SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: true);
             }
             if (GUI.Button(new Rect(pos.x + 341f, pos.y + 3f, 22f, 26f), "x", _btnStyle))
             {
                 CompanionConfigStore.ShowHudBadge = false;
                 CompanionConfigStore.Save();
+                SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: true);
             }
         }
 
@@ -407,6 +426,7 @@ namespace ZedZone.SmartCompanions
                         "箱子分类 [v]"), _btnStyle))
                 {
                     CollapseChestBar = false;
+                    SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: true);
                 }
                 return;
             }
@@ -457,11 +477,13 @@ namespace ZedZone.SmartCompanions
                 ShowMainWindow = true;
                 _activeTab = 1;
                 _selectedBoxIdInHub = boxId;
+                SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: false);
             }
 
             if (GUI.Button(new Rect(rect.xMax - 76f, ry, 66f, 28f), CompanionConfigStore.L(lang, "^", "^", "^"), _btnStyle))
             {
                 CollapseChestBar = true;
+                SmartCompanionsInput.NotifyUiInteractionOrClose(closedOrCollapsed: true);
             }
 
             // Row 2 & 3: 12 Category Toggle Buttons (6 per row)

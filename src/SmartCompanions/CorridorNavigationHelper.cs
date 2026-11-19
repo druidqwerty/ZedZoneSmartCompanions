@@ -30,8 +30,49 @@ namespace ZedZone.SmartCompanions
         }
 
         private static readonly Dictionary<IntPtr, AgentNavTracker> Trackers = new Dictionary<IntPtr, AgentNavTracker>(32);
+        private static readonly Dictionary<string, IntPtr> GuidToAgentPtr = new Dictionary<string, IntPtr>(32, StringComparer.OrdinalIgnoreCase);
         private static readonly List<Vector2> LeaderTrail = new List<Vector2>(24);
         private static int _leaderTrailZ = -999;
+
+        public static bool ClearTracker(GOAPAgent agent)
+        {
+            bool removed = false;
+            if (!Il2CppSafe.IsAliveUnity(agent)) return false;
+            try
+            {
+                IntPtr ptr = agent.Pointer;
+                if (ptr != IntPtr.Zero && Trackers.Remove(ptr))
+                    removed = true;
+                string guid = agent.npcData?.npcGUID;
+                if (!string.IsNullOrEmpty(guid))
+                    GuidToAgentPtr.Remove(guid);
+            }
+            catch { }
+            return removed;
+        }
+
+        public static bool ClearTracker(string guid)
+        {
+            if (string.IsNullOrWhiteSpace(guid)) return false;
+            bool removed = false;
+            try
+            {
+                if (GuidToAgentPtr.TryGetValue(guid, out IntPtr ptr))
+                {
+                    if (ptr != IntPtr.Zero && Trackers.Remove(ptr))
+                        removed = true;
+                    GuidToAgentPtr.Remove(guid);
+                }
+            }
+            catch { }
+            return removed;
+        }
+
+        public static void ClearAllTrackers()
+        {
+            Trackers.Clear();
+            GuidToAgentPtr.Clear();
+        }
 
         public static void RecordLeaderBreadcrumb(Vector2 leaderPos, int zLevel)
         {
@@ -121,6 +162,13 @@ namespace ZedZone.SmartCompanions
 
             float now = Time.time;
             IntPtr key = agent.Pointer;
+            try
+            {
+                string guid = agent.npcData?.npcGUID;
+                if (!string.IsNullOrEmpty(guid) && key != IntPtr.Zero)
+                    GuidToAgentPtr[guid] = key;
+            }
+            catch { }
             Trackers.TryGetValue(key, out var tr);
 
             if (tr.LastSampleAt > 0f)

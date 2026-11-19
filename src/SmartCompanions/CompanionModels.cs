@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text;
 using BepInEx;
 using Il2CppInterop.Runtime.InteropTypes;
@@ -1003,6 +1004,30 @@ namespace ZedZone.SmartCompanions
             }
             return rule;
         }
+
+        public static string GetCharacterDisplayName(CharacterData data, string fallback = "")
+        {
+            if (!Il2CppSafe.IsAlive(data))
+                return fallback ?? "";
+            try
+            {
+                string nativeDisplay = TryReadNativeDisplayName(data);
+                if (!string.IsNullOrWhiteSpace(nativeDisplay))
+                    return nativeDisplay.Trim();
+            }
+            catch { }
+            try
+            {
+                string raw = data.characterName;
+                if (!string.IsNullOrWhiteSpace(raw))
+                    return raw.Trim();
+            }
+            catch { }
+            return fallback ?? "";
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static string TryReadNativeDisplayName(CharacterData data) => data.GetDisplayName();
 
         public static CompanionRuntimeState GetOrCreateCompanion(string guid, string name = "")
         {

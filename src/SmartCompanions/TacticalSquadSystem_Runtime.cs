@@ -37,7 +37,7 @@ namespace ZedZone.SmartCompanions
                     var cand = squad[i];
                     if (!Il2CppSafe.IsAliveUnity(cand) || !Il2CppSafe.IsAlive(cand.npcData))
                         continue;
-                    var candSt = CompanionConfigStore.GetOrCreateCompanion(cand.npcData.npcGUID, cand.npcData.characterData?.characterName);
+                    var candSt = CompanionConfigStore.GetOrCreateCompanion(cand.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(cand.npcData.characterData));
                     if (!CompanionConfigStore.MatchesActiveCommandChannel(candSt))
                         continue;
                     targets.Add(cand);
@@ -59,7 +59,7 @@ namespace ZedZone.SmartCompanions
                 if (!fromNetwork && MultiplayerSyncSystem.IsMultiplayerOnline && !MultiplayerSyncSystem.CanLocalPlayerCommand(ag.npcData))
                     continue;
 
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 Vector2 selfPos = ag.humanCharacter.transform.position;
                 int selfZ = Il2CppSafe.IsAlive(ag.npcData) ? ag.npcData.zLevel : playerZ;
 
@@ -78,6 +78,8 @@ namespace ZedZone.SmartCompanions
                 {
                     st.OrderAnchorPos = Vector2.zero;
                     st.OrderAnchorZ = selfZ;
+                    CampGarrisonSystem.SyncLiveStayPositionOnExit(ag, st);
+                    ag.hasNavigationTarget = false;
                 }
                 else if (order == TacticalOrderKind.FallBackHere)
                 {
@@ -91,6 +93,8 @@ namespace ZedZone.SmartCompanions
                     st.OrderAnchorPos = slot;
                     st.OrderAnchorZ = explicitAnchor.HasValue ? selfZ : playerZ;
                     placedAnchors.Add(slot);
+                    CampGarrisonSystem.SyncLiveStayPositionOnExit(ag, st);
+                    ag.hasNavigationTarget = false;
                 }
                 else
                 {
@@ -103,7 +107,8 @@ namespace ZedZone.SmartCompanions
                     ag.humanCharacter.movementInput = Vector2.zero;
                     ag.hasNavigationTarget = false;
                     ag.executeSelectPriorityGoalFlag = true;
-                    CampGarrisonSystem.SyncAnchoredNpcDataPosition(ag, slot, selfZ);
+                    CorridorNavigationHelper.ClearTracker(ag);
+                    CampGarrisonSystem.SyncAnchoredNpcDataPosition(ag, slot, selfZ, forcePositionSync: true);
                     try { ag.SelectPriorityGoalExecute(); } catch { }
                 }
 

@@ -52,12 +52,18 @@ namespace ZedZone.SmartCompanions
 
         public static string TryGetArchetypeBonusLine(CompanionArchetype arch, ChatterTopic topic, ModLanguage lang, ProfanityMode mode)
         {
+            return TryGetArchetypeBonusLine(arch, topic, lang, mode, NpcChatterPersona.Neutral);
+        }
+
+        public static string TryGetArchetypeBonusLine(CompanionArchetype arch, ChatterTopic topic, ModLanguage lang, ProfanityMode mode, NpcChatterPersona persona)
+        {
             if (lang == ModLanguage.Auto) lang = CompanionConfigStore.EffectiveLanguage;
-            bool rude = mode != ProfanityMode.Clean;
+            ProfanityMode effectiveMode = persona.HasNoveltyHeadgear ? ProfanityMode.Clean : mode;
+            bool rude = effectiveMode != ProfanityMode.Clean;
 
             if (topic == ChatterTopic.AmbientBaseIdle || topic == ChatterTopic.CampfireStory)
             {
-                return arch switch
+                string line = arch switch
                 {
                     CompanionArchetype.Veteran => CompanionConfigStore.L(lang,
                         rude ? "В старом гарнизоне учили: пока тихо — чисти ствол и береги сухой паёк, блядь." : "Старая армейская привычка: в затишье проверь сектора обстрела и запасные магазины.",
@@ -81,6 +87,7 @@ namespace ZedZone.SmartCompanions
                         rude ? "嘿嘿，瞧瞧咱们攒的这堆宝贝！再干两票就能开黑市发财了！" : "满载而归的感觉真棒！把战利品归类放好看着就舒坦。"),
                     _ => null
                 };
+                return AdaptLineForPersona(line, lang, persona);
             }
             return null;
         }

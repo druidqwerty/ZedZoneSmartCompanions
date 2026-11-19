@@ -20,14 +20,77 @@ namespace ZedZone.SmartCompanions
         private static float _nextWarningTime;
         private static Vector3 _lastRawMousePos;
         private static bool _wasMainWindowOpen;
+        private static bool _wasUiActive;
+        private static int _cursorRefreshFramesRemaining;
+        private static int _lastCursorRefreshFrame = -1;
+
+        private static void ScheduleCursorRefreshFrames(int frames)
+        {
+            if (frames > _cursorRefreshFramesRemaining)
+                _cursorRefreshFramesRemaining = frames;
+        }
+
+        private static void RestoreCursorLockForDisplayMode()
+        {
+            if (IsUsingControllerSafe() || IsLockPickingHoldingCursorSafe() || IsEndingSequenceBusySafe())
+                return;
+            CursorLockMode desired = IsWindowedModeSafe() ? CursorLockMode.None : CursorLockMode.Confined;
+            if (Cursor.lockState != desired)
+                Cursor.lockState = desired;
+        }
+
+        public static void NotifyUiInteractionOrClose(bool closedOrCollapsed = false)
+        {
+            try
+            {
+                if (Application.isBatchMode) return;
+                if (!SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture()) return;
+                if (IsEndingSequenceBusySafe()) return;
+                if (!IsGameControllerAliveSafe()) return;
+
+                SetLastKeyboardMouseActivityTimeSafe(Time.unscaledTime);
+                SetIsUsingControllerSafe(false);
+                InvalidateCursorCacheSafe();
+                ScheduleCursorRefreshFrames(closedOrCollapsed ? 4 : 2);
+
+                if (!IsLockPickingHoldingCursorSafe() && !IsMainCanvasHiddenSafe())
+                {
+                    Cursor.visible = true;
+                    RestoreCursorLockForDisplayMode();
+                }
+            }
+            catch { }
+        }
+
+        public static void ForceRestoreOsCursorFromUi()
+        {
+            try
+            {
+                if (Application.isBatchMode) return;
+                if (!SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture()) return;
+                if (IsEndingSequenceBusySafe()) return;
+                if (!IsGameControllerAliveSafe()) return;
+                if (IsLockPickingHoldingCursorSafe() || IsMainCanvasHiddenSafe()) return;
+
+                SetLastKeyboardMouseActivityTimeSafe(Time.unscaledTime);
+                SetIsUsingControllerSafe(false);
+                InvalidateCursorCacheSafe();
+                Cursor.visible = true;
+                RestoreCursorLockForDisplayMode();
+                ScheduleCursorRefreshFrames(2);
+            }
+            catch { }
+        }
 
         public static void OnFocusRegained()
         {
             try
             {
                 if (!SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture()) return;
+                if (IsEndingSequenceBusySafe()) return;
 
                 InvalidateCursorCacheSafe();
+                ScheduleCursorRefreshFrames(3);
                 Vector3 mp = Input.mousePosition;
                 bool overOverlay = SmartCompanionsUI.IsPointerOverOverlay(new Vector2(mp.x, Screen.height - mp.y));
                 bool gameplayCursorAllowed = !IsLockPickingHoldingCursorSafe() &&
@@ -36,8 +99,8 @@ namespace ZedZone.SmartCompanions
                                              IsLocalPlayerAliveSafe();
                 if (SmartCompanionsUI.ShowMainWindow || overOverlay || gameplayCursorAllowed)
                 {
-                    Cursor.lockState = CursorLockMode.None;
                     Cursor.visible = true;
+                    RestoreCursorLockForDisplayMode();
                 }
             }
             catch { }
@@ -48,45 +111,61 @@ namespace ZedZone.SmartCompanions
             try
             {
                 if (Application.isBatchMode) return;
-                if (!SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture())
+                if (!SmartCompanionsRuntimeGate.IsUiAllowedToRenderAndCapture() || IsEndingSequenceBusySafe() || !IsGameControllerAliveSafe())
                 {
                     _wasMainWindowOpen = false;
+                    _wasUiActive = false;
+                    _cursorRefreshFramesRemaining = 0;
                     return;
                 }
-                if (!IsGameControllerAliveSafe()) return;
 
                 Vector3 mp = Input.mousePosition;
                 bool mouseMoved = (mp - _lastRawMousePos).sqrMagnitude > 4f;
                 _lastRawMousePos = mp;
                 bool mouseClicked = Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(2);
-                bool uiActive = SmartCompanionsUI.ShowMainWindow ||
-                                SmartCompanionsUI.IsPointerOverOverlay(new Vector2(mp.x, Screen.height - mp.y));
+                bool hudHovered = SmartCompanionsUI.IsPointerOverOverlay(new Vector2(mp.x, Screen.height - mp.y));
+                bool chestBarVisible = SmartCompanionsUI.IsChestBarVisibleForCursor();
+                bool uiActive = SmartCompanionsUI.ShowMainWindow || chestBarVisible || hudHovered;
+                bool uiJustClosed = (_wasUiActive && !uiActive) || (_wasMainWindowOpen && !SmartCompanionsUI.ShowMainWindow);
+                bool uiJustOpened = !_wasUiActive && uiActive;
+                bool modUiInteracting = SmartCompanionsUI.ShowMainWindow || hudHovered || (_wasMainWindowOpen && !SmartCompanionsUI.ShowMainWindow);
+                bool kbmActive = modUiInteracting || mouseMoved || mouseClicked;
                 bool wasUsingController = IsUsingControllerSafe();
+                bool isUsingControllerNow = wasUsingController;
 
-                if (uiActive || mouseMoved || mouseClicked)
+                if (kbmActive)
                 {
                     SetLastKeyboardMouseActivityTimeSafe(Time.unscaledTime);
-                    if (uiActive || (wasUsingController && (mouseMoved || mouseClicked)))
+                    if (modUiInteracting || (wasUsingController && (mouseMoved || mouseClicked)))
                     {
                         SetIsUsingControllerSafe(false);
+                        isUsingControllerNow = false;
                     }
                 }
+
+                bool allowUiCursorRestore = !isUsingControllerNow || modUiInteracting;
 
                 if (uiActive)
                 {
-                    if (!Cursor.visible)
+                    if (allowUiCursorRestore && (uiJustOpened || !Cursor.visible || Cursor.lockState == CursorLockMode.Locked))
                     {
                         Cursor.visible = true;
                         InvalidateCursorCacheSafe();
+                        RestoreCursorLockForDisplayMode();
                     }
-                    if (Cursor.lockState == CursorLockMode.Locked)
-                        Cursor.lockState = CursorLockMode.None;
                 }
-                else if (_wasMainWindowOpen)
+                else if (uiJustClosed)
                 {
-                    InvalidateCursorCacheSafe();
-                    if (!IsLockPickingHoldingCursorSafe() && !IsMainCanvasHiddenSafe() && !IsUsingControllerSafe())
-                        Cursor.visible = true;
+                    if (allowUiCursorRestore)
+                    {
+                        InvalidateCursorCacheSafe();
+                        ScheduleCursorRefreshFrames(3);
+                        if (!IsLockPickingHoldingCursorSafe() && !IsMainCanvasHiddenSafe())
+                        {
+                            Cursor.visible = true;
+                            RestoreCursorLockForDisplayMode();
+                        }
+                    }
                 }
                 else if (IsLocalPlayerAliveSafe() && wasUsingController && (mouseMoved || mouseClicked))
                 {
@@ -94,10 +173,35 @@ namespace ZedZone.SmartCompanions
                     {
                         Cursor.visible = true;
                         InvalidateCursorCacheSafe();
+                        RestoreCursorLockForDisplayMode();
+                        ScheduleCursorRefreshFrames(2);
+                    }
+                }
+
+                if (_cursorRefreshFramesRemaining > 0)
+                {
+                    if (!IsUsingControllerSafe())
+                    {
+                        if (_lastCursorRefreshFrame != Time.frameCount)
+                        {
+                            _lastCursorRefreshFrame = Time.frameCount;
+                            _cursorRefreshFramesRemaining--;
+                            InvalidateCursorCacheSafe();
+                        }
+                        if (!IsLockPickingHoldingCursorSafe() && !IsMainCanvasHiddenSafe())
+                        {
+                            Cursor.visible = true;
+                            RestoreCursorLockForDisplayMode();
+                        }
+                    }
+                    else
+                    {
+                        _cursorRefreshFramesRemaining = 0;
                     }
                 }
 
                 _wasMainWindowOpen = SmartCompanionsUI.ShowMainWindow;
+                _wasUiActive = uiActive;
             }
             catch { }
         }
@@ -107,9 +211,25 @@ namespace ZedZone.SmartCompanions
             try
             {
                 if (!SmartCompanionsRuntimeGate.IsGameplayWorldReady()) return false;
+                if (IsEndingSequenceBusySafe()) return false;
                 if (!IsLocalPlayerAliveSafe()) return false;
                 if (IsTypingChatSafe()) return false;
                 if (GUIUtility.keyboardControl != 0) return false;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool CanProcessSortBaseHotkey()
+        {
+            try
+            {
+                if (!CanProcessWorldHotkeys()) return false;
+                if (SmartCompanionsUI.ShowMainWindow) return false;
+                if (IsLockPickingHoldingCursorSafe()) return false;
                 return true;
             }
             catch
@@ -122,10 +242,11 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
-                if (!CanProcessWorldHotkeys()) return false;
-                if (SmartCompanionsUI.ShowMainWindow) return false;
-                if (IsLockPickingHoldingCursorSafe()) return false;
-                if (IsLootInventoryPanelActiveSafe()) return false;
+                if (!CanProcessSortBaseHotkey()) return false;
+                // Allow F7 (Sort/Unload Base) even while LootInventoryPanel._instance is open;
+                // keep other world order hotkeys gated while loot panel is open.
+                if (IsLootInventoryPanelActiveSafe())
+                    return Input.GetKeyDown(KeyCode.F7);
                 return true;
             }
             catch
@@ -244,8 +365,30 @@ namespace ZedZone.SmartCompanions
             catch { return false; }
         }
 
+        private static bool IsEndingSequenceBusySafe()
+        {
+            try { return ReadSecondIslandEndingBusy(); }
+            catch { return false; }
+        }
+
+        private static bool IsWindowedModeSafe()
+        {
+            try { return ReadIsWindowedMode(); }
+            catch { return false; }
+        }
+
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static void CallInvalidateCursorCache() => MouseController.InvalidateCursorCache();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadSecondIslandEndingBusy() => SecondIslandEndingDirector.Busy;
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadIsWindowedMode()
+        {
+            var gc = GameController.instance;
+            return Il2CppSafe.IsAliveUnity(gc) && Il2CppSafe.IsAlive(gc.gameSettings) && gc.gameSettings.windowedBool;
+        }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static bool ReadLockPickingIsHoldingCursor() => LockPickingPanel.isHoldingCursor;

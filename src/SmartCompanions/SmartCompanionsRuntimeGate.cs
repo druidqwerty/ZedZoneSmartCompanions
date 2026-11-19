@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using HarmonyLib;
+using UnityEngine.SceneManagement;
 
 namespace ZedZone.SmartCompanions
 {
@@ -71,6 +72,8 @@ namespace ZedZone.SmartCompanions
                     return false;
                 if (!IsInGameControllerAliveSafe() || IsInGameReturningToMainMenuSafe())
                     return false;
+                if (!IsActiveGameSceneSafe())
+                    return false;
                 if (!IsMapControllerAliveSafe())
                     return false;
                 if (IsAnyLoadingScreenOrTransitionActive())
@@ -109,6 +112,10 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
+                if (!IsInGameControllerAliveSafe() || IsInGameReturningToMainMenuSafe())
+                    return false;
+                if (!IsActiveGameSceneSafe())
+                    return false;
                 return IsLocalPlayerAliveSafe() && !IsAnyLoadingScreenOrTransitionActive();
             }
             catch
@@ -256,6 +263,18 @@ namespace ZedZone.SmartCompanions
             }
         }
 
+        private static bool IsActiveGameSceneSafe()
+        {
+            try
+            {
+                return ReadActiveGameSceneIsGaming();
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
         private static bool IsGameControllerSoftPausedSafe()
         {
             try
@@ -386,6 +405,15 @@ namespace ZedZone.SmartCompanions
         {
             var gc = GameController.instance;
             return !Il2CppSafe.IsAliveUnity(gc) || gc.isSoftPaused;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadActiveGameSceneIsGaming()
+        {
+            string sceneName = SceneManager.GetActiveScene().name;
+            if (string.IsNullOrEmpty(sceneName))
+                return true;
+            return string.Equals(sceneName, "Gaming", StringComparison.OrdinalIgnoreCase);
         }
     }
 

@@ -8,6 +8,7 @@ namespace ZedZone.SmartCompanions
     {
         private static readonly Dictionary<int, string> RecentTargetEngageOwner = new Dictionary<int, string>();
         private static readonly Dictionary<IntPtr, float> ProvokedHumanTargets = new Dictionary<IntPtr, float>();
+        private static readonly Dictionary<IntPtr, float> LastCombatGoalPromoteTime = new Dictionary<IntPtr, float>();
         private static float _lastEngageDictCleanupTime = 0f;
 
         public static void RecordProvokedHuman(BasicCharacterController actor)
@@ -138,6 +139,7 @@ namespace ZedZone.SmartCompanions
                 // cancellation. It writes bare Leaf to npcData/agentState itself.
                 agent.npcData.ExecuteNPCCommand("Combat." + combat);
                 if (weapon != null) agent.npcData.ExecuteNPCCommand("WeaponPreference." + weapon);
+                st.LastWeaponSwitchTime = -999f;
                 agent.executeSelectPriorityGoalFlag = true;
                 if (st.Doctrine == TacticalDoctrine.Passive)
                 {
@@ -165,7 +167,7 @@ namespace ZedZone.SmartCompanions
                     return;
                 }
 
-                var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID, agent.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(agent.npcData.characterData));
                 if (st.Doctrine == TacticalDoctrine.Passive)
                 {
                     score *= 0.05f;
@@ -275,7 +277,7 @@ namespace ZedZone.SmartCompanions
                 if (MultiplayerSyncSystem.IsMultiplayerOnline && !MultiplayerSyncSystem.CanLocalPlayerCommand(ag.npcData))
                     continue;
 
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 if (!Il2CppSafe.IsAliveUnity(specificAgent) && !CompanionConfigStore.MatchesActiveCommandChannel(st))
                     continue;
                 st.BattleCryBuffUntil = now + 60f;
@@ -324,6 +326,8 @@ namespace ZedZone.SmartCompanions
                 _lastEngageDictCleanupTime = now;
                 if (RecentTargetEngageOwner.Count > 250)
                     RecentTargetEngageOwner.Clear();
+                if (LastCombatGoalPromoteTime.Count > 250)
+                    LastCombatGoalPromoteTime.Clear();
             }
 
             var teammates = SmartChatterSystem.GetActiveTeammateAgents();
@@ -338,7 +342,7 @@ namespace ZedZone.SmartCompanions
                     agent.humanCharacter.deadFlag || !Il2CppSafe.IsAlive(agent.npcData))
                     continue;
 
-                var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID, agent.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(agent.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(agent.npcData.characterData));
                 // Repair invalid legacy save commands even when smart combat is disabled.
                 CombatResponse.NormalizeNativeCommands(agent);
                 if (!CompanionConfigStore.EnableSmartCombat) continue;
@@ -445,7 +449,7 @@ namespace ZedZone.SmartCompanions
 
             Vector2 targetPos = target.transform.position;
             float distToTarget = Vector2.Distance(selfPos, targetPos);
-            var targetName = target.characterData?.characterName ?? CompanionConfigStore.L("Враг", "Hostile", "敌方目标");
+            var targetName = CompanionConfigStore.GetCharacterDisplayName(target.characterData, CompanionConfigStore.L("Враг", "Hostile", "敌方目标"));
             st.CurrentTaskText = CompanionConfigStore.L(
                 $"Бой: {targetName} ({distToTarget:F1}м)",
                 $"Combat: {targetName} ({distToTarget:F1}m)",
@@ -499,6 +503,8 @@ namespace ZedZone.SmartCompanions
             }
 
             if (selfInVehicle) return;
+
+            TryPromoteCombatGoalIfSuperseded(agent, st, leaderInVehicle, now);
 
             if (now - st.LastWeaponSwitchTime > 2.0f)
             {
@@ -680,23 +686,61 @@ namespace ZedZone.SmartCompanions
                 var hc = agent.humanCharacter;
                 if (st.Doctrine == TacticalDoctrine.Passive || agent.IsTeammateCombatSuppressed()) return;
                 bool allowRanged = CombatResponse.AllowsRangedResponse(st, agent.npcData.weaponPreference);
-                if (Il2CppSafe.IsAliveUnity(hc.rangedWeapon) && Il2CppSafe.IsAlive(hc.rangedWeapon.weaponData))
+                var curWeapon = hc.characterData?.characterEquipmentData?.currentWeaponItemData;
+                bool hasHeldRanged = Il2CppSafe.IsAliveUnity(hc.rangedWeapon) &&
+                    Il2CppSafe.IsAlive(hc.rangedWeapon.weaponData);
+                bool rangedSelectedInSlot = hasHeldRanged &&
+                    (!Il2CppSafe.IsAlive(curWeapon) || curWeapon.Pointer == hc.rangedWeapon.weaponData.Pointer);
+                bool unlockedRangedOverriddenByLock = rangedSelectedInSlot &&
+                    RangedEngagementPolicy.HasAnyWeaponSlotLockSafe(agent) &&
+                    !RangedEngagementPolicy.IsInLockedWeaponSlotSafe(agent, hc.rangedWeapon.weaponData) &&
+                    RangedEngagementPolicy.HasUsableLockedRangedSlot(agent, hc);
+                bool rangedActivelyDrawn = rangedSelectedInSlot &&
+                    hc.rangedWeapon.gameObject.activeInHierarchy &&
+                    !hc.holsterWeapon;
+                bool preferMeleeLoadout = st.Doctrine == TacticalDoctrine.StealthMelee ||
+                    (st.Loadout == PreferredLoadout.MeleeFirst && distToTarget < 6.2f);
+
+                if (rangedSelectedInSlot && !unlockedRangedOverriddenByLock)
                 {
                     int loaded = BasicRangedWeapon.GetLoadedAmmo(hc.rangedWeapon.weaponData);
                     bool jammed = hc.rangedWeapon.isMalfunction;
                     bool reloading = hc.reloadingMagazineFlag;
-                    bool preferMelee = st.Doctrine == TacticalDoctrine.StealthMelee ||
-                        (st.Loadout == PreferredLoadout.MeleeFirst && distToTarget < 6.2f) ||
+                    bool preferMelee = preferMeleeLoadout ||
                         (distToTarget < 1.95f && (loaded == 0 || jammed || reloading));
 
                     if (preferMelee)
                     {
                         var bestMelee = agent.FindBestMeleeWeapon(out float bestVal);
-                        if (Il2CppSafe.IsAlive(bestMelee))
+                        if (Il2CppSafe.IsAlive(bestMelee) &&
+                            (!Il2CppSafe.IsAlive(curWeapon) || curWeapon.Pointer != bestMelee.Pointer) &&
+                            RangedEngagementPolicy.CanBringWeaponIntoSlotSafe(agent, bestMelee))
+                        {
+                            bool hasLocks = RangedEngagementPolicy.HasAnyWeaponSlotLockSafe(agent);
+                            bool allowMeleeDraw = !hasLocks ||
+                                (RangedEngagementPolicy.IsInWeaponSlotSafe(agent, bestMelee) &&
+                                 (!RangedEngagementPolicy.IsInLockedWeaponSlotSafe(agent, hc.rangedWeapon.weaponData) ||
+                                  (distToTarget < 1.95f && (loaded == 0 || jammed || reloading))));
+                            if (allowMeleeDraw)
+                            {
+                                st.LastWeaponSwitchTime = now;
+                                agent.DrawWeaponViaSlot(bestMelee);
+                                SmartChatterSystem.Speak(agent, ChatterTopic.CombatSwitchMelee, minCooldown: 6.5f);
+                            }
+                        }
+                    }
+                    else if (!rangedActivelyDrawn)
+                    {
+                        // Selected ranged weapon is already in hand/slot (e.g. merely holstered by FollowLeader);
+                        // unholster in place with PullOutWeapon instead of recreating BasicRangedWeapon via EquipBestRangedWeapon.
+                        bool inFollow = Il2CppSafe.IsAlive(agent.currentGoal) &&
+                            agent.currentGoal.TryCast<GOAPGoal_FollowLeader>() != null;
+                        if (!inFollow && !hc.isRunning && !hc.weaponHolsteredByBackpack &&
+                            !hc.weaponHolsteredByDowned && !hc.weaponHolsteredByAid &&
+                            !jammed && !reloading)
                         {
                             st.LastWeaponSwitchTime = now;
-                            agent.DrawWeaponViaSlot(bestMelee);
-                            SmartChatterSystem.Speak(agent, ChatterTopic.CombatSwitchMelee, minCooldown: 6.5f);
+                            try { hc.PullOutWeapon(); } catch { }
                         }
                     }
                     else if (loaded == 0 && !reloading)
@@ -706,15 +750,76 @@ namespace ZedZone.SmartCompanions
                             SmartChatterSystem.Speak(agent, ChatterTopic.CombatLowAmmo, minCooldown: 12f);
                     }
                 }
-                else if (allowRanged && distToTarget > 3.8f && !hc.reloadingMagazineFlag)
+                else if (allowRanged && !preferMeleeLoadout && distToTarget > 3.8f && !hc.reloadingMagazineFlag)
                 {
-                    st.LastWeaponSwitchTime = now; // Bound failed inventory/equip attempts too.
-                    if (GOAPAction_RangeAttack.EquipBestRangedWeapon(agent))
+                    bool lockedToMeleeOnly = RangedEngagementPolicy.HasAnyWeaponSlotLockSafe(agent) &&
+                        Il2CppSafe.IsAlive(curWeapon) &&
+                        RangedEngagementPolicy.IsInLockedWeaponSlotSafe(agent, curWeapon) &&
+                        RangedEngagementPolicy.ReadyRange(hc, agent) <= 0f;
+                    if (!lockedToMeleeOnly && RangedEngagementPolicy.HasEquippableRangedWeaponRespectingLocks(agent, hc))
                     {
-                        st.LastWeaponSwitchTime = now;
-                        SmartChatterSystem.Speak(agent, ChatterTopic.CombatSwitchRanged, minCooldown: 7.5f);
+                        st.LastWeaponSwitchTime = now; // Bound failed inventory/equip attempts too.
+                        if (GOAPAction_RangeAttack.EquipBestRangedWeapon(agent))
+                        {
+                            st.LastWeaponSwitchTime = now;
+                            agent.goalReselectDeferred = true;
+                            agent.executeSelectPriorityGoalFlag = true;
+                            SmartChatterSystem.Speak(agent, ChatterTopic.CombatSwitchRanged, minCooldown: 7.5f);
+                        }
                     }
                 }
+            }
+            catch { }
+        }
+
+        private static void TryPromoteCombatGoalIfSuperseded(
+            GOAPAgent agent, CompanionRuntimeState st, bool leaderInVehicle, float now)
+        {
+            if (st == null || leaderInVehicle || st.HasAnyPhysicalTask ||
+                st.RosterMode == CompanionRosterMode.CampGarrison || st.IsTransientVehicleOverflow)
+                return;
+            if (ExpeditionSystems.ShouldYieldToVanillaVehicleBoarding(agent, st))
+                return;
+            if (Il2CppSafe.IsAlive(agent.forcedGoal) || Il2CppSafe.IsAlive(agent.forcedAction))
+                return;
+            if (st.ActiveOrder == TacticalOrderKind.FallBackHere && !st.FallBackArrived)
+                return;
+
+            bool idleOrFollowing = agent.currentGoal == null ||
+                agent.currentGoal.TryCast<GOAPGoal_FollowLeader>() != null;
+            if (!idleOrFollowing)
+                return;
+            if (!RangedEngagementPolicy.ShouldSupersedeFollowForCombat(agent, agent.agentState))
+                return;
+
+            if (LastCombatGoalPromoteTime.TryGetValue(agent.Pointer, out float lastAt) && now - lastAt < 0.40f)
+                return;
+            LastCombatGoalPromoteTime[agent.Pointer] = now;
+
+            try
+            {
+                if (agent.currentGoal != null)
+                {
+                    CorridorNavigationHelper.ClearTracker(agent);
+                    agent.humanCharacter.movementInput = Vector2.zero;
+                    agent.hasNavigationTarget = false;
+                }
+                agent.UpdateAgentState();
+                if (Il2CppSafe.IsAlive(agent.agentState))
+                {
+                    agent.agentState.SetState("isThreatened", true);
+                    agent.agentState.SetState("isSafe", false);
+                    var target = agent.mostThreateningCharacter;
+                    if (Il2CppSafe.IsAliveUnity(target) && target.TryCast<HumanCharacterController>() != null)
+                    {
+                        agent.agentState.SetState("hasTargetEnemy", true);
+                        agent.agentState.SetState("targetEnemyGameObject", target.gameObject);
+                        agent.agentState.SetState("targetEnemyInSight", true);
+                    }
+                }
+                agent.goalReselectDeferred = true;
+                agent.executeSelectPriorityGoalFlag = true;
+                agent.SelectPriorityGoalExecute();
             }
             catch { }
         }

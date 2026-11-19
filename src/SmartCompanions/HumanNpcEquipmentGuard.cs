@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using HarmonyLib;
 using UnityEngine;
 using ZedZone.Net;
@@ -24,8 +25,28 @@ namespace ZedZone.SmartCompanions
     {
         private static readonly HashSet<string> LoggedIssues = new HashSet<string>();
 
+        internal static bool IsInGameSessionActive()
+        {
+            try
+            {
+                return ReadInGameControllerAlive();
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool ReadInGameControllerAlive()
+        {
+            var igc = InGameController.instance;
+            return Il2CppSafe.IsAliveUnity(igc) && !igc.isReturningToMainMenu;
+        }
+
         internal static bool IsNonLocalPlayerHuman(HumanCharacterController human)
         {
+            if (!IsInGameSessionActive()) return false;
             if (!Il2CppSafe.IsAliveUnity(human)) return false;
             try
             {
@@ -142,6 +163,7 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
+                if (!HumanNpcEquipmentGuard.IsInGameSessionActive()) return;
                 HumanNpcEquipmentGuard.EnsureBackingInventory(__instance);
             }
             catch { }
@@ -240,6 +262,7 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
+                if (!HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance)) return;
                 HumanNpcEquipmentGuard.EnsureBackingInventory(__instance);
             }
             catch { }
@@ -272,7 +295,9 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
+                if (!HumanNpcEquipmentGuard.IsInGameSessionActive()) return true;
                 if (!Il2CppSafe.IsAliveUnity(__instance)) return false;
+                if (!HumanNpcEquipmentGuard.IsNonLocalPlayerHuman(__instance)) return true;
                 var weapon = __instance.rangedWeapon;
                 if (!Il2CppSafe.IsAliveUnity(weapon) || !Il2CppSafe.IsAliveUnity(weapon.weaponAttr))
                     return false;

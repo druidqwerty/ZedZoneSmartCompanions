@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace ZedZone.SmartCompanions
@@ -103,6 +104,19 @@ namespace ZedZone.SmartCompanions
             catch { return false; }
         }
 
+        private static void ClearNonCloseThreatDuringSorting(GOAPAgent agent, Reaction reaction)
+        {
+            var currentThreat = agent.GetMostThreatCharacter();
+            if (!Il2CppSafe.IsAliveUnity(currentThreat) ||
+                currentThreat.deadFlag || !currentThreat.enabled || !currentThreat.gameObject.activeInHierarchy ||
+                !HasCloseLineOfSightThreat(agent, currentThreat, 12f))
+            {
+                agent.mostThreateningCharacter = null;
+                if (reaction != null)
+                    reaction.Target = IntPtr.Zero;
+            }
+        }
+
         public static void Refresh(GOAPAgent agent, CompanionRuntimeState state, float now)
         {
             if (state == null || state.Doctrine == TacticalDoctrine.Passive ||
@@ -110,15 +124,26 @@ namespace ZedZone.SmartCompanions
                 !Il2CppSafe.IsAliveUnity(agent.humanCharacter) || agent.humanCharacter.deadFlag) return;
             try
             {
-                if (agent.IsTeammateCombatSuppressed() || agent.downedStateFlag || agent.humanCharacter.isSleeping) return;
+                if (agent.downedStateFlag || agent.humanCharacter.isSleeping) return;
                 int id = agent.GetInstanceID();
                 if (!Reactions.TryGetValue(id, out var reaction))
                 {
                     reaction = new Reaction();
                     Reactions.Add(id, reaction);
                 }
+                if (agent.IsTeammateCombatSuppressed())
+                {
+                    if (state.IsSortingActive)
+                        ClearNonCloseThreatDuringSorting(agent, reaction);
+                    return;
+                }
                 reaction.LastSeen = now;
-                if (now < reaction.NextScan) return;
+                if (now < reaction.NextScan)
+                {
+                    if (state.IsSortingActive)
+                        ClearNonCloseThreatDuringSorting(agent, reaction);
+                    return;
+                }
                 reaction.NextScan = now + PerceptionInterval;
 
                 float originalRange = agent.defaultSightRange;
@@ -160,15 +185,23 @@ namespace ZedZone.SmartCompanions
                 IntPtr targetPointer = Il2CppSafe.IsAliveUnity(target) && !target.deadFlag &&
                     target.enabled && target.gameObject.activeInHierarchy
                     ? target.Pointer : IntPtr.Zero;
+
+                if (state.IsSortingActive)
+                {
+                    // Distant or wall-blocked zombies (> 12m or no clear LoS) must never hijack or abort base unloading/sorting.
+                    if (targetPointer == IntPtr.Zero || !HasCloseLineOfSightThreat(agent, target, 12f))
+                    {
+                        agent.mostThreateningCharacter = null;
+                        reaction.Target = IntPtr.Zero;
+                        return;
+                    }
+                    // Genuine close LoS threat: pause sorting smoothly without dumping CarryBuffer back to bags so CarryBuffer resumes after combat.
+                    PauseSortingForCombat(agent, state);
+                }
+
                 agent.mostThreateningCharacter = targetPointer != IntPtr.Zero ? target : null;
                 if (targetPointer != IntPtr.Zero)
                 {
-                    if (state.IsSortingActive)
-                    {
-                        BaseSortingSystem.FlushCarryBufferSafely(state);
-                        state.IsSortingActive = false;
-                        state.SortingPhase = 0;
-                    }
                     if (Il2CppSafe.IsAlive(agent.agentState))
                     {
                         agent.agentState.SetState("isThreatened", true);
@@ -200,6 +233,7 @@ namespace ZedZone.SmartCompanions
                             }
                         }
                         agent.SelectPriorityGoal();
+                        agent.goalReselectDeferred = true;
                     }
                 }
                 reaction.Target = targetPointer;
@@ -217,6 +251,39 @@ namespace ZedZone.SmartCompanions
             {
                 ReportFailure(now, error);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal static bool HasCloseLineOfSightThreat(GOAPAgent agent, BasicCharacterController target, float maxDistance)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAliveUnity(agent.humanCharacter)) return false;
+            if (!Il2CppSafe.IsAliveUnity(target) || target.deadFlag || !target.enabled || !target.gameObject.activeInHierarchy)
+                return false;
+            try
+            {
+                Vector3 selfPos = agent.humanCharacter.transform.position;
+                Vector3 tgtPos = target.transform.position;
+                float dist = Vector2.Distance(selfPos, tgtPos);
+                if (dist > maxDistance) return false;
+                if (dist <= 4.5f) return true;
+                return agent.HasClearFireLine(selfPos, tgtPos);
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
+        private static void PauseSortingForCombat(GOAPAgent agent, CompanionRuntimeState state)
+        {
+            if (state == null) return;
+            float t = Time.time;
+            state.ArrivalInteractStarted = false;
+            if (Il2CppSafe.IsAliveUnity(agent?.humanCharacter))
+                state.LastMovedPos = agent.humanCharacter.transform.position;
+            state.LastMovedTime = t;
+            state.LastProgressTime = t;
+            state.SortingStateStartTime = t;
         }
 
         private static void ReportFailure(float now, Exception error)

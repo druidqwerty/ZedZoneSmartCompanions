@@ -229,7 +229,7 @@ namespace ZedZone.SmartCompanions
                     continue;
 
                 float distSq = hasPlayer ? ((Vector2)ag.humanCharacter.transform.position - playerPos).sqrMagnitude : i;
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 bool notGarrison = st == null || st.RosterMode != CompanionRosterMode.CampGarrison;
 
                 if (CompanionConfigStore.MatchesActiveCommandChannel(st) && notGarrison)
@@ -372,7 +372,7 @@ namespace ZedZone.SmartCompanions
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData)) continue;
                 var cd = ag.npcData.characterData;
                 var status = cd?.characterStatusData;
-                string name = cd?.characterName ?? $"NPC #{i + 1}";
+                string name = CompanionConfigStore.GetCharacterDisplayName(cd, $"NPC #{i + 1}");
                 var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, name);
 
                 var cRect = new Rect(0, i * (cardH + 8f), viewRect.width, cardH);

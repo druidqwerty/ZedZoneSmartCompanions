@@ -92,7 +92,7 @@ namespace ZedZone.SmartCompanions
 
                 Vector2 playerPos = gc.playerCharacter.transform.position;
                 sbyte playerFloor = gc.playerCharacter.characterData != null ? gc.playerCharacter.characterData.zLevel : (sbyte)0;
-                float maxPinnedDist = silentIfEmpty ? 32f : 75f;
+                float maxPinnedDist = silentIfEmpty ? 32f : 45f;
                 bool usePinnedZone = !explicitSearchCenter.HasValue &&
                     CompanionConfigStore.LootZonePinned &&
                     CompanionConfigStore.LootZoneFloor == playerFloor &&
@@ -147,7 +147,7 @@ namespace ZedZone.SmartCompanions
                 }
 
                 var stops = DiscoverPhysicalLootStops(center, radius, floor, alreadyClaimedKeys, isPassiveAutoLoot: silentIfEmpty);
-                if (silentIfEmpty && !usePinnedZone)
+                if (silentIfEmpty)
                 {
                     Vector2 leaderPos = playerPos;
                     if (Il2CppSafe.IsAliveUnity(specificAgent) &&
@@ -156,7 +156,8 @@ namespace ZedZone.SmartCompanions
                     {
                         leaderPos = specificAgent.leaderCharacter.transform.position;
                     }
-                    const float maxPassiveStopDistSqr = 16.5f * 16.5f;
+                    float maxDist = usePinnedZone ? 45.0f : 16.5f;
+                    float maxPassiveStopDistSqr = maxDist * maxDist;
                     for (int i = stops.Count - 1; i >= 0; i--)
                     {
                         if (stops[i] == null || (stops[i].WorldPos - leaderPos).sqrMagnitude > maxPassiveStopDistSqr)
@@ -188,7 +189,7 @@ namespace ZedZone.SmartCompanions
                     int wIdx = wTurn % workers.Count;
                     wTurn++;
                     var worker = workers[wIdx];
-                    var st = CompanionConfigStore.GetOrCreateCompanion(worker.npcData.npcGUID, worker.npcData.characterData?.characterName);
+                    var st = CompanionConfigStore.GetOrCreateCompanion(worker.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(worker.npcData.characterData));
                     if (st.LootQueue.Count >= 6) continue;
 
                     int bestIdx = 0;
@@ -218,7 +219,7 @@ namespace ZedZone.SmartCompanions
                 for (int w = 0; w < workers.Count; w++)
                 {
                     var ag = workers[w];
-                    var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                    var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                     if (st.LootQueue.Count > 0 && !st.IsLootingActive)
                     {
                         st.IsLootingActive = true;

@@ -13,12 +13,24 @@ namespace ZedZone.SmartCompanions
                 return false;
             if (!agent.IsPlayerTeammate()) return false;
 
-            if (CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID ?? "", out var st) && st != null)
+            CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID ?? "", out var st);
+            if (st != null && st.HasAnyPhysicalTask)
+                return false;
+
+            // Yield immediately to native vehicle boarding/driving BEFORE tactical goal override
+            // or formation/spacing logic, regardless of ActiveFormation.
+            if (ExpeditionSystems.ShouldYieldToVanillaVehicleBoarding(agent, st))
             {
-                if (st.HasAnyPhysicalTask) return false;
-                if (st.ActiveOrder != TacticalOrderKind.Follow)
-                    return TickTacticalGoalOverride(agent);
+                if (CorridorNavigationHelper.ClearTracker(agent))
+                {
+                    agent.humanCharacter.movementInput = Vector2.zero;
+                    agent.hasNavigationTarget = false;
+                }
+                return false;
             }
+
+            if (st != null && st.ActiveOrder != TacticalOrderKind.Follow)
+                return TickTacticalGoalOverride(agent);
 
             var leader = Il2CppSafe.IsAliveUnity(agent.leaderCharacter) && !agent.leaderCharacter.deadFlag
                 ? agent.leaderCharacter
@@ -26,10 +38,16 @@ namespace ZedZone.SmartCompanions
             if (!Il2CppSafe.IsAliveUnity(leader) || leader.deadFlag) return false;
 
             var hc = agent.humanCharacter;
-            // Yield to native vehicle boarding / seated state whenever leader or companion is in a vehicle!
             if (leader.isDriving || Il2CppSafe.IsAliveUnity(leader.drivingVehicle) ||
                 hc.isDriving || Il2CppSafe.IsAliveUnity(hc.drivingVehicle))
+            {
+                if (CorridorNavigationHelper.ClearTracker(agent))
+                {
+                    hc.movementInput = Vector2.zero;
+                    agent.hasNavigationTarget = false;
+                }
                 return false;
+            }
 
             if (Il2CppSafe.IsAlive(leader.characterData) && leader.characterData.zLevel != agent.npcData.zLevel &&
                 (st == null || (st.RosterMode != CompanionRosterMode.CampGarrison && !st.IsTransientVehicleOverflow)))
@@ -82,6 +100,13 @@ namespace ZedZone.SmartCompanions
 
             bool inCorridor = CorridorNavigationHelper.IsNarrowCorridorAt(agent, leaderPos, fwd, 1.30f) ||
                               CorridorNavigationHelper.IsNarrowCorridorAt(agent, selfPos, leaderPos - selfPos, 1.20f);
+
+            // In default Free + Normal mode when not inside a narrow corridor, yield directly to native FollowLeader.
+            if (!customFormation && !customDist && !inCorridor)
+            {
+                CorridorNavigationHelper.ClearTracker(agent);
+                return false;
+            }
 
             Vector2 desired = inCorridor
                 ? CorridorNavigationHelper.GetTrailSingleFileSlot(leaderPos, fwd, myIdx, 1.35f)
@@ -137,20 +162,12 @@ namespace ZedZone.SmartCompanions
                 }
             }
 
-            // In Free + Normal distance mode: never push companions laterally into corridor walls; let native A* FollowLeader run!
+            // In default Free + Normal mode, only step in for brief narrow-corridor yield; otherwise
+            // yield cleanly to vanilla FollowLeader instead of hijacking every movement step.
             if (!customFormation && !customDist)
             {
-                if (inCorridor) return false;
-                bool stacked = false;
-                for (int i = 0; i < ScratchAllyPos.Count; i++)
-                {
-                    if ((selfPos - ScratchAllyPos[i]).sqrMagnitude < 0.95f * 0.95f)
-                    {
-                        stacked = true;
-                        break;
-                    }
-                }
-                if (!stacked) return false;
+                CorridorNavigationHelper.ClearTracker(agent);
+                return false;
             }
 
             desired = CorridorNavigationHelper.ClampToWalkableTarget(agent, desired, leaderPos);
@@ -168,6 +185,42 @@ namespace ZedZone.SmartCompanions
                 agent.LookAtPositionSmoothCompat(leaderPos + fwd * 4f, 9f);
             }
             catch { }
+            return true;
+        }
+
+        // Called from FollowLeader.Execute when an active combat threat exists: if combat
+        // should supersede FollowLeader, stop FollowLeader from marching the companion out of
+        // line-of-sight or calling MoveTo_Direct -> HolsterWeapon, and force immediate replan.
+        public static bool TryHoldFollowLeaderForCombat(GOAPAgent agent)
+        {
+            if (!CompanionConfigStore.EnableSmartCombat || !Il2CppSafe.IsAliveUnity(agent) ||
+                !Il2CppSafe.IsAlive(agent.npcData) || !Il2CppSafe.IsAliveUnity(agent.humanCharacter) ||
+                agent.humanCharacter.deadFlag || !agent.IsPlayerTeammate())
+                return false;
+
+            CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID ?? "", out var st);
+            if (st != null && (st.HasAnyPhysicalTask ||
+                               st.RosterMode == CompanionRosterMode.CampGarrison ||
+                               st.IsTransientVehicleOverflow))
+                return false;
+
+            if (ExpeditionSystems.ShouldYieldToVanillaVehicleBoarding(agent, st))
+                return false;
+
+            var leader = Il2CppSafe.IsAliveUnity(agent.leaderCharacter) && !agent.leaderCharacter.deadFlag
+                ? agent.leaderCharacter
+                : GameController.instance?.playerCharacter;
+            if (Il2CppSafe.IsAliveUnity(leader) && (leader.isDriving || Il2CppSafe.IsAliveUnity(leader.drivingVehicle)))
+                return false;
+
+            if (!RangedEngagementPolicy.ShouldSupersedeFollowForCombat(agent, agent.agentState))
+                return false;
+
+            CorridorNavigationHelper.ClearTracker(agent);
+            agent.humanCharacter.movementInput = Vector2.zero;
+            agent.hasNavigationTarget = false;
+            agent.goalReselectDeferred = true;
+            agent.executeSelectPriorityGoalFlag = true;
             return true;
         }
 

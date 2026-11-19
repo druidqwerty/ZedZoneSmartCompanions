@@ -36,7 +36,8 @@ namespace ZedZone.SmartCompanions
         private static bool _hostSendEquipResolved;
 
         public static bool IsAtCampOrPlayerBase(Vector2 pos, CompanionRuntimeState st) =>
-            (st != null && st.RosterMode == CompanionRosterMode.CampGarrison) ||
+            (st != null && st.RosterMode == CompanionRosterMode.CampGarrison &&
+             (!st.HasHomeAnchor || Vector2.Distance(pos, st.HomeAnchorPos) <= 32f)) ||
             AutoLootSystem.IsPositionNearPlayerBase(pos, 28f);
 
         public static bool DoesAgentNeedNativeSurvival(GOAPAgent agent)
@@ -50,7 +51,11 @@ namespace ZedZone.SmartCompanions
                      agent.currentGoal.TryCast<GOAPGoal_StayAlive>() != null))
                     return true;
 
-                var status = agent.npcData.characterData?.characterStatusData;
+                var cd = agent.npcData.characterData;
+                if (HasTreatableInjuryState(cd, out _, out _))
+                    return true;
+
+                var status = cd?.characterStatusData;
                 if (Il2CppSafe.IsAlive(status))
                 {
                     float maxH = status.maxHunger > 1f ? status.maxHunger : 100f;
@@ -70,6 +75,126 @@ namespace ZedZone.SmartCompanions
             {
                 return false;
             }
+        }
+
+        public static bool ShouldSuppressVanillaFoodWaterSearch(GOAPAgent agent, CompanionRuntimeState st = null) =>
+            ShouldSuppressVanillaFoodWaterSearchCore(agent, st, null);
+
+        public static bool ShouldSuppressVanillaFoodWaterSearch(GOAPAgent agent, CompanionRuntimeState st, bool forWater) =>
+            ShouldSuppressVanillaFoodWaterSearchCore(agent, st, forWater);
+
+        private static bool ShouldSuppressVanillaFoodWaterSearchCore(GOAPAgent agent, CompanionRuntimeState st, bool? forWater)
+        {
+            if (MultiplayerSyncSystem.IsMultiplayerClient ||
+                !CompanionConfigStore.EnableSmartCombat ||
+                !CompanionConfigStore.EnableAutoBioAndSleep)
+                return false;
+
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData) ||
+                !Il2CppSafe.IsAliveUnity(agent.humanCharacter) || agent.humanCharacter.deadFlag)
+                return false;
+
+            if (st == null && !string.IsNullOrEmpty(agent.npcData.npcGUID))
+                CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID, out st);
+            if (st == null || st.IsDismissedOrNotInTeam || st.IsSortingActive)
+                return false;
+
+            Vector2 pos = agent.humanCharacter.transform.position;
+            bool canCoverCamp = !BaseWorkManager.Paused &&
+                                (st.RosterMode == CompanionRosterMode.CampGarrison ||
+                                 (st.ActiveOrder == TacticalOrderKind.Follow && st.AllowBaseChores)) &&
+                                IsAtCampOrPlayerBase(pos, st);
+            if (canCoverCamp)
+                return true;
+
+            var cd = agent.npcData.characterData;
+            if (forWater.HasValue)
+                return HasOwnSupplyForNeed(agent, cd, agent.npcData, forWater.Value);
+
+            var status = cd?.characterStatusData;
+            if (Il2CppSafe.IsAlive(status))
+            {
+                float maxH = status.maxHunger > 1f ? status.maxHunger : 100f;
+                float maxT = status.maxThirst > 1f ? status.maxThirst : 100f;
+                bool hungry = (status.hunger / maxH) < 0.50f;
+                bool thirsty = (status.thirst / maxT) < 0.50f;
+                if (hungry && !HasOwnSupplyForNeed(agent, cd, agent.npcData, forThirst: false)) return false;
+                if (thirsty && !HasOwnSupplyForNeed(agent, cd, agent.npcData, forThirst: true)) return false;
+            }
+            return HasOwnSupplyForNeed(agent, cd, agent.npcData, forThirst: false) &&
+                   HasOwnSupplyForNeed(agent, cd, agent.npcData, forThirst: true);
+        }
+
+        private static bool HasOwnSupplyForNeed(GOAPAgent agent, CharacterData cd, GOAPNPCData npcData, bool forThirst)
+        {
+            try
+            {
+                if (forThirst)
+                {
+                    var ownDrinks = TryGetAgentDrinkingItems(agent);
+                    if (ownDrinks != null && ownDrinks.Count > 0)
+                        return true;
+                }
+                var invs = CollectCompanionInventories(cd, npcData);
+                return TryFindConsumableFoodInInventories(invs, forThirst, CompanionConfigStore.AllowSpendRareFood, out _, out _, out _);
+            }
+            catch { }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool HasTreatableInjuryState(CharacterData cd, out bool isBleeding, out bool hasUnbandagedWound)
+        {
+            isBleeding = false;
+            hasUnbandagedWound = false;
+            if (!Il2CppSafe.IsAlive(cd)) return false;
+            try
+            {
+                return HasTreatableInjuryStateNoInline(cd, out isBleeding, out hasUnbandagedWound);
+            }
+            catch
+            {
+                isBleeding = false;
+                hasUnbandagedWound = false;
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool HasTreatableInjuryStateNoInline(CharacterData cd, out bool isBleeding, out bool hasUnbandagedWound)
+        {
+            isBleeding = false;
+            hasUnbandagedWound = false;
+            var parts = cd.bodypartsData?.bodypartDataAry;
+            if (parts == null) return false;
+            for (int i = 0; i < parts.Length; i++)
+            {
+                var part = parts[i];
+                if (!Il2CppSafe.IsAlive(part)) continue;
+                if (part.isBleeding) isBleeding = true;
+                if (part.isWounded && !Il2CppSafe.IsAlive(part.bandageData)) hasUnbandagedWound = true;
+            }
+            return isBleeding || hasUnbandagedWound;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool IsAnyCloseCombatDanger(GOAPAgent agent, float dangerRadius = 4.5f)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent)) return false;
+            try
+            {
+                if (CombatResponse.HasCloseLineOfSightThreat(agent, agent.mostThreateningCharacter, dangerRadius))
+                    return true;
+                if (agent.threatDataDic == null || agent.threatDataDic.Count == 0)
+                    return false;
+                foreach (var kv in agent.threatDataDic)
+                {
+                    if (CombatResponse.HasCloseLineOfSightThreat(agent, kv.Key, dangerRadius))
+                        return true;
+                }
+            }
+            catch { }
+            return false;
         }
 
         public static bool ShouldWearBioProtectionMask(bool isBloodRaining, float radiationDose, bool inHazardZone) =>
@@ -160,8 +285,7 @@ namespace ZedZone.SmartCompanions
 
             UpdateBioProtectionMask(hc, cd, status, eq, guid, gc);
             TryTreatSurvivalDebuffs(agent, cd, status, eq, st, guid, now);
-            if (!inCombat)
-                TryAutonomousEatDrinkAndBandage(agent, hc, cd, status, st, guid, now);
+            TryAutonomousEatDrinkAndBandage(agent, hc, cd, status, st, guid, now, inCombat);
 
             if (!inCombat && now >= _nextSleepScanAt)
             {
@@ -204,7 +328,8 @@ namespace ZedZone.SmartCompanions
                 string g = ag.npcData.npcGUID ?? "";
                 CompanionConfigStore.CompanionStates.TryGetValue(g, out var mst);
                 if (mst == null || !mst.IsChoreWalkActive) WalkingToBedGuids.Remove(g);
-                if (mst == null || mst.ActiveOrder != TacticalOrderKind.Follow || !mst.AllowBaseChores || mst.HasAnyPhysicalTask ||
+                if (mst == null || (mst.RosterMode != CompanionRosterMode.CampGarrison && mst.ActiveOrder != TacticalOrderKind.Follow) ||
+                    !mst.AllowBaseChores || mst.HasAnyPhysicalTask ||
                     !IsAtCampOrPlayerBase(ag.humanCharacter.transform.position, mst)) continue;
 
                 float maxF = status.maxFatigue > 0.01f ? status.maxFatigue : 100f;
@@ -219,9 +344,10 @@ namespace ZedZone.SmartCompanions
 
             var chosen = validAgents[idx];
             string chosenGuid = chosen.npcData.npcGUID ?? "";
-            var st = CompanionConfigStore.GetOrCreateCompanion(chosenGuid, chosen.npcData.characterData?.characterName);
+            var st = CompanionConfigStore.GetOrCreateCompanion(chosenGuid, CompanionConfigStore.GetCharacterDisplayName(chosen.npcData.characterData));
             Vector2 selfPos = chosen.humanCharacter.transform.position;
-            if (st.ActiveOrder != TacticalOrderKind.Follow || !st.AllowBaseChores || st.HasAnyPhysicalTask || !IsAtCampOrPlayerBase(selfPos, st)) return false;
+            if ((st.RosterMode != CompanionRosterMode.CampGarrison && st.ActiveOrder != TacticalOrderKind.Follow) ||
+                !st.AllowBaseChores || st.HasAnyPhysicalTask || !IsAtCampOrPlayerBase(selfPos, st)) return false;
 
             var bed = FindNearestReachableBed(selfPos, 22f);
             if (!Il2CppSafe.IsAliveUnity(bed)) return false;
@@ -453,93 +579,163 @@ namespace ZedZone.SmartCompanions
             return awake;
         }
 
+        private static bool HasOwnMedicineInInventories(List<InventoryData> invs, bool allowRare)
+        {
+            if (invs == null) return false;
+            try
+            {
+                for (int invIdx = 0; invIdx < invs.Count; invIdx++)
+                {
+                    var inv = invs[invIdx];
+                    if (!Il2CppSafe.IsAlive(inv) || inv.itemList == null) continue;
+                    for (int i = 0; i < inv.itemList.Count; i++)
+                    {
+                        var cand = inv.itemList[i];
+                        if (!IsEligibleMedicineItem(cand, out _, out _, out _))
+                            continue;
+                        if (!allowRare && CompanionProfileSystem.IsRareMedItem(cand.itemId))
+                            continue;
+                        return true;
+                    }
+                }
+            }
+            catch { }
+            return false;
+        }
+
         private enum CampResupplyKind { Drink = 0, Heal = 1, Food = 2 }
 
         private static void TryAutonomousEatDrinkAndBandage(
             GOAPAgent agent, HumanCharacterController hc, CharacterData cd,
-            CharacterStatusData status, CompanionRuntimeState st, string guid, float now)
+            CharacterStatusData status, CompanionRuntimeState st, string guid, float now, bool inCombat)
         {
             float maxH = status.maxHunger > 1f ? status.maxHunger : 100f;
             float maxT = status.maxThirst > 1f ? status.maxThirst : 100f;
             float maxHp = status.maxhp > 1f ? status.maxhp : 100f;
+            float hpRatio = status.hp / maxHp;
+            HasTreatableInjuryState(cd, out bool isBleeding, out bool hasUnbandagedWound);
 
-            bool needsAnyDirect = (status.thirst / maxT) < 0.45f ||
-                                  (status.hunger / maxH) < 0.45f ||
-                                  (status.hp / maxHp) < 0.78f;
+            bool needsHealOrBandage = hpRatio < 0.78f || isBleeding || hasUnbandagedWound;
+            bool allowCombatEmergencyHeal = inCombat &&
+                                            (isBleeding || hasUnbandagedWound || hpRatio < 0.65f) &&
+                                            !IsAnyCloseCombatDanger(agent, 4.5f);
+
+            if (inCombat && !allowCombatEmergencyHeal)
+                return;
+
+            bool needsAnyDirect = inCombat
+                ? allowCombatEmergencyHeal
+                : ((status.thirst / maxT) < 0.45f || (status.hunger / maxH) < 0.45f || needsHealOrBandage);
 
             if (needsAnyDirect && (!LastSelfCareAtByGuid.TryGetValue(guid, out float lastSelfAt) || now - lastSelfAt >= 4.5f))
             {
                 LastSelfCareAtByGuid[guid] = now;
                 var invs = CollectCompanionInventories(cd, agent.npcData);
 
-                // 1) Thirst: native drinkable containers first, then thirst-restoring consumables.
-                if ((status.thirst / maxT) < 0.45f)
+                if (!inCombat)
                 {
-                    TryDrinkFromOwnContainers(agent, hc, status);
-                    if ((status.thirst / maxT) < 0.45f &&
-                        TryFindConsumableFoodInInventories(invs, forThirst: true, CompanionConfigStore.AllowSpendRareFood,
-                            out var drinkInv, out var drinkItem, out var drinkAttr))
+                    // 1) Thirst: native drinkable containers first, then thirst-restoring consumables.
+                    if ((status.thirst / maxT) < 0.45f)
                     {
-                        ConsumeFoodItemSafe(agent, cd, status, drinkInv, drinkItem, drinkAttr);
+                        TryDrinkFromOwnContainers(agent, hc, status);
+                        if ((status.thirst / maxT) < 0.45f &&
+                            TryFindConsumableFoodInInventories(invs, forThirst: true, CompanionConfigStore.AllowSpendRareFood,
+                                out var drinkInv, out var drinkItem, out var drinkAttr))
+                        {
+                            ConsumeFoodItemSafe(agent, cd, status, drinkInv, drinkItem, drinkAttr);
+                        }
+                    }
+
+                    // 2) Hunger: personal inventory first, then shared inventory / backpack.
+                    if ((status.hunger / maxH) < 0.45f &&
+                        TryFindConsumableFoodInInventories(invs, forThirst: false, CompanionConfigStore.AllowSpendRareFood,
+                            out var foodInv, out var foodItem, out var foodAttr))
+                    {
+                        ConsumeFoodItemSafe(agent, cd, status, foodInv, foodItem, foodAttr);
                     }
                 }
 
-                // 2) Hunger: personal inventory first, then shared inventory / backpack.
-                if ((status.hunger / maxH) < 0.45f &&
-                    TryFindConsumableFoodInInventories(invs, forThirst: false, CompanionConfigStore.AllowSpendRareFood,
-                        out var foodInv, out var foodItem, out var foodAttr))
+                // 3) Bandaging / Self-Heal (including bleeding/injuries >= 78% HP and safe combat cover healing)
+                HasTreatableInjuryState(cd, out isBleeding, out hasUnbandagedWound);
+                hpRatio = status.hp / maxHp;
+                if (hpRatio < 0.78f || isBleeding || hasUnbandagedWound)
                 {
-                    ConsumeFoodItemSafe(agent, cd, status, foodInv, foodItem, foodAttr);
-                }
-
-                // 3) Bandaging / Self-Heal
-                if ((status.hp / maxHp) < 0.78f)
-                {
-                    TrySelfHealFromInventories(agent, hc, cd, status, invs, maxHp);
+                    TrySelfHealFromInventories(agent, hc, cd, status, invs, maxHp, isBleeding, hasUnbandagedWound);
                 }
             }
 
-            if (hc.isSleeping || st.HasAnyPhysicalTask || st.ActiveOrder != TacticalOrderKind.Follow ||
-                (st.RosterMode != CompanionRosterMode.CampGarrison && !st.AllowBaseChores) ||
+            if (inCombat || BaseWorkManager.Paused || hc.isSleeping || st.HasAnyPhysicalTask ||
                 !IsAtCampOrPlayerBase(hc.transform.position, st))
                 return;
+
+            bool isGarrison = st.RosterMode == CompanionRosterMode.CampGarrison;
+            if (!isGarrison && (st.ActiveOrder != TacticalOrderKind.Follow || !st.AllowBaseChores))
+                return;
+
             if (LastCampResupplyAtByGuid.TryGetValue(guid, out float lastResupply) && now - lastResupply < 12f)
                 return;
 
-            bool stillNeedsThirst = (status.thirst / maxT) < 0.48f;
-            bool stillNeedsHunger = (status.hunger / maxH) < 0.48f;
-            bool stillNeedsHeal = (status.hp / maxHp) < 0.72f;
+            HasTreatableInjuryState(cd, out isBleeding, out hasUnbandagedWound);
+            float thirstRatio = status.thirst / maxT;
+            float hungerRatio = status.hunger / maxH;
+            hpRatio = status.hp / maxHp;
+
+            bool allowRoutineCampResupply = CompanionConfigStore.EnableBaseChores && st.AllowBaseChores;
+            bool stillNeedsThirst = allowRoutineCampResupply ? (thirstRatio < 0.45f) : (thirstRatio < 0.25f);
+            bool stillNeedsHunger = allowRoutineCampResupply ? (hungerRatio < 0.45f) : (hungerRatio < 0.25f);
+            bool stillNeedsHeal = allowRoutineCampResupply
+                ? (hpRatio < 0.72f || isBleeding || hasUnbandagedWound)
+                : (hpRatio < 0.45f || isBleeding);
+
+            if (!stillNeedsThirst && !stillNeedsHunger && !stillNeedsHeal)
+                return;
+
+            var ownInvs = CollectCompanionInventories(cd, agent.npcData);
+            if (stillNeedsThirst && HasOwnSupplyForNeed(agent, cd, agent.npcData, forThirst: true))
+                stillNeedsThirst = false;
+            if (stillNeedsHunger && HasOwnSupplyForNeed(agent, cd, agent.npcData, forThirst: false))
+                stillNeedsHunger = false;
+            if (stillNeedsHeal)
+            {
+                bool lowBlood = CharacterStatusData.maxBloodVolume > 1f && status.bloodVolume < CharacterStatusData.maxBloodVolume * 0.65f;
+                bool allowRareMed = CompanionConfigStore.AllowSpendRareMeds && (hpRatio < 0.38f || (isBleeding && lowBlood));
+                if (HasOwnMedicineInInventories(ownInvs, allowRareMed))
+                    stillNeedsHeal = false;
+            }
+
             if (!stillNeedsThirst && !stillNeedsHunger && !stillNeedsHeal)
                 return;
 
             TryDispatchCampResupplyWalk(agent, hc, cd, status, st, guid, now,
-                stillNeedsThirst, stillNeedsHunger, stillNeedsHeal, maxT, maxHp);
+                stillNeedsThirst, stillNeedsHunger, stillNeedsHeal, isBleeding || hasUnbandagedWound, maxT, maxHp);
         }
 
         private static List<InventoryData> CollectCompanionInventories(CharacterData cd, GOAPNPCData npcData)
         {
-            var invs = new List<InventoryData>(3);
+            var invs = new List<InventoryData>(6);
             var seen = new HashSet<IntPtr>();
-            void AddIfAlive(InventoryData inv)
-            {
-                if (Il2CppSafe.IsAlive(inv) && inv.itemList != null && seen.Add(inv.Pointer))
-                    invs.Add(inv);
-            }
-            AddIfAlive(cd?.inventoryData);
-            AddIfAlive(npcData?.sharedInventoryData);
-            AddIfAlive(cd?.characterEquipmentData?.backpackItemData?.inventoryData);
+            AddInventoryRecursive(cd?.inventoryData, 0, 3, invs, seen);
+            AddInventoryRecursive(npcData?.sharedInventoryData, 0, 3, invs, seen);
+            AddInventoryRecursive(cd?.characterEquipmentData?.backpackItemData?.inventoryData, 0, 3, invs, seen);
             return invs;
         }
 
-        private static InventoryData ResolveItemOwnerInventory(List<InventoryData> invs, ItemData item)
+        private static void AddInventoryRecursive(
+            InventoryData inv, int depth, int maxDepth,
+            List<InventoryData> dest, HashSet<IntPtr> seen)
         {
-            if (!Il2CppSafe.IsAlive(item)) return null;
-            for (int i = 0; i < invs.Count; i++)
+            if (!Il2CppSafe.IsAlive(inv) || inv.itemList == null || !seen.Add(inv.Pointer))
+                return;
+            dest.Add(inv);
+            if (depth >= maxDepth) return;
+            for (int i = 0; i < inv.itemList.Count; i++)
             {
-                if (InventoryTransfers.Contains(invs[i], item))
-                    return invs[i];
+                var it = inv.itemList[i];
+                if (!Il2CppSafe.IsAlive(it)) continue;
+                var nested = it.inventoryData;
+                if (Il2CppSafe.IsAlive(nested))
+                    AddInventoryRecursive(nested, depth + 1, maxDepth, dest, seen);
             }
-            return null;
         }
 
         private static bool TryDrinkFromOwnContainers(GOAPAgent agent, HumanCharacterController hc, CharacterStatusData status)
@@ -672,26 +868,6 @@ namespace ZedZone.SmartCompanions
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private static Il2CppSystem.Collections.Generic.List<ItemData> TryGetAgentHealingItems(GOAPAgent agent)
-        {
-            if (!Il2CppSafe.IsAliveUnity(agent)) return null;
-            try
-            {
-                return GetAgentHealingItemsNoInline(agent);
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        private static Il2CppSystem.Collections.Generic.List<ItemData> GetAgentHealingItemsNoInline(GOAPAgent agent)
-        {
-            return agent.GetHealingItems();
-        }
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
         private static bool TryOfflineUseItem(GOAPNPCData npcData, ItemData item)
         {
             if (!Il2CppSafe.IsAlive(npcData) || !Il2CppSafe.IsAlive(item)) return false;
@@ -804,98 +980,219 @@ namespace ZedZone.SmartCompanions
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool TryIsBandageItem(int itemId)
+        {
+            if (itemId <= 0) return false;
+            try { return IsBandageItemNoInline(itemId); }
+            catch { return false; }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool IsBandageItemNoInline(int itemId) => AidTreatUtil.IsBandageItem(itemId);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool TryIsMedicalConsumable(int itemId)
+        {
+            if (itemId <= 0) return false;
+            try { return IsMedicalConsumableNoInline(itemId); }
+            catch { return false; }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool IsMedicalConsumableNoInline(int itemId) => AidTreatUtil.IsMedicalConsumable(itemId);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static CharacterBodyPartData TryFindBandageTargetPart(CharacterData cd)
+        {
+            if (!Il2CppSafe.IsAlive(cd)) return null;
+            try { return FindBandageTargetPartNoInline(cd); }
+            catch { return null; }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static CharacterBodyPartData FindBandageTargetPartNoInline(CharacterData cd) => AidTreatUtil.FindBandageTargetPart(cd);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void TryApplyBandage(HumanCharacterController hc, CharacterBodyPartData part, ItemData bandageItem)
+        {
+            if (!Il2CppSafe.IsAliveUnity(hc) || !Il2CppSafe.IsAlive(part) || !Il2CppSafe.IsAlive(bandageItem)) return;
+            try { ApplyBandageNoInline(hc, part, bandageItem); }
+            catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ApplyBandageNoInline(HumanCharacterController hc, CharacterBodyPartData part, ItemData bandageItem) =>
+            hc.UseBandage(part, bandageItem);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void TryStopAllBleeding(HumanCharacterController hc)
+        {
+            if (!Il2CppSafe.IsAliveUnity(hc)) return;
+            try { StopAllBleedingNoInline(hc); }
+            catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void StopAllBleedingNoInline(HumanCharacterController hc) => hc.StopAllBleeding();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void TryUpdateVitalStatesSafe(GOAPAgent agent)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent)) return;
+            try { UpdateVitalStatesNoInline(agent); }
+            catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void UpdateVitalStatesNoInline(GOAPAgent agent) => agent.UpdateVitalStates();
+
+        private static bool IsEligibleMedicineItem(
+            ItemData item, out ItemAttr_Food medAttr, out bool isBandage, out bool healsHp)
+        {
+            medAttr = null;
+            isBandage = false;
+            healsHp = false;
+            if (!Il2CppSafe.IsAlive(item) || item.itemNumberFloat < 1f) return false;
+            var im = ItemManager.instance;
+            if (!Il2CppSafe.IsAlive(im)) return false;
+
+            var attr = im.GetItemAttrById(item.itemId);
+            if (!Il2CppSafe.IsAliveUnity(attr) || ItemData.IsFoodExpired(item, attr)) return false;
+            medAttr = attr.TryCast<ItemAttr_Food>();
+            if (Il2CppSafe.IsAliveUnity(medAttr) && medAttr.badStomach) return false;
+
+            var cat = ItemCategorizer.ClassifyItem(item);
+            var foodKind = ItemCategorizer.ClassifyFoodKind(item.itemId, attr, item);
+            bool bandageUtil = TryIsBandageItem(item.itemId);
+            bool medUtil = TryIsMedicalConsumable(item.itemId);
+
+            bool hasFoodOrDrinkStats = Il2CppSafe.IsAliveUnity(medAttr) && (medAttr.hunger > 1f || medAttr.thirst > 1f);
+            bool isExplicitMedical = cat == StorageCategory.Medicine || bandageUtil || medUtil ||
+                                     foodKind == FoodKind.MedicineBandage || foodKind == FoodKind.MedicinePills;
+            bool hasAttrSpecialHeal = Il2CppSafe.IsAliveUnity(medAttr) &&
+                                      (medAttr.stopBleeding || medAttr.healAllInjuries || medAttr.bloodVolumeRecover > 0f);
+            if (hasFoodOrDrinkStats && !isExplicitMedical && !hasAttrSpecialHeal)
+                return false;
+
+            isBandage = bandageUtil || foodKind == FoodKind.MedicineBandage ||
+                        (Il2CppSafe.IsAliveUnity(medAttr) && medAttr.stopBleeding);
+            healsHp = Il2CppSafe.IsAliveUnity(medAttr) && medAttr.hp > 0f;
+            return isExplicitMedical || hasAttrSpecialHeal || healsHp;
+        }
+
+        private static void ApplyConsumedMedicineEffects(
+            GOAPAgent agent, HumanCharacterController hc, CharacterData cd, CharacterStatusData status,
+            ItemData medSnapshot, ItemAttr_Food medAttr, float maxHp, float beforeHp)
+        {
+            bool isBandage = Il2CppSafe.IsAlive(medSnapshot) &&
+                             (TryIsBandageItem(medSnapshot.itemId) ||
+                              ItemCategorizer.ClassifyFoodKind(medSnapshot) == FoodKind.MedicineBandage ||
+                              (Il2CppSafe.IsAliveUnity(medAttr) && medAttr.stopBleeding));
+
+            if (isBandage && Il2CppSafe.IsAlive(medSnapshot))
+            {
+                var targetPart = TryFindBandageTargetPart(cd);
+                if (Il2CppSafe.IsAlive(targetPart))
+                    TryApplyBandage(hc, targetPart, medSnapshot);
+            }
+
+            if ((Il2CppSafe.IsAliveUnity(medAttr) && medAttr.stopBleeding) ||
+                (isBandage && HasTreatableInjuryState(cd, out bool stillBleeding, out _) && stillBleeding))
+            {
+                TryStopAllBleeding(hc);
+            }
+
+            if (status.hp <= beforeHp + 0.1f)
+            {
+                float healAmt;
+                if (Il2CppSafe.IsAliveUnity(medAttr) && medAttr.hp > 0f)
+                    healAmt = Mathf.Max(22f, medAttr.hp);
+                else if (!isBandage)
+                    healAmt = 25f;
+                else
+                    healAmt = beforeHp < maxHp * 0.85f ? 12f : 0f;
+
+                if (healAmt > 0f)
+                    status.hp = Mathf.Min(maxHp, status.hp + healAmt);
+            }
+
+            if (Il2CppSafe.IsAliveUnity(medAttr) && medAttr.bloodVolumeRecover > 0f && CharacterStatusData.maxBloodVolume > 0f)
+                status.bloodVolume = Mathf.Min(CharacterStatusData.maxBloodVolume, status.bloodVolume + medAttr.bloodVolumeRecover);
+
+            if (!isBandage || (Il2CppSafe.IsAliveUnity(medAttr) && medAttr.healAllInjuries) || (status.hp / maxHp) < 0.50f)
+            {
+                try { hc.HealAllBodyPartInjuries(); } catch { }
+            }
+
+            hc.hp = status.hp;
+            if (Il2CppSafe.IsAlive(agent?.npcData))
+                agent.npcData.health = status.hp;
+            TryUpdateVitalStatesSafe(agent);
+        }
+
         private static bool TrySelfHealFromInventories(
             GOAPAgent agent, HumanCharacterController hc, CharacterData cd,
-            CharacterStatusData status, List<InventoryData> invs, float maxHp)
+            CharacterStatusData status, List<InventoryData> invs, float maxHp,
+            bool isBleeding, bool hasUnbandagedWound)
         {
             float hpRatio = status.hp / maxHp;
-            bool allowRare = CompanionConfigStore.AllowSpendRareMeds && hpRatio < 0.38f;
+            bool lowBlood = CharacterStatusData.maxBloodVolume > 1f && status.bloodVolume < CharacterStatusData.maxBloodVolume * 0.65f;
+            bool allowRare = CompanionConfigStore.AllowSpendRareMeds && (hpRatio < 0.38f || (isBleeding && lowBlood));
+            bool preferBandage = (isBleeding || hasUnbandagedWound) && hpRatio >= 0.60f;
+
             ItemData chosenMed = null;
             InventoryData medInv = null;
+            ItemAttr_Food chosenAttr = null;
 
-            try
+            int totalPasses = allowRare ? 4 : 2;
+            for (int pass = 0; pass < totalPasses && !Il2CppSafe.IsAlive(chosenMed); pass++)
             {
-                var heals = TryGetAgentHealingItems(agent);
-                if (heals != null)
+                bool passRare = pass >= 2;
+                bool passStrictPref = (pass % 2) == 0;
+                for (int invIdx = 0; invIdx < invs.Count && !Il2CppSafe.IsAlive(chosenMed); invIdx++)
                 {
-                    ItemData rareCand = null;
-                    InventoryData rareInv = null;
-                    for (int i = 0; i < heals.Count; i++)
+                    var inv = invs[invIdx];
+                    if (!Il2CppSafe.IsAlive(inv) || inv.itemList == null) continue;
+                    for (int i = 0; i < inv.itemList.Count; i++)
                     {
-                        var cand = heals[i];
-                        if (!Il2CppSafe.IsAlive(cand) || cand.itemNumberFloat < 1f) continue;
-                        var owner = ResolveItemOwnerInventory(invs, cand);
-                        if (!Il2CppSafe.IsAlive(owner)) continue;
-                        if (!CompanionProfileSystem.IsRareMedItem(cand.itemId))
+                        var cand = inv.itemList[i];
+                        if (!IsEligibleMedicineItem(cand, out var candAttr, out bool isBandage, out bool healsHp))
+                            continue;
+                        bool isRare = CompanionProfileSystem.IsRareMedItem(cand.itemId);
+                        if (isRare != passRare) continue;
+                        if (passStrictPref)
                         {
-                            chosenMed = cand;
-                            medInv = owner;
-                            break;
+                            if (preferBandage ? !isBandage : !healsHp) continue;
                         }
-                        if (allowRare && rareCand == null)
-                        {
-                            rareCand = cand;
-                            rareInv = owner;
-                        }
-                    }
-                    if (chosenMed == null && rareCand != null)
-                    {
-                        chosenMed = rareCand;
-                        medInv = rareInv;
-                    }
-                }
-            }
-            catch { }
-
-            if (!Il2CppSafe.IsAlive(chosenMed) || !Il2CppSafe.IsAlive(medInv))
-            {
-                int passes = allowRare ? 2 : 1;
-                for (int pass = 0; pass < passes && !Il2CppSafe.IsAlive(chosenMed); pass++)
-                {
-                    for (int invIdx = 0; invIdx < invs.Count && !Il2CppSafe.IsAlive(chosenMed); invIdx++)
-                    {
-                        var inv = invs[invIdx];
-                        if (!Il2CppSafe.IsAlive(inv) || inv.itemList == null) continue;
-                        for (int i = 0; i < inv.itemList.Count; i++)
-                        {
-                            var cand = inv.itemList[i];
-                            if (!Il2CppSafe.IsAlive(cand) || cand.itemNumberFloat < 1f) continue;
-                            if (ItemCategorizer.ClassifyItem(cand) != StorageCategory.Medicine) continue;
-                            bool isRare = CompanionProfileSystem.IsRareMedItem(cand.itemId);
-                            if ((pass == 0 && isRare) || (pass == 1 && !isRare)) continue;
-                            chosenMed = cand;
-                            medInv = inv;
-                            break;
-                        }
+                        chosenMed = cand;
+                        medInv = inv;
+                        chosenAttr = candAttr;
+                        break;
                     }
                 }
             }
 
             if (!Il2CppSafe.IsAlive(chosenMed) || !Il2CppSafe.IsAlive(medInv)) return false;
 
-            var medAttr = ItemManager.instance?.GetItemAttrById(chosenMed.itemId)?.TryCast<ItemAttr_Food>();
+            ItemData medSnapshot = null;
+            try { medSnapshot = chosenMed.CopyItemData(null); } catch { }
             float beforeHp = status.hp;
             bool consumed = false;
             try { consumed = CharacterActionManager.ConsumeOneFood(cd, medInv, chosenMed); } catch { }
             if (!consumed) return false;
 
-            if (status.hp <= beforeHp + 0.1f)
-            {
-                float healAmt = Mathf.Max(22f, (Il2CppSafe.IsAliveUnity(medAttr) && medAttr.hp > 0f) ? medAttr.hp : 25f);
-                status.hp = Mathf.Min(maxHp, status.hp + healAmt);
-            }
-            hc.hp = status.hp;
-            if (Il2CppSafe.IsAlive(agent.npcData))
-                agent.npcData.health = status.hp;
-            try { hc.HealAllBodyPartInjuries(); } catch { }
+            ApplyConsumedMedicineEffects(agent, hc, cd, status, medSnapshot ?? chosenMed, chosenAttr, maxHp, beforeHp);
             return true;
         }
 
         private static bool TryFindChestResupplyItem(
-            List<DiscoveredContainer> chests, Vector2 selfPos, sbyte zLevel, CampResupplyKind kind, float hpRatio,
-            out DiscoveredContainer matchedChest, out ItemData matchedItem, out bool isDrinkContainer)
+            List<DiscoveredContainer> chests, Vector2 origin, sbyte zLevel, float maxRadius, bool isGarrison,
+            CampResupplyKind kind, float hpRatio, bool preferBandage,
+            out DiscoveredContainer matchedChest, out InventoryData matchedSourceInv, out ItemData matchedItem, out bool isDrinkContainer)
         {
             matchedChest = null;
+            matchedSourceInv = null;
             matchedItem = null;
             isDrinkContainer = false;
             if (chests == null || chests.Count == 0) return false;
@@ -904,81 +1201,117 @@ namespace ZedZone.SmartCompanions
                 ? (CompanionConfigStore.AllowSpendRareMeds && hpRatio < 0.38f)
                 : CompanionConfigStore.AllowSpendRareFood;
             int passes = allowRare ? 2 : 1;
-            float bestDist = 36f;
+            float bestScore = float.MaxValue;
 
             for (int pass = 0; pass < passes; pass++)
             {
                 for (int i = 0; i < chests.Count; i++)
                 {
                     var c = chests[i];
-                    if (c?.Rule == null || !c.Rule.IsMarkedByPlayer ||
-                        !Il2CppSafe.IsAliveUnity(c.TerrainObj) || !Il2CppSafe.IsAlive(c.Inventory) ||
+                    if (c == null || !Il2CppSafe.IsAliveUnity(c.TerrainObj) || !Il2CppSafe.IsAlive(c.Inventory) ||
                         c.Inventory.itemList == null || c.Inventory.itemList.Count == 0)
+                        continue;
+                    bool isMarked = c.Rule != null && c.Rule.IsMarkedByPlayer;
+                    if (!isMarked && !(isGarrison && AutoLootSystem.IsProtectedPlayerBaseContainer(c.TerrainObj, c.Inventory)))
                         continue;
                     if (Il2CppSafe.IsAlive(c.TerrainObj.objectData) && c.TerrainObj.objectData.zLayer != zLevel)
                         continue;
                     if (PhysicalMovementHelper.IsTargetTemporarilyUnreachable(c.ContainerId))
                         continue;
 
-                    float d = Vector2.Distance(selfPos, c.WorldPos);
-                    if (d >= bestDist) continue;
+                    float d = Vector2.Distance(origin, c.WorldPos);
+                    if (d > maxRadius) continue;
+                    float score = isMarked ? d : (d + 4.0f);
+                    if (score >= bestScore) continue;
 
+                    var chestInvs = new List<InventoryData>(4);
+                    var chestSeen = new HashSet<IntPtr>();
+                    AddInventoryRecursive(c.Inventory, 0, 2, chestInvs, chestSeen);
+
+                    InventoryData foundSrc = null;
                     ItemData found = null;
                     bool foundContainer = false;
 
                     if (kind == CampResupplyKind.Drink && pass == 0)
                     {
-                        var contCand = new Il2CppSystem.Collections.Generic.List<ItemData>();
-                        for (int j = 0; j < c.Inventory.itemList.Count; j++)
+                        for (int invIdx = 0; invIdx < chestInvs.Count && !Il2CppSafe.IsAlive(found); invIdx++)
                         {
-                            var it = c.Inventory.itemList[j];
-                            if (!Il2CppSafe.IsAlive(it)) continue;
-                            var attr = ItemManager.instance?.GetItemAttrById(it.itemId);
-                            if (Il2CppSafe.IsAliveUnity(attr) && attr.TryCast<ItemAttr_Container>() != null)
-                                contCand.Add(it);
-                        }
-                        if (contCand.Count > 0)
-                        {
-                            var validDrinks = new Il2CppSystem.Collections.Generic.List<ItemData>();
-                            if (TryAppendDrinkingContainers(contCand, validDrinks) &&
-                                validDrinks.Count > 0 && Il2CppSafe.IsAlive(validDrinks[0]))
+                            var subInv = chestInvs[invIdx];
+                            var contCand = new Il2CppSystem.Collections.Generic.List<ItemData>();
+                            for (int j = 0; j < subInv.itemList.Count; j++)
                             {
-                                found = validDrinks[0];
-                                foundContainer = true;
+                                var it = subInv.itemList[j];
+                                if (!Il2CppSafe.IsAlive(it)) continue;
+                                var attr = ItemManager.instance?.GetItemAttrById(it.itemId);
+                                if (Il2CppSafe.IsAliveUnity(attr) && attr.TryCast<ItemAttr_Container>() != null)
+                                    contCand.Add(it);
+                            }
+                            if (contCand.Count > 0)
+                            {
+                                var validDrinks = new Il2CppSystem.Collections.Generic.List<ItemData>();
+                                if (TryAppendDrinkingContainers(contCand, validDrinks) &&
+                                    validDrinks.Count > 0 && Il2CppSafe.IsAlive(validDrinks[0]))
+                                {
+                                    foundSrc = subInv;
+                                    found = validDrinks[0];
+                                    foundContainer = true;
+                                }
                             }
                         }
                     }
 
                     if (!Il2CppSafe.IsAlive(found))
                     {
-                        for (int j = 0; j < c.Inventory.itemList.Count; j++)
+                        ItemData fallbackHealItem = null;
+                        InventoryData fallbackHealSrc = null;
+                        for (int invIdx = 0; invIdx < chestInvs.Count && !Il2CppSafe.IsAlive(found); invIdx++)
                         {
-                            var it = c.Inventory.itemList[j];
-                            if (!Il2CppSafe.IsAlive(it) || it.itemNumberFloat < 1f) continue;
+                            var subInv = chestInvs[invIdx];
+                            for (int j = 0; j < subInv.itemList.Count; j++)
+                            {
+                                var it = subInv.itemList[j];
+                                if (!Il2CppSafe.IsAlive(it) || it.itemNumberFloat < 1f) continue;
 
-                            if (kind == CampResupplyKind.Heal)
-                            {
-                                if (ItemCategorizer.ClassifyItem(it) != StorageCategory.Medicine) continue;
-                                bool isRare = CompanionProfileSystem.IsRareMedItem(it.itemId);
-                                if ((pass == 0 && isRare) || (pass == 1 && !isRare)) continue;
-                                found = it;
-                                break;
+                                if (kind == CampResupplyKind.Heal)
+                                {
+                                    if (!IsEligibleMedicineItem(it, out _, out bool isBandage, out bool healsHp)) continue;
+                                    bool isRare = CompanionProfileSystem.IsRareMedItem(it.itemId);
+                                    if ((pass == 0 && isRare) || (pass == 1 && !isRare)) continue;
+                                    if (preferBandage ? isBandage : healsHp)
+                                    {
+                                        foundSrc = subInv;
+                                        found = it;
+                                        break;
+                                    }
+                                    if (fallbackHealItem == null)
+                                    {
+                                        fallbackHealSrc = subInv;
+                                        fallbackHealItem = it;
+                                    }
+                                }
+                                else
+                                {
+                                    if (!IsEligibleConsumableFood(it, forThirst: kind == CampResupplyKind.Drink, allowRare, 8f, out _, out bool isRare))
+                                        continue;
+                                    if ((pass == 0 && isRare) || (pass == 1 && !isRare)) continue;
+                                    foundSrc = subInv;
+                                    found = it;
+                                    break;
+                                }
                             }
-                            else
-                            {
-                                if (!IsEligibleConsumableFood(it, forThirst: kind == CampResupplyKind.Drink, allowRare, 8f, out _, out bool isRare))
-                                    continue;
-                                if ((pass == 0 && isRare) || (pass == 1 && !isRare)) continue;
-                                found = it;
-                                break;
-                            }
+                        }
+                        if (!Il2CppSafe.IsAlive(found) && Il2CppSafe.IsAlive(fallbackHealItem))
+                        {
+                            foundSrc = fallbackHealSrc;
+                            found = fallbackHealItem;
                         }
                     }
 
-                    if (Il2CppSafe.IsAlive(found))
+                    if (Il2CppSafe.IsAlive(found) && Il2CppSafe.IsAlive(foundSrc))
                     {
-                        bestDist = d;
+                        bestScore = score;
                         matchedChest = c;
+                        matchedSourceInv = foundSrc;
                         matchedItem = found;
                         isDrinkContainer = foundContainer;
                     }
@@ -992,6 +1325,7 @@ namespace ZedZone.SmartCompanions
         {
             TerrainObject_WaterWell best = null;
             float bestSq = radius * radius;
+            BaseSortingSystem.InvalidateTerrainScanCache();
             var objs = BaseSortingSystem.CollectWorldTerrainObjects(origin, radius);
             for (int i = 0; i < objs.Count; i++)
             {
@@ -1058,7 +1392,7 @@ namespace ZedZone.SmartCompanions
         private static void TryDispatchCampResupplyWalk(
             GOAPAgent agent, HumanCharacterController hc, CharacterData cd, CharacterStatusData status,
             CompanionRuntimeState st, string guid, float now,
-            bool needThirst, bool needHunger, bool needHeal, float maxT, float maxHp)
+            bool needThirst, bool needHunger, bool needHeal, bool preferBandage, float maxT, float maxHp)
         {
             if (!Il2CppSafe.IsAlive(cd.inventoryData))
                 try { cd.RefreshInventorySize(); } catch { }
@@ -1068,20 +1402,24 @@ namespace ZedZone.SmartCompanions
             if (!Il2CppSafe.IsAlive(destInv)) return;
 
             Vector2 selfPos = hc.transform.position;
+            bool isGarrison = st.RosterMode == CompanionRosterMode.CampGarrison;
+            Vector2 resupplyOrigin = (isGarrison && st.HasHomeAnchor) ? st.HomeAnchorPos : selfPos;
+            float maxResupplyRadius = isGarrison ? 28f : 36f;
             sbyte zLevel = agent.npcData.zLevel;
             float hpRatio = status.hp / maxHp;
-            var chests = BaseSortingSystem.ScanNearbyContainers(force: false);
+            var chests = BaseSortingSystem.FilterContainersForWorker(BaseSortingSystem.ScanNearbyContainers(force: false), agent, st);
 
             if (needThirst)
             {
-                if (TryFindChestResupplyItem(chests, selfPos, zLevel, CampResupplyKind.Drink, hpRatio,
-                    out var drinkChest, out var drinkItem, out bool isCont))
+                if (TryFindChestResupplyItem(chests, resupplyOrigin, zLevel, maxResupplyRadius, isGarrison,
+                    CampResupplyKind.Drink, hpRatio, preferBandage,
+                    out var drinkChest, out var drinkSrcInv, out var drinkItem, out bool isCont))
                 {
-                    StartChestResupplyWalk(agent, st, guid, now, drinkChest, drinkItem, CampResupplyKind.Drink, isCont);
+                    StartChestResupplyWalk(agent, st, guid, now, drinkChest, drinkSrcInv, drinkItem, CampResupplyKind.Drink, isCont);
                     return;
                 }
 
-                var well = FindNearestReachableWaterWell(selfPos, zLevel, 28f);
+                var well = FindNearestReachableWaterWell(resupplyOrigin, zLevel, 28f);
                 if (Il2CppSafe.IsAliveUnity(well))
                 {
                     LastCampResupplyAtByGuid[guid] = now;
@@ -1113,25 +1451,27 @@ namespace ZedZone.SmartCompanions
                 }
             }
 
-            if (needHeal && TryFindChestResupplyItem(chests, selfPos, zLevel, CampResupplyKind.Heal, hpRatio,
-                out var healChest, out var healItem, out _))
+            if (needHeal && TryFindChestResupplyItem(chests, resupplyOrigin, zLevel, maxResupplyRadius, isGarrison,
+                CampResupplyKind.Heal, hpRatio, preferBandage,
+                out var healChest, out var healSrcInv, out var healItem, out _))
             {
-                StartChestResupplyWalk(agent, st, guid, now, healChest, healItem, CampResupplyKind.Heal, false);
+                StartChestResupplyWalk(agent, st, guid, now, healChest, healSrcInv, healItem, CampResupplyKind.Heal, false);
                 return;
             }
 
-            if (needHunger && TryFindChestResupplyItem(chests, selfPos, zLevel, CampResupplyKind.Food, hpRatio,
-                out var foodChest, out var foodItem, out _))
+            if (needHunger && TryFindChestResupplyItem(chests, resupplyOrigin, zLevel, maxResupplyRadius, isGarrison,
+                CampResupplyKind.Food, hpRatio, preferBandage,
+                out var foodChest, out var foodSrcInv, out var foodItem, out _))
             {
-                StartChestResupplyWalk(agent, st, guid, now, foodChest, foodItem, CampResupplyKind.Food, false);
+                StartChestResupplyWalk(agent, st, guid, now, foodChest, foodSrcInv, foodItem, CampResupplyKind.Food, false);
             }
         }
 
         private static void StartChestResupplyWalk(
             GOAPAgent agent, CompanionRuntimeState st, string guid, float now,
-            DiscoveredContainer chest, ItemData item, CampResupplyKind kind, bool isDrinkContainer)
+            DiscoveredContainer chest, InventoryData sourceInv, ItemData item, CampResupplyKind kind, bool isDrinkContainer)
         {
-            if (chest == null || !Il2CppSafe.IsAliveUnity(chest.TerrainObj) || !Il2CppSafe.IsAlive(chest.Inventory) || !Il2CppSafe.IsAlive(item))
+            if (chest == null || !Il2CppSafe.IsAliveUnity(chest.TerrainObj) || !Il2CppSafe.IsAlive(sourceInv) || !Il2CppSafe.IsAlive(item))
                 return;
 
             LastCampResupplyAtByGuid[guid] = now;
@@ -1147,7 +1487,7 @@ namespace ZedZone.SmartCompanions
                 {
                     if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData) ||
                         !Il2CppSafe.IsAliveUnity(agent.humanCharacter) || agent.humanCharacter.deadFlag ||
-                        !Il2CppSafe.IsAliveUnity(chest.TerrainObj) || !Il2CppSafe.IsAlive(chest.Inventory))
+                        !Il2CppSafe.IsAliveUnity(chest.TerrainObj) || !Il2CppSafe.IsAlive(sourceInv))
                         return;
 
                     var curHc = agent.humanCharacter;
@@ -1165,7 +1505,7 @@ namespace ZedZone.SmartCompanions
                         : agent.npcData.GetOrCreateSharedInventory();
                     if (!Il2CppSafe.IsAlive(curDestInv)) return;
 
-                    if (!TryTakeOneUnitFromChest(chest.Inventory, curDestInv, item, isDrinkContainer, out var taken))
+                    if (!TryTakeOneUnitFromChest(sourceInv, curDestInv, item, isDrinkContainer, out var taken))
                         return;
 
                     if (isDrinkContainer)
@@ -1179,18 +1519,13 @@ namespace ZedZone.SmartCompanions
                         float curMaxHp = curStatus.maxhp > 1f ? curStatus.maxhp : 100f;
                         float beforeHp = curStatus.hp;
                         var medAttr = ItemManager.instance?.GetItemAttrById(taken.itemId)?.TryCast<ItemAttr_Food>();
+                        ItemData medSnap = null;
+                        try { medSnap = taken.CopyItemData(null); } catch { }
                         bool consumed = false;
                         try { consumed = CharacterActionManager.ConsumeOneFood(curCd, curDestInv, taken); } catch { }
                         if (consumed)
                         {
-                            if (curStatus.hp <= beforeHp + 0.1f)
-                            {
-                                float healAmt = Mathf.Max(22f, (Il2CppSafe.IsAliveUnity(medAttr) && medAttr.hp > 0f) ? medAttr.hp : 25f);
-                                curStatus.hp = Mathf.Min(curMaxHp, curStatus.hp + healAmt);
-                            }
-                            curHc.hp = curStatus.hp;
-                            agent.npcData.health = curStatus.hp;
-                            try { curHc.HealAllBodyPartInjuries(); } catch { }
+                            ApplyConsumedMedicineEffects(agent, curHc, curCd, curStatus, medSnap ?? taken, medAttr, curMaxHp, beforeHp);
                         }
                     }
                     else

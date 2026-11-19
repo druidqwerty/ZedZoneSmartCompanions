@@ -59,6 +59,7 @@ namespace ZedZone.SmartCompanions
 
         public static bool AllowsIndustryRole(CompanionRuntimeState st) =>
             !BaseWorkManager.Paused && st != null &&
+            st.WorkRole != CompanionWorkRole.Off &&
             (st.RosterMode == CompanionRosterMode.CampGarrison ||
              st.WorkRole == CompanionWorkRole.Any ||
              st.WorkRole == CompanionWorkRole.Camp ||
@@ -156,11 +157,11 @@ namespace ZedZone.SmartCompanions
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData) ||
                     !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag || ag.humanCharacter.isSleeping) continue;
                 if (Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && !ag.mostThreateningCharacter.deadFlag) continue;
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 if (!st.IsSortingActive && !st.IsChoreWalkActive && st.CarryBuffer.Count > 0)
                     BaseSortingSystem.ReturnCarryBufferWithoutTeleport(ag, st);
                 if (worker == null &&
-                    (st.RosterMode == CompanionRosterMode.CampGarrison || st.AllowBaseChores) &&
+                    st.AllowBaseChores &&
                     !st.HasAnyPhysicalTask && st.CarryBuffer.Count == 0 &&
                     now - st.LastChoreTime >= 12f &&
                     BaseWorkManager.MayStartAutomaticWork(st, AllowsIndustryRole) &&
@@ -174,9 +175,12 @@ namespace ZedZone.SmartCompanions
                 ? workerSt.HomeAnchorPos
                 : (Vector2?)null;
             sbyte workerZ = worker.npcData.zLevel;
-            float radius = Mathf.Clamp(CompanionConfigStore.BaseScanRadius, 16f, 48f);
-            var chests = BaseSortingSystem.ScanNearbyContainers(force: false);
+            float radius = homeAnchor.HasValue
+                ? 28f
+                : Mathf.Clamp(Mathf.Min(CompanionConfigStore.BaseScanRadius, 40f), 16f, 40f);
+            var chests = BaseSortingSystem.FilterContainersForWorker(BaseSortingSystem.ScanNearbyContainers(force: false), worker, workerSt);
             var stations = new List<StationEntry>(); var seen = new HashSet<IntPtr>();
+            BaseSortingSystem.InvalidateTerrainScanCache();
             var worldObjs = BaseSortingSystem.CollectWorldTerrainObjects(playerPos, radius);
             for (int i = 0; i < worldObjs.Count; i++)
                 InspectStation(worldObjs[i]?.TryCast<TerrainObject_Production>(), playerPos, homeAnchor, selfPos, workerZ, radius, chests, seen, stations);
@@ -208,10 +212,15 @@ namespace ZedZone.SmartCompanions
             if (!Il2CppSafe.IsAliveUnity(prod) || !prod.gameObject.activeInHierarchy || !seen.Add(prod.Pointer)) return;
             if (!Il2CppSafe.IsAlive(prod.objectData) || prod.objectData.zLayer != workerZ || !Il2CppSafe.IsAlive(prod.objectData.productionData)) return;
             Vector2 prodPos = prod.transform.position;
-            bool inPlayerRange = Vector2.Distance(prodPos, playerPos) <= radius;
-            bool inHomeRange = homeAnchor.HasValue && Vector2.Distance(prodPos, homeAnchor.Value) <= radius;
-            if (!inPlayerRange && !inHomeRange) return;
-            if (!inHomeRange && !AutoLootSystem.IsPositionNearPlayerBase(prodPos, Mathf.Max(32f, radius))) return;
+            if (homeAnchor.HasValue)
+            {
+                if (Vector2.Distance(prodPos, homeAnchor.Value) > radius) return;
+            }
+            else
+            {
+                if (Vector2.Distance(prodPos, playerPos) > radius || Vector2.Distance(prodPos, selfPos) > radius) return;
+                if (!AutoLootSystem.IsPositionNearPlayerBase(prodPos, Mathf.Max(32f, radius))) return;
+            }
             var pd = prod.objectData.productionData;
             string kind = prod.TryCast<TerrainObject_Production_StirlingGenerator>() != null ? "StirlingGenerator" :
                           prod.TryCast<TerrainObject_Production_BatteryCharger>() != null ? "BatteryCharger" :

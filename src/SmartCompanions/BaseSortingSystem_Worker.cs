@@ -31,7 +31,7 @@ namespace ZedZone.SmartCompanions
             {
                 foreach (var idle in SmartChatterSystem.GetActiveTeammateAgents())
                     if (Il2CppSafe.IsAliveUnity(idle) && Il2CppSafe.IsAlive(idle.npcData))
-                        CompanionConfigStore.GetOrCreateCompanion(idle.npcData.npcGUID, idle.npcData.characterData?.characterName)
+                        CompanionConfigStore.GetOrCreateCompanion(idle.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(idle.npcData.characterData))
                             .NoteBlocked(CompanionBlockReason.NoMarkedBoxes);
                 SetBanner(CompanionConfigStore.L(
                     "Нет отмеченных ящиков категорий! Откройте нужные ящики на базе (или в F8) и отметьте их категории.",
@@ -48,21 +48,36 @@ namespace ZedZone.SmartCompanions
                 var player = GameController.instance?.playerCharacter;
                 bool hasPlayer = Il2CppSafe.IsAliveUnity(player);
                 Vector2 playerPos = hasPlayer ? (Vector2)player.transform.position : Vector2.zero;
+                float garrisonRadius = Mathf.Clamp(CompanionConfigStore.BaseScanRadius, 32f, 80f);
 
+                var eligible = new List<(GOAPAgent agent, CompanionRuntimeState state, bool isGarrison)>();
+                var channelMatched = new List<(GOAPAgent agent, bool onlyOwnBackpack)>();
                 foreach (var candidate in SmartChatterSystem.GetActiveTeammateAgents())
                 {
                     if (!Il2CppSafe.IsAliveUnity(candidate) || !Il2CppSafe.IsAlive(candidate.npcData)) continue;
-                    var candidateState = CompanionConfigStore.GetOrCreateCompanion(candidate.npcData.npcGUID, candidate.npcData.characterData?.characterName);
-                    if (candidateState.RosterMode == CompanionRosterMode.CampGarrison)
+                    if (Il2CppSafe.IsAliveUnity(candidate.humanCharacter) && candidate.humanCharacter.deadFlag) continue;
+                    var candidateState = CompanionConfigStore.GetOrCreateCompanion(candidate.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(candidate.npcData.characterData));
+                    bool isGarrison = candidateState.RosterMode == CompanionRosterMode.CampGarrison;
+                    if (isGarrison)
                     {
-                        if (!hasPlayer || !candidateState.HasHomeAnchor || Vector2.Distance(playerPos, candidateState.HomeAnchorPos) > 32f)
+                        if (!candidateState.HasHomeAnchor) continue;
+                        if (hasPlayer && Vector2.Distance(playerPos, candidateState.HomeAnchorPos) > garrisonRadius)
                             continue;
                     }
+                    eligible.Add((candidate, candidateState, isGarrison));
                     bool channelOk = CompanionConfigStore.ActiveCommandGroup == SquadFireteam.None ||
+                                     isGarrison ||
                                      CompanionConfigStore.MatchesActiveCommandChannel(candidateState);
-                    if (!channelOk) continue;
+                    if (channelOk)
+                        channelMatched.Add((candidate, !BaseWorkManager.AllowsSorting(candidateState)));
+                }
 
-                    workers.Add((candidate, !BaseWorkManager.AllowsSorting(candidateState)));
+                if (channelMatched.Count > 0)
+                    workers.AddRange(channelMatched);
+                else
+                {
+                    for (int i = 0; i < eligible.Count; i++)
+                        workers.Add((eligible[i].agent, !BaseWorkManager.AllowsSorting(eligible[i].state)));
                 }
             }
 
@@ -80,7 +95,7 @@ namespace ZedZone.SmartCompanions
             foreach (var (ag, onlyOwnBackpack) in workers)
             {
                 if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAlive(ag.npcData)) continue;
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 ReturnCarryBufferWithoutTeleport(ag, st);
                 st.LootQueue.Clear();
                 st.IsLootingActive = false;
@@ -91,7 +106,9 @@ namespace ZedZone.SmartCompanions
                 if (onlyOwnBackpack) _ownBackpackOnlyJobs.Add(st.NpcGuid);
                 else _ownBackpackOnlyJobs.Remove(st.NpcGuid);
 
-                if (TryAssignNextCarrySource(ag, st, containers, destBoxes, extraSourceContainer, claimedSourcePointers, onlyOwnBackpack))
+                var workerContainers = FilterContainersForWorker(containers, ag, st);
+                var workerDestBoxes = GetCategorizedDestinationBoxes(workerContainers);
+                if (TryAssignNextCarrySource(ag, st, workerContainers, workerDestBoxes, extraSourceContainer, claimedSourcePointers, onlyOwnBackpack))
                 {
                     assignedWorkers++;
                     SmartChatterSystem.Speak(ag, ChatterTopic.SortStart, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
@@ -115,7 +132,7 @@ namespace ZedZone.SmartCompanions
                 string remCatsForNote = remDrop > 0 ? ItemCategorizer.FormatCategoriesSummary(remMask, false) : "";
                 foreach (var (ag, _) in workers)
                     if (Il2CppSafe.IsAliveUnity(ag) && Il2CppSafe.IsAlive(ag.npcData))
-                        CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName)
+                        CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData))
                             .NoteBlocked(remDrop > 0 ? CompanionBlockReason.NoStorageSpace : CompanionBlockReason.NothingToDo, remCatsForNote);
                 if (remDrop > 0)
                 {
@@ -248,12 +265,12 @@ namespace ZedZone.SmartCompanions
                     !Il2CppSafe.IsAliveUnity(ag.humanCharacter) || ag.humanCharacter.deadFlag)
                     continue;
 
-                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                var st = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
 
-                // Automatic Base Drop-off when returning near marked base chests out of combat (walks to each chest!)
+                // Automatic Base Drop-off when returning near marked base chests out of close LoS combat (walks to each chest!)
                 if (!st.HasAnyPhysicalTask && CompanionConfigStore.EnableBaseAutoDropoff && st.AllowAutoDropoffAtBase &&
                     BaseWorkManager.MayStartAutomaticWork(st, BaseWorkManager.AllowsAutoDropoff) &&
-                    !Il2CppSafe.IsAliveUnity(ag.mostThreateningCharacter) && now - st.LastAutoDropoffTime > 3.5f)
+                    !CombatResponse.HasCloseLineOfSightThreat(ag, ag.mostThreateningCharacter, 12f) && now - st.LastAutoDropoffTime > 3.5f)
                 {
                     TryAutoDropoffAtBase(ag, st, now);
                 }
@@ -309,7 +326,7 @@ namespace ZedZone.SmartCompanions
 
                 if (!ready) return;
 
-                var containers = ScanNearbyContainers(force: true);
+                var containers = FilterContainersForWorker(ScanNearbyContainers(force: true), ag, st);
                 var destBoxes = GetCategorizedDestinationBoxes(containers);
                 var fallbackDropoff = GetAllDropoffFallbackBoxes(containers);
                 int picked = PickupBatchIntoCarryBuffer(ag, st, destBoxes, fallbackDropoff);
@@ -348,12 +365,54 @@ namespace ZedZone.SmartCompanions
 
                 if (unreachable)
                 {
-                    PhysicalMovementHelper.MarkTargetTemporarilyUnreachable(st.TargetContainerGuid, 45f);
+                    string failedTargetId = st.TargetContainerGuid;
+                    if (!string.IsNullOrEmpty(failedTargetId))
+                        PhysicalMovementHelper.MarkTargetTemporarilyUnreachable(failedTargetId, 45f);
+                    var containers = FilterContainersForWorker(ScanNearbyContainers(force: true), ag, st);
+                    var destBoxes = GetCategorizedDestinationBoxes(containers);
+                    var fallbackDropoff = st.SourceAllowDropoffFallback ? GetAllDropoffFallbackBoxes(containers) : null;
+                    bool hasRealSelfPos = Il2CppSafe.IsAliveUnity(ag?.humanCharacter);
+                    Vector2 selfPos = hasRealSelfPos
+                        ? (Vector2)ag.humanCharacter.transform.position
+                        : Vector2.zero;
+
                     for (int i = st.CarryBuffer.Count - 1; i >= 0; i--)
                     {
                         var entry = st.CarryBuffer[i];
-                        if (entry != null && string.Equals(entry.TargetContainerId, st.TargetContainerGuid, StringComparison.OrdinalIgnoreCase))
+                        if (entry == null || !Il2CppSafe.IsAlive(entry.Item))
                         {
+                            st.CarryBuffer.RemoveAt(i);
+                            continue;
+                        }
+                        if (string.Equals(entry.TargetContainerId, failedTargetId, StringComparison.OrdinalIgnoreCase))
+                        {
+                            bool reroutedToWalk = false;
+                            bool placed = false;
+                            InventoryData usedDestInv = null;
+                            bool usedCompact = false;
+                            if (hasRealSelfPos)
+                            {
+                                placed = TryFallbackDepositOrReroute(
+                                    entry, destBoxes, requireCategoryMatch: true, st.SourceContainerInv, selfPos,
+                                    out usedDestInv, out usedCompact, out reroutedToWalk);
+                                if (!placed && !reroutedToWalk && fallbackDropoff != null)
+                                {
+                                    placed = TryFallbackDepositOrReroute(
+                                        entry, fallbackDropoff, requireCategoryMatch: false, st.SourceContainerInv, selfPos,
+                                        out usedDestInv, out usedCompact, out reroutedToWalk);
+                                }
+                            }
+                            if (placed)
+                            {
+                                st.SortedItemsThisSession++;
+                                if (usedCompact && Il2CppSafe.IsAlive(usedDestInv))
+                                    InventoryTransfers.SafeCompactInventory(usedDestInv);
+                                st.CarryBuffer.RemoveAt(i);
+                                continue;
+                            }
+                            if (reroutedToWalk)
+                                continue;
+
                             StoreCarriedItemOnCompanionOrSafeFallback(ag, entry);
                             st.CarryBuffer.RemoveAt(i);
                         }
@@ -361,16 +420,39 @@ namespace ZedZone.SmartCompanions
                     if (st.CarryBuffer.Count > 0)
                         SelectNextDestinationFromBuffer(ag, st, now);
                     else
-                        AdvanceOrFinishSorting(ag, st);
+                        AdvanceOrFinishSorting(ag, st, containers, destBoxes);
                     return;
                 }
 
                 if (!ready) return;
 
-                var containers = ScanNearbyContainers(force: true);
-                var destBoxes = GetCategorizedDestinationBoxes(containers);
-                var fallbackDropoff = st.SourceAllowDropoffFallback ? GetAllDropoffFallbackBoxes(containers) : null;
-                int deposited = DepositBatchAtCurrentDestination(ag, st, destBoxes, out var domCat, fallbackDropoff);
+                if (!Il2CppSafe.IsAliveUnity(ag?.humanCharacter))
+                {
+                    for (int i = st.CarryBuffer.Count - 1; i >= 0; i--)
+                    {
+                        var entry = st.CarryBuffer[i];
+                        if (entry != null && Il2CppSafe.IsAlive(entry.Item))
+                            StoreCarriedItemOnCompanionOrSafeFallback(ag, entry);
+                        st.CarryBuffer.RemoveAt(i);
+                    }
+                    var deadContainers = FilterContainersForWorker(ScanNearbyContainers(force: true), ag, st);
+                    AdvanceOrFinishSorting(ag, st, deadContainers, GetCategorizedDestinationBoxes(deadContainers));
+                    return;
+                }
+
+                Vector2 arrivalSelfPos = (Vector2)ag.humanCharacter.transform.position;
+                float arrivalSurfaceDist = PhysicalMovementHelper.ComputeSurfaceDistance(
+                    arrivalSelfPos, st.TargetContainerPos, st.TargetContainerAnchor);
+                if (arrivalSurfaceDist > PhysicalMovementHelper.MaxReachableInteractRadius)
+                {
+                    PhysicalMovementHelper.BeginLeg(st, arrivalSelfPos, st.TargetContainerPos, st.TargetContainerAnchor);
+                    return;
+                }
+
+                var arrivalContainers = FilterContainersForWorker(ScanNearbyContainers(force: true), ag, st);
+                var arrivalDestBoxes = GetCategorizedDestinationBoxes(arrivalContainers);
+                var fallbackDropoffBoxes = st.SourceAllowDropoffFallback ? GetAllDropoffFallbackBoxes(arrivalContainers) : null;
+                int deposited = DepositBatchAtCurrentDestination(ag, st, arrivalDestBoxes, out var domCat, fallbackDropoffBoxes);
 
                 if (deposited > 0)
                 {
@@ -382,7 +464,7 @@ namespace ZedZone.SmartCompanions
                 if (st.CarryBuffer.Count > 0)
                     SelectNextDestinationFromBuffer(ag, st, now);
                 else
-                    AdvanceOrFinishSorting(ag, st, containers, destBoxes);
+                    AdvanceOrFinishSorting(ag, st, arrivalContainers, arrivalDestBoxes);
             }
         }
 
@@ -392,8 +474,8 @@ namespace ZedZone.SmartCompanions
             List<DiscoveredContainer> containers = null,
             List<DiscoveredContainer> destBoxes = null)
         {
-            containers ??= ScanNearbyContainers(force: true);
-            destBoxes ??= GetCategorizedDestinationBoxes(containers);
+            containers = FilterContainersForWorker(containers ?? ScanNearbyContainers(force: true), ag, st);
+            destBoxes = GetCategorizedDestinationBoxes(containers);
             bool onlyOwnBackpack = st != null && !string.IsNullOrEmpty(st.NpcGuid) && _ownBackpackOnlyJobs.Contains(st.NpcGuid);
             if (!TryAssignNextCarrySource(ag, st, containers, destBoxes, null, null, onlyOwnBackpack))
             {

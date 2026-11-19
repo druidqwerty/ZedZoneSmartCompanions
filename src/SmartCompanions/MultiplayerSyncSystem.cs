@@ -76,8 +76,9 @@ namespace ZedZone.SmartCompanions
                 if (Il2CppSafe.IsAliveUnity(NetworkManager.instance) && !string.IsNullOrEmpty(NetworkManager.instance.localPlayerName))
                     return NetworkManager.instance.localPlayerName;
                 var cd = GameController.instance?.playerCharacter?.characterData;
-                if (Il2CppSafe.IsAlive(cd) && !string.IsNullOrEmpty(cd.characterName))
-                    return cd.characterName;
+                string disp = CompanionConfigStore.GetCharacterDisplayName(cd);
+                if (!string.IsNullOrEmpty(disp))
+                    return disp;
             }
             catch { }
             return "Player";

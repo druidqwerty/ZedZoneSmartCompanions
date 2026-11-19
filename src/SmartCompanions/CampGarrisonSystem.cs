@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace ZedZone.SmartCompanions
@@ -26,6 +27,7 @@ namespace ZedZone.SmartCompanions
                 st.GarrisonAnchorSettled = false;
                 if (st.IsChoreWalkActive)
                     BaseWorkManager.CancelWork(agent, st);
+                SyncLiveStayPositionOnExit(agent, st);
             }
             else
             {
@@ -37,6 +39,7 @@ namespace ZedZone.SmartCompanions
                         agent.humanCharacter.movementInput = Vector2.zero;
                     agent.hasNavigationTarget = false;
                     agent.executeSelectPriorityGoalFlag = true;
+                    CorridorNavigationHelper.ClearTracker(agent);
                 }
             }
 
@@ -62,24 +65,31 @@ namespace ZedZone.SmartCompanions
             if (string.IsNullOrEmpty(guid)) return false;
             if (!CompanionConfigStore.CompanionStates.TryGetValue(guid, out var st) || st == null)
                 return false;
+            // CampGarrison companions stay anchored against FollowLeader / CatchUpTeleport / StayBehind
+            // even while running camp sorting/chore/resupply walks (UpdateGoal/PhysicalMovementHelper still run).
+            if (st.RosterMode == CompanionRosterMode.CampGarrison)
+                return true;
             if (st.HasAnyPhysicalTask)
                 return false;
-            return st.RosterMode == CompanionRosterMode.CampGarrison ||
-                   st.IsTransientVehicleOverflow ||
+            return st.IsTransientVehicleOverflow ||
                    st.ActiveOrder == TacticalOrderKind.HoldPosition ||
                    st.ActiveOrder == TacticalOrderKind.CoverDirection;
         }
 
-        public static void SyncAnchoredNpcDataPosition(GOAPAgent agent, Vector2 anchorPos, int anchorZ)
+        public static void SyncAnchoredNpcDataPosition(GOAPAgent agent, Vector2 anchorPos, int anchorZ) =>
+            SyncAnchoredNpcDataPosition(agent, anchorPos, anchorZ, forcePositionSync: false);
+
+        public static void SyncAnchoredNpcDataPosition(GOAPAgent agent, Vector2 anchorPos, int anchorZ, bool forcePositionSync)
         {
             try
             {
                 if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData)) return;
                 agent.npcData.npcStayPosition = new Vector3(anchorPos.x, anchorPos.y, anchorZ);
+                ClearBasePositionAgentStateSafe(agent);
                 if (Il2CppSafe.IsAliveUnity(agent.humanCharacter))
                 {
                     Vector2 cur = agent.humanCharacter.transform.position;
-                    if (Vector2.Distance(cur, anchorPos) <= 4.2f)
+                    if (forcePositionSync || Vector2.Distance(cur, anchorPos) <= 4.2f)
                     {
                         agent.npcData.npcPosition = cur;
                         if (Il2CppSafe.IsAlive(agent.npcData.characterData))
@@ -88,6 +98,97 @@ namespace ZedZone.SmartCompanions
                 }
             }
             catch { }
+        }
+
+        public static void SyncLiveStayPositionOnExit(GOAPAgent agent, CompanionRuntimeState st = null)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData)) return;
+                if (st == null && !string.IsNullOrEmpty(agent.npcData.npcGUID))
+                    CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID, out st);
+
+                bool hasBody = Il2CppSafe.IsAliveUnity(agent.humanCharacter);
+                Vector2 livePos = hasBody ? (Vector2)agent.humanCharacter.transform.position : agent.npcData.npcPosition;
+                int liveZ = agent.npcData.zLevel;
+
+                agent.npcData.npcStayPosition = new Vector3(livePos.x, livePos.y, liveZ);
+                agent.npcData.npcPosition = livePos;
+                if (Il2CppSafe.IsAlive(agent.npcData.characterData))
+                {
+                    agent.npcData.characterData.characterPosition = livePos;
+                    agent.npcData.characterData.zLevel = (sbyte)liveZ;
+                }
+                ClearBasePositionAgentStateSafe(agent);
+
+                if (st == null || st.Doctrine != TacticalDoctrine.Passive)
+                {
+                    string normCombat = CombatResponse.NormalizeCommand(agent.npcData.combatCommand);
+                    if (string.Equals(normCombat, "StopFire", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            agent.npcData.ExecuteNPCCommand("Combat.FireAtWill");
+                            if (Il2CppSafe.IsAlive(agent.agentState))
+                                agent.agentState.combatCommand = "FireAtWill";
+                        }
+                        catch { }
+                    }
+                }
+
+                CorridorNavigationHelper.ClearTracker(agent);
+                agent.executeSelectPriorityGoalFlag = true;
+            }
+            catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ClearBasePositionAgentStateSafe(GOAPAgent agent)
+        {
+            try
+            {
+                var states = agent?.agentState?.states;
+                if (Il2CppSafe.IsAlive(states) && states.ContainsKey("basePosition"))
+                    states.Remove("basePosition");
+            }
+            catch { }
+        }
+
+        public static bool ShouldBlockVanillaReturnToBase(GOAPAgent agent, CompanionRuntimeState st)
+        {
+            try
+            {
+                if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData))
+                    return false;
+                if (!agent.IsPlayerTeammate())
+                    return false;
+
+                if (st == null && !string.IsNullOrEmpty(agent.npcData.npcGUID))
+                    CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID, out st);
+
+                if (st != null && (st.HasAnyPhysicalTask ||
+                                   st.RosterMode == CompanionRosterMode.CampGarrison ||
+                                   st.IsTransientVehicleOverflow ||
+                                   st.ActiveOrder != TacticalOrderKind.Follow))
+                    return true;
+
+                string basicCmd = agent.npcData.basicCommand ?? "";
+                if (basicCmd.IndexOf("StayAtPosition", StringComparison.OrdinalIgnoreCase) < 0)
+                    return true;
+
+                Vector3 stay = agent.npcData.npcStayPosition;
+                if (Il2CppSafe.IsAliveUnity(agent.humanCharacter))
+                {
+                    Vector2 curPos = agent.humanCharacter.transform.position;
+                    Vector2 stay2 = new Vector2(stay.x, stay.y);
+                    if (stay2.sqrMagnitude < 0.01f && curPos.sqrMagnitude > 25f * 25f)
+                        return true;
+                    if (Vector2.Distance(curPos, stay2) > 120f)
+                        return true;
+                }
+            }
+            catch { }
+            return false;
         }
 
         public static void ResolveAndPinHomeAnchor(GOAPAgent agent, CompanionRuntimeState st)
@@ -144,7 +245,7 @@ namespace ZedZone.SmartCompanions
             st.HomeAnchorZ = selfZ;
             st.HasHomeAnchor = true;
             st.GarrisonAnchorSettled = Vector2.Distance(selfPos, bestAnchor) <= 4.2f;
-            SyncAnchoredNpcDataPosition(agent, bestAnchor, selfZ);
+            SyncAnchoredNpcDataPosition(agent, bestAnchor, selfZ, forcePositionSync: true);
         }
 
         private static bool TryParseContainerRulePos(string containerId, int expectedZ, out Vector2 pos)
@@ -194,6 +295,7 @@ namespace ZedZone.SmartCompanions
                 !Il2CppSafe.IsAliveUnity(leader) || (!leader.isDriving && !Il2CppSafe.IsAliveUnity(leader.drivingVehicle)))
             {
                 st.IsTransientVehicleOverflow = false;
+                SyncLiveStayPositionOnExit(agent, st);
                 return false;
             }
 
@@ -252,46 +354,47 @@ namespace ZedZone.SmartCompanions
             return true;
         }
 
+        private const float GarrisonAnchorReturnRadius = 1.15f;
+        private const float GarrisonAnchorReachDistance = 0.85f;
+
+        private static bool StepGarrisonAnchorHold(
+            GOAPAgent agent, CompanionRuntimeState st, HumanCharacterController hc, float dist, bool hasThreat, bool forGoalOverride)
+        {
+            if (hasThreat && dist <= 7.5f)
+                return false; // Let native ranged/melee combat engage enemies near camp!
+
+            if (dist > GarrisonAnchorReturnRadius)
+            {
+                try { CorridorNavigationHelper.SmartMoveTo(agent, st.HomeAnchorPos, GarrisonAnchorReachDistance, dist > 7.5f); } catch { }
+                return true;
+            }
+
+            if (!forGoalOverride || (!hasThreat && !CompanionSurvivalSystem.DoesAgentNeedNativeSurvival(agent)))
+            {
+                CorridorNavigationHelper.ClearTracker(agent);
+                hc.movementInput = Vector2.zero;
+                agent.hasNavigationTarget = false;
+            }
+            return forGoalOverride ? false : !hasThreat;
+        }
+
         /// <summary>
         /// Called from PhysicalTaskUpdateGoalOverride.Prefix in GOAPAgent.UpdateGoal:
-        /// steers a drifted guard back to camp (&gt; 1.85m), while returning false when settled so
+        /// steers a drifted guard back to camp (&gt; 1.15m), while returning false when settled so
         /// native StayAlive (bandaging/healing) and SatisfyNeeds (eating/drinking) still run.
         /// </summary>
         public static bool TickGarrisonGoalOverride(GOAPAgent agent)
         {
             if (!TryPrepareGarrisonTick(agent, out var st, out var hc, out float dist, out bool hasThreat))
                 return false;
-            if (hasThreat && dist <= 7.5f)
-                return false; // Let native ranged/melee combat engage enemies near camp!
-
-            if (dist > 1.85f)
-            {
-                try { CorridorNavigationHelper.SmartMoveTo(agent, st.HomeAnchorPos, 1.4f, dist > 7.5f); } catch { }
-                return true;
-            }
-            if (!CompanionSurvivalSystem.DoesAgentNeedNativeSurvival(agent))
-            {
-                hc.movementInput = Vector2.zero;
-                agent.hasNavigationTarget = false;
-            }
-            return false;
+            return StepGarrisonAnchorHold(agent, st, hc, dist, hasThreat, forGoalOverride: true);
         }
 
         public static bool TickGarrisonFrame(GOAPAgent agent)
         {
             if (!TryPrepareGarrisonTick(agent, out var st, out var hc, out float dist, out bool hasThreat))
                 return false;
-            if (hasThreat && dist <= 7.5f)
-                return false; // Let native ranged/melee combat engage enemies near camp!
-
-            if (dist > 1.85f)
-            {
-                try { CorridorNavigationHelper.SmartMoveTo(agent, st.HomeAnchorPos, 1.4f, dist > 7.5f); } catch { }
-                return true;
-            }
-            hc.movementInput = Vector2.zero;
-            agent.hasNavigationTarget = false;
-            return !hasThreat;
+            return StepGarrisonAnchorHold(agent, st, hc, dist, hasThreat, forGoalOverride: false);
         }
     }
 }

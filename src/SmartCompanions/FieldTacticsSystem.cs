@@ -321,7 +321,7 @@ namespace ZedZone.SmartCompanions
                 Vector2 slotPos = slots[i];
                 var st = CompanionConfigStore.GetOrCreateCompanion(
                     ag.npcData.npcGUID,
-                    ag.npcData.characterData?.characterName);
+                    CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
 
                 if (st != null && st.HasAnyPhysicalTask)
                     BaseWorkManager.CancelWork(ag, st);
@@ -405,7 +405,7 @@ namespace ZedZone.SmartCompanions
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(
                     ag.npcData.npcGUID,
-                    ag.npcData.characterData?.characterName);
+                    CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 bool isMedic = st != null && st.Specialization == CompanionSpecialization.Medic;
                 bool hasSmoke = HasHealingSmokeInInventory(ag);
 
@@ -548,7 +548,7 @@ namespace ZedZone.SmartCompanions
 
             var st = CompanionConfigStore.GetOrCreateCompanion(
                 thrower.npcData.npcGUID,
-                thrower.npcData.characterData?.characterName);
+                CompanionConfigStore.GetCharacterDisplayName(thrower.npcData.characterData));
             if (st != null && st.HasAnyPhysicalTask)
                 BaseWorkManager.CancelWork(thrower, st);
 
@@ -776,13 +776,9 @@ namespace ZedZone.SmartCompanions
 
         private static string GetDisplayName(GOAPAgent agent)
         {
-            try
-            {
-                string n = agent?.npcData?.characterData?.characterName;
-                if (!string.IsNullOrWhiteSpace(n))
-                    return n;
-            }
-            catch { }
+            string n = CompanionConfigStore.GetCharacterDisplayName(agent?.npcData?.characterData);
+            if (!string.IsNullOrWhiteSpace(n))
+                return n;
             return IsRussianLanguage() ? "Напарник" : "Companion";
         }
 
@@ -810,7 +806,7 @@ namespace ZedZone.SmartCompanions
                     continue;
                 if (MultiplayerSyncSystem.IsMultiplayerOnline && !MultiplayerSyncSystem.CanLocalPlayerCommand(ag.npcData))
                     continue;
-                var candSt = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, ag.npcData.characterData?.characterName);
+                var candSt = CompanionConfigStore.GetOrCreateCompanion(ag.npcData.npcGUID, CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 if (!CompanionConfigStore.MatchesActiveCommandChannel(candSt))
                     continue;
                 result.Add(ag);
@@ -858,7 +854,7 @@ namespace ZedZone.SmartCompanions
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(
                     ag.npcData.npcGUID,
-                    ag.npcData.characterData?.characterName);
+                    CompanionConfigStore.GetCharacterDisplayName(ag.npcData.characterData));
                 if (st != null && st.Doctrine == TacticalDoctrine.Passive)
                     continue;
 
@@ -1374,8 +1370,8 @@ namespace ZedZone.SmartCompanions
                     (!Il2CppSafe.IsAliveUnity(GameController.instance?.playerCharacter) ||
                      patient.Pointer != GameController.instance.playerCharacter.Pointer))
                 {
-                    string healerName = Il2CppSafe.IsAliveUnity(healer) && Il2CppSafe.IsAlive(healer.npcData?.characterData)
-                        ? healer.npcData.characterData.characterName
+                    string healerName = Il2CppSafe.IsAliveUnity(healer)
+                        ? CompanionConfigStore.GetCharacterDisplayName(healer.npcData?.characterData, "NPC")
                         : "NPC";
                     MultiplayerSyncSystem.SendCrossPlayerHeal(patient, appliedGain, clearWounds: false, healerName);
                 }

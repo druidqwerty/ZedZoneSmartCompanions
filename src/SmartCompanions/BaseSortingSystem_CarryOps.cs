@@ -24,10 +24,12 @@ namespace ZedZone.SmartCompanions
             string npcGuid = ag?.npcData?.npcGUID ?? st?.NpcGuid ?? "";
 
             var candidates = new List<(InventoryData inv, Vector2 pos, Transform anchor, bool ownBackpack, bool allowDropoffFallback, string id, string name, StorageCategory stayMask, float dist)>();
+            var seenOwnInvPtrs = new HashSet<IntPtr>();
 
-            // 1. Companion's own sharedInventoryData & personal inventoryData (0m pickup, physical walk to deposit!)
+            // 1. Companion's own sharedInventoryData, personal inventoryData & equipped backpack sub-inventory (0m pickup, physical walk to deposit!)
             var shared = ag?.npcData?.sharedInventoryData;
-            if (Il2CppSafe.IsAlive(shared) && shared.itemList != null && shared.itemList.Count > 0)
+            if (Il2CppSafe.IsAlive(shared) && shared.itemList != null && shared.itemList.Count > 0 &&
+                seenOwnInvPtrs.Add(shared.Pointer))
             {
                 candidates.Add((shared, selfPos, selfAnchor, true, true, "shared_" + npcGuid,
                     CompanionConfigStore.L("Рюкзак напарника", "Companion Backpack", "队友背包"), StorageCategory.None, 0f));
@@ -35,10 +37,17 @@ namespace ZedZone.SmartCompanions
 
             var personalInv = ag?.npcData?.characterData?.inventoryData;
             if (Il2CppSafe.IsAlive(personalInv) && personalInv.itemList != null && personalInv.itemList.Count > 0 &&
-                (!Il2CppSafe.IsAlive(shared) || personalInv.Pointer != shared.Pointer))
+                seenOwnInvPtrs.Add(personalInv.Pointer))
             {
                 candidates.Add((personalInv, selfPos, selfAnchor, true, true, "inv_" + npcGuid,
                     CompanionConfigStore.L("Инвентарь напарника", "Companion Inventory", "队友物品栏"), StorageCategory.None, 0f));
+            }
+
+            if (TryGetEquippedBackpackInventory(ag, out var equippedPackInv) &&
+                equippedPackInv.itemList.Count > 0 && seenOwnInvPtrs.Add(equippedPackInv.Pointer))
+            {
+                candidates.Add((equippedPackInv, selfPos, selfAnchor, true, true, "pack_" + npcGuid,
+                    CompanionConfigStore.L("Надетый рюкзак напарника", "Companion Equipped Backpack", "队友已装备背包"), StorageCategory.None, 0f));
             }
 
             if (!onlyOwnBackpack)
@@ -93,7 +102,7 @@ namespace ZedZone.SmartCompanions
                 if (claimedSources != null && claimedSources.Contains(cand.inv.Pointer))
                     continue;
                 HashSet<IntPtr> protectedPtrs = cand.ownBackpack
-                    ? CompanionProfileSystem.BuildProtectedBackpackPointers(ag, st, cand.inv)
+                    ? BuildProtectedPointersAcrossAllBags(ag, st, cand.inv)
                     : null;
                 var fallbackList = cand.allowDropoffFallback ? fallbackDropoffBoxes : null;
                 if (!HasMovableItemInSource(cand.inv, cand.stayMask, destBoxes, protectedPtrs, fallbackList))
@@ -257,7 +266,7 @@ namespace ZedZone.SmartCompanions
                 }
 
                 HashSet<IntPtr> protectedPtrs = st.SourceIsOwnBackpack
-                    ? CompanionProfileSystem.BuildProtectedBackpackPointers(ag, st, srcInv)
+                    ? BuildProtectedPointersAcrossAllBags(ag, st, srcInv)
                     : null;
 
                 foreach (var item in snapshot)
@@ -394,14 +403,26 @@ namespace ZedZone.SmartCompanions
                 if (alt?.Inventory == null || alt.Rule == null) continue;
                 if (Il2CppSafe.IsAlive(sourceInv) && alt.Inventory.Pointer == sourceInv.Pointer) continue;
                 if (Il2CppSafe.IsAlive(entry.TargetInv) && alt.Inventory.Pointer == entry.TargetInv.Pointer) continue;
+                if (string.Equals(alt.ContainerId, entry.TargetContainerId, StringComparison.OrdinalIgnoreCase)) continue;
                 if (requireCategoryMatch && (alt.Rule.Categories & entry.Category) == 0) continue;
                 if (PhysicalMovementHelper.IsTargetTemporarilyUnreachable(alt.ContainerId)) continue;
                 if (!InventoryTransfers.CanAcceptWholeItem(alt.Inventory, entry.Item)) continue;
 
-                Transform altAnchor = Il2CppSafe.IsAliveUnity(alt.TerrainObj)
+                Transform hintAnchor = Il2CppSafe.IsAliveUnity(alt.TerrainObj)
                     ? alt.TerrainObj.transform
-                    : ResolveAnchorTransformForInventory(alt.Inventory);
-                float altDist = PhysicalMovementHelper.ComputeSurfaceDistance(selfPos, alt.WorldPos, altAnchor);
+                    : null;
+                if (!TryMeasureSurfaceDistanceToContainer(
+                        selfPos,
+                        alt.Inventory,
+                        hintAnchor,
+                        alt.WorldPos,
+                        hasHintPos: true,
+                        out Transform altAnchor,
+                        out Vector2 altPos,
+                        out float altDist))
+                {
+                    continue;
+                }
                 if (altDist <= PhysicalMovementHelper.MaxReachableInteractRadius &&
                     InventoryTransfers.TryDepositOrStackWhole(alt.Inventory, entry.Item))
                 {
@@ -414,7 +435,7 @@ namespace ZedZone.SmartCompanions
                     entry.TargetContainerId = alt.ContainerId;
                     entry.TargetInv = alt.Inventory;
                     entry.TargetAnchor = altAnchor;
-                    entry.TargetPos = alt.WorldPos;
+                    entry.TargetPos = altPos;
                     entry.TargetDisplayName = alt.DisplayName;
                     reroutedToWalk = true;
                     return false;
@@ -457,8 +478,43 @@ namespace ZedZone.SmartCompanions
                     bool placed = false;
                     InventoryData usedDestInv = null;
                     bool usedCompact = true;
+                    bool hasRealSelfPos = Il2CppSafe.IsAliveUnity(ag?.humanCharacter);
+                    Vector2 selfPos = hasRealSelfPos
+                        ? (Vector2)ag.humanCharacter.transform.position
+                        : Vector2.zero;
 
-                    if (Il2CppSafe.IsAlive(entry.TargetInv) &&
+                    bool targetInReach = false;
+                    if (hasRealSelfPos && Il2CppSafe.IsAlive(entry.TargetInv))
+                    {
+                        bool hasHintPos = Il2CppSafe.IsAliveUnity(entry.TargetAnchor) || entry.TargetPos.sqrMagnitude > 0.0001f;
+                        if (TryMeasureSurfaceDistanceToContainer(
+                                selfPos,
+                                entry.TargetInv,
+                                entry.TargetAnchor,
+                                entry.TargetPos,
+                                hasHintPos,
+                                out var freshAnchor,
+                                out var freshPos,
+                                out float entryDist))
+                        {
+                            if (Il2CppSafe.IsAliveUnity(freshAnchor))
+                                entry.TargetAnchor = freshAnchor;
+                            entry.TargetPos = freshPos;
+
+                            if (entryDist <= PhysicalMovementHelper.MaxReachableInteractRadius)
+                            {
+                                targetInReach = true;
+                            }
+                            else if (!string.Equals(entry.TargetContainerId, st.TargetContainerGuid, StringComparison.OrdinalIgnoreCase) &&
+                                     !PhysicalMovementHelper.IsTargetTemporarilyUnreachable(entry.TargetContainerId) &&
+                                     InventoryTransfers.CanAcceptWholeItem(entry.TargetInv, entry.Item))
+                            {
+                                continue;
+                            }
+                        }
+                    }
+
+                    if (targetInReach &&
                         InventoryTransfers.TryDepositOrStackWhole(entry.TargetInv, entry.Item))
                     {
                         placed = true;
@@ -466,12 +522,9 @@ namespace ZedZone.SmartCompanions
                         if (CompanionConfigStore.ContainerRules.TryGetValue(entry.TargetContainerId ?? "", out var r))
                             usedCompact = r.AutoCompact;
                     }
-                    else
+                    else if (hasRealSelfPos)
                     {
                         // Never teleport into a distant chest! If another valid chest exists, re-route CarryBuffer entry so the NPC walks there next!
-                        Vector2 selfPos = Il2CppSafe.IsAliveUnity(ag?.humanCharacter)
-                            ? (Vector2)ag.humanCharacter.transform.position
-                            : st.TargetContainerPos;
                         bool reroutedToWalk = false;
                         placed = TryFallbackDepositOrReroute(
                             entry, destBoxes, requireCategoryMatch: true, st.SourceContainerInv, selfPos,
@@ -566,6 +619,67 @@ namespace ZedZone.SmartCompanions
             }
         }
 
+        private static bool TryMeasureSurfaceDistanceToContainer(
+            Vector2 selfPos,
+            InventoryData inv,
+            Transform hintAnchor,
+            Vector2 hintPos,
+            bool hasHintPos,
+            out Transform resolvedAnchor,
+            out Vector2 resolvedPos,
+            out float surfaceDist)
+        {
+            resolvedAnchor = Il2CppSafe.IsAliveUnity(hintAnchor)
+                ? hintAnchor
+                : (Il2CppSafe.IsAlive(inv) ? ResolveAnchorTransformForInventory(inv) : null);
+
+            if (Il2CppSafe.IsAliveUnity(resolvedAnchor))
+            {
+                Vector3 wp = resolvedAnchor.position;
+                resolvedPos = new Vector2(wp.x, wp.y);
+            }
+            else if (Il2CppSafe.IsAlive(inv) && KnownInvToWorldPos.TryGetValue(inv.Pointer, out Vector3 knownPos))
+            {
+                resolvedPos = new Vector2(knownPos.x, knownPos.y);
+            }
+            else if (hasHintPos)
+            {
+                resolvedPos = hintPos;
+            }
+            else
+            {
+                resolvedPos = Vector2.zero;
+                surfaceDist = float.MaxValue;
+                return false;
+            }
+
+            surfaceDist = PhysicalMovementHelper.ComputeSurfaceDistance(selfPos, resolvedPos, resolvedAnchor);
+            return true;
+        }
+
+        private static bool TryDropItemAtCompanionFeet(GOAPAgent ag, ItemData item)
+        {
+            if (!Il2CppSafe.IsAliveUnity(ag) || !Il2CppSafe.IsAliveUnity(ag.humanCharacter) ||
+                !Il2CppSafe.IsAlive(ag.npcData) || !Il2CppSafe.IsAlive(item))
+                return false;
+
+            try
+            {
+                var gc = GameController.instance;
+                if (!Il2CppSafe.IsAliveUnity(gc)) return false;
+
+                Vector2 dropPos = (Vector2)ag.humanCharacter.transform.position;
+                ItemData itemCopy = item.CopyItemData(null);
+                ItemData toDrop = Il2CppSafe.IsAlive(itemCopy) ? itemCopy : item;
+                gc.DropItem(toDrop, dropPos, 0f, 0f, false, 0f, ag.npcData.zLevel, ag.humanCharacter.standVz);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private static void StoreCarriedItemOnCompanionOrSafeFallback(GOAPAgent ag, CarryItemEntry entry)
         {
             if (entry == null || !Il2CppSafe.IsAlive(entry.Item)) return;
@@ -576,13 +690,46 @@ namespace ZedZone.SmartCompanions
                     var shared = ag.npcData.GetOrCreateSharedInventory();
                     if (Il2CppSafe.IsAlive(shared) && InventoryTransfers.TryDepositOrStackWhole(shared, entry.Item))
                         return;
+                    if (TryGetEquippedBackpackInventory(ag, out var packInv) && InventoryTransfers.TryDepositOrStackWhole(packInv, entry.Item))
+                        return;
                     var npcInv = ag.npcData.characterData?.inventoryData;
                     if (Il2CppSafe.IsAlive(npcInv) && InventoryTransfers.TryDepositOrStackWhole(npcInv, entry.Item))
                         return;
                 }
             }
             catch { }
-            InventoryTransfers.RestoreCarriedItemSafely(entry.FallbackSourceInv, entry.TargetInv, entry.Item);
+
+            if (Il2CppSafe.IsAliveUnity(ag?.humanCharacter))
+            {
+                Vector2 selfPos = (Vector2)ag.humanCharacter.transform.position;
+                if (Il2CppSafe.IsAlive(entry.FallbackSourceInv) &&
+                    TryMeasureSurfaceDistanceToContainer(
+                        selfPos,
+                        entry.FallbackSourceInv,
+                        null,
+                        Vector2.zero,
+                        hasHintPos: false,
+                        out _,
+                        out _,
+                        out float sourceDist) &&
+                    sourceDist <= PhysicalMovementHelper.MaxReachableInteractRadius)
+                {
+                    try
+                    {
+                        if (InventoryTransfers.TryDepositOrStackWhole(entry.FallbackSourceInv, entry.Item))
+                            return;
+                        var copy = entry.Item.CopyItemData(null);
+                        if (Il2CppSafe.IsAlive(copy) && entry.FallbackSourceInv.TryAddItemWithAutoSorting(copy))
+                            return;
+                    }
+                    catch { }
+                }
+
+                if (TryDropItemAtCompanionFeet(ag, entry.Item))
+                    return;
+            }
+
+            InventoryTransfers.RestoreCarriedItemSafely(null, null, entry.Item);
         }
 
         public static void ReturnCarryBufferWithoutTeleport(GOAPAgent ag, CompanionRuntimeState st)
@@ -611,7 +758,7 @@ namespace ZedZone.SmartCompanions
                     var entry = st.CarryBuffer[i];
                     if (entry != null && Il2CppSafe.IsAlive(entry.Item))
                     {
-                        InventoryTransfers.RestoreCarriedItemSafely(entry.FallbackSourceInv, entry.TargetInv, entry.Item);
+                        InventoryTransfers.RestoreCarriedItemSafely(entry.FallbackSourceInv, null, entry.Item);
                     }
                 }
                 st.CarryBuffer.Clear();
@@ -661,6 +808,188 @@ namespace ZedZone.SmartCompanions
             SmartChatterSystem.Speak(agent, topic, minCooldown: 0.5f, bubbleDuration: 5.5f, force: true);
         }
 
+        private static bool TryGetEquippedBackpackInventory(GOAPAgent ag, out InventoryData packInv)
+        {
+            packInv = null;
+            try
+            {
+                packInv = ag?.npcData?.characterData?.characterEquipmentData?.backpackItemData?.inventoryData;
+                return Il2CppSafe.IsAlive(packInv) && packInv.itemList != null;
+            }
+            catch
+            {
+                packInv = null;
+                return false;
+            }
+        }
+
+        private static bool InventoryContainsAnyFrom(InventoryData inv, Il2CppSystem.Collections.Generic.List<ItemData> items)
+        {
+            if (!Il2CppSafe.IsAlive(inv) || items == null || items.Count == 0) return false;
+            for (int i = 0; i < items.Count; i++)
+            {
+                var it = items[i];
+                if (Il2CppSafe.IsAlive(it) && InventoryTransfers.Contains(inv, it))
+                    return true;
+            }
+            return false;
+        }
+
+        private static void CountSupplyUnitsInBag(InventoryData inv, ref int ammo, ref int food, ref int med)
+        {
+            if (!Il2CppSafe.IsAlive(inv) || inv.itemList == null) return;
+            for (int i = 0; i < inv.itemList.Count; i++)
+            {
+                var it = inv.itemList[i];
+                if (!Il2CppSafe.IsAlive(it)) continue;
+                var cat = ItemCategorizer.ClassifyItem(it);
+                int units = Mathf.Max(1, Mathf.RoundToInt(it.itemNumberFloat));
+                if (cat == StorageCategory.AmmoAndMags) ammo += units;
+                else if (cat == StorageCategory.FreshFood || cat == StorageCategory.CannedAndDrinks) food += units;
+                else if (cat == StorageCategory.Medicine) med += units;
+            }
+        }
+
+        private static HashSet<IntPtr> BuildProtectedPointersAcrossAllBags(GOAPAgent ag, CompanionRuntimeState st, InventoryData targetInv)
+        {
+            var coreProtected = CompanionProfileSystem.BuildProtectedBackpackPointers(ag, st, targetInv);
+            if (st == null || !Il2CppSafe.IsAlive(targetInv) || targetInv.itemList == null || targetInv.itemList.Count == 0)
+                return coreProtected;
+
+            if (!TryGetEquippedBackpackInventory(ag, out var equippedPackInv))
+                return coreProtected;
+
+            var personalInv = ag?.npcData?.characterData?.inventoryData;
+            var sharedInv = ag?.npcData?.sharedInventoryData;
+            bool isPersonal = Il2CppSafe.IsAlive(personalInv) && targetInv.Pointer == personalInv.Pointer;
+            if (isPersonal)
+                return coreProtected;
+
+            bool isEquippedPack = targetInv.Pointer == equippedPackInv.Pointer;
+            bool isShared = Il2CppSafe.IsAlive(sharedInv) && targetInv.Pointer == sharedInv.Pointer;
+            if (!isEquippedPack && !isShared)
+                return coreProtected;
+
+            var priorBags = new List<InventoryData>(2);
+            var priorSeen = new HashSet<IntPtr> { targetInv.Pointer };
+            if (Il2CppSafe.IsAlive(personalInv) && priorSeen.Add(personalInv.Pointer))
+                priorBags.Add(personalInv);
+            if (isShared && priorSeen.Add(equippedPackInv.Pointer))
+                priorBags.Add(equippedPackInv);
+
+            int priorAmmo = 0, priorFood = 0, priorMed = 0;
+            for (int i = 0; i < priorBags.Count; i++)
+                CountSupplyUnitsInBag(priorBags[i], ref priorAmmo, ref priorFood, ref priorMed);
+
+            try
+            {
+                if (Il2CppSafe.IsAliveUnity(ag?.humanCharacter?.rangedWeapon) &&
+                    Il2CppSafe.IsAlive(ag.humanCharacter.rangedWeapon.weaponData))
+                {
+                    priorAmmo += Mathf.Max(0, BasicRangedWeapon.GetLoadedAmmo(ag.humanCharacter.rangedWeapon.weaponData));
+                }
+            }
+            catch { }
+
+            if (priorAmmo == 0 && priorFood == 0 && priorMed == 0 && isEquippedPack)
+                return coreProtected;
+
+            int remAmmo = Mathf.Max(0, st.ReserveAmmoMin - priorAmmo);
+            int remFood = Mathf.Max(0, st.ReserveFoodMin - priorFood);
+            int remMed = Mathf.Max(0, st.ReserveMedMin - priorMed);
+
+            bool priorHasDrink = false;
+            bool priorHasLight = false;
+            try
+            {
+                var drinks = CompanionSurvivalSystem.TryGetAgentDrinkingItems(ag);
+                var lights = ag.GetAvailableFlashLights();
+                for (int i = 0; i < priorBags.Count; i++)
+                {
+                    if (!priorHasDrink && InventoryContainsAnyFrom(priorBags[i], drinks)) priorHasDrink = true;
+                    if (!priorHasLight && InventoryContainsAnyFrom(priorBags[i], lights)) priorHasLight = true;
+                }
+            }
+            catch { }
+
+            var hardEquippedPtrs = new HashSet<IntPtr>();
+            try
+            {
+                var eq = ag?.npcData?.characterData?.characterEquipmentData;
+                if (Il2CppSafe.IsAlive(eq))
+                {
+                    if (Il2CppSafe.IsAlive(eq.currentWeaponItemData)) hardEquippedPtrs.Add(eq.currentWeaponItemData.Pointer);
+                    for (int s = 0; s < 3; s++)
+                    {
+                        var wd = eq.GetWeaponData(s);
+                        if (Il2CppSafe.IsAlive(wd)) hardEquippedPtrs.Add(wd.Pointer);
+                    }
+                    if (!isShared)
+                    {
+                        if (Il2CppSafe.IsAlive(eq.torseItemData)) hardEquippedPtrs.Add(eq.torseItemData.Pointer);
+                        if (Il2CppSafe.IsAlive(eq.hatItemData)) hardEquippedPtrs.Add(eq.hatItemData.Pointer);
+                        if (Il2CppSafe.IsAlive(eq.legItemData)) hardEquippedPtrs.Add(eq.legItemData.Pointer);
+                        if (Il2CppSafe.IsAlive(eq.feetItemData)) hardEquippedPtrs.Add(eq.feetItemData.Pointer);
+                        if (Il2CppSafe.IsAlive(eq.faceMaskItemData)) hardEquippedPtrs.Add(eq.faceMaskItemData.Pointer);
+                        if (Il2CppSafe.IsAlive(eq.backpackItemData)) hardEquippedPtrs.Add(eq.backpackItemData.Pointer);
+                    }
+                }
+            }
+            catch { }
+
+            var result = new HashSet<IntPtr>();
+            var tuples = new List<(StorageCategory cat, int units, bool equipped)>(targetInv.itemList.Count);
+            var ptrs = new List<IntPtr>(targetInv.itemList.Count);
+            bool keptOneLight = priorHasLight;
+            bool keptOneDrink = priorHasDrink;
+            Il2CppSystem.Collections.Generic.List<ItemData> drinkList = null;
+            Il2CppSystem.Collections.Generic.List<ItemData> lightList = null;
+            try
+            {
+                if (!keptOneDrink) drinkList = CompanionSurvivalSystem.TryGetAgentDrinkingItems(ag);
+                if (!keptOneLight) lightList = ag.GetAvailableFlashLights();
+            }
+            catch { }
+
+            bool ContainsPtr(Il2CppSystem.Collections.Generic.List<ItemData> list, IntPtr ptr)
+            {
+                if (list == null) return false;
+                for (int k = 0; k < list.Count; k++)
+                    if (Il2CppSafe.IsAlive(list[k]) && list[k].Pointer == ptr) return true;
+                return false;
+            }
+
+            for (int i = 0; i < targetInv.itemList.Count; i++)
+            {
+                var item = targetInv.itemList[i];
+                if (!Il2CppSafe.IsAlive(item)) continue;
+                var cat = ItemCategorizer.ClassifyItem(item);
+                int units = Mathf.Max(1, Mathf.RoundToInt(item.itemNumberFloat));
+                bool isHardEq = hardEquippedPtrs.Contains(item.Pointer) ||
+                                CompanionSurvivalSystem.IsProtectedSavedMask(st.NpcGuid, item.Pointer);
+                if (!isHardEq && !keptOneLight && ContainsPtr(lightList, item.Pointer))
+                {
+                    isHardEq = true;
+                    keptOneLight = true;
+                }
+                if (!isHardEq && !keptOneDrink && ContainsPtr(drinkList, item.Pointer))
+                {
+                    isHardEq = true;
+                    keptOneDrink = true;
+                }
+                tuples.Add((cat, units, isHardEq));
+                ptrs.Add(item.Pointer);
+            }
+
+            var keptIdx = CompanionProfileSystem.ComputeProtectedBackpackIndices(tuples, remAmmo, remFood, remMed);
+            foreach (int idx in keptIdx)
+            {
+                if (idx >= 0 && idx < ptrs.Count)
+                    result.Add(ptrs[idx]);
+            }
+            return result;
+        }
+
         private static void TryAutoDropoffAtBase(GOAPAgent ag, CompanionRuntimeState st, float now)
         {
             try
@@ -669,10 +998,12 @@ namespace ZedZone.SmartCompanions
                 var personalInv = ag.npcData?.characterData?.inventoryData;
                 bool hasSharedItems = Il2CppSafe.IsAlive(shared) && shared.itemList != null && shared.itemList.Count > 0;
                 bool hasPersonalItems = Il2CppSafe.IsAlive(personalInv) && personalInv.itemList != null && personalInv.itemList.Count > 0;
-                if (!hasSharedItems && !hasPersonalItems)
+                bool hasEquippedPackItems = TryGetEquippedBackpackInventory(ag, out var equippedPackInv) &&
+                                            equippedPackInv.itemList.Count > 0;
+                if (!hasSharedItems && !hasPersonalItems && !hasEquippedPackItems)
                     return;
 
-                var containers = ScanNearbyContainers(force: false);
+                var containers = FilterContainersForWorker(ScanNearbyContainers(force: false), ag, st);
                 if (containers.Count == 0)
                 {
                     st.LastAutoDropoffTime = now;

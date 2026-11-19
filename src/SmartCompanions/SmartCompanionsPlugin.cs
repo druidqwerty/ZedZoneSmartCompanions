@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "3.1.1";
+        public const string PluginVersion = "3.1.2";
 
         internal static ManualLogSource Logs;
 
@@ -104,6 +104,69 @@ namespace ZedZone.SmartCompanions
                 string rudeSteakZh = ChatterDatabase.GetLines(ChatterTopic.PlayerEatSteakMeat, ModLanguage.Chinese, ProfanityMode.HardcoreRude)[0];
                 if (!rudeSteakRu.Contains("Вкусно тебе") || !cleanSteakRu.Contains("Вкусно тебе") || !rudeSteakZh.Contains("牛排"))
                     throw new Exception("Signature steak line mismatch!");
+
+                // Verify gender & novelty-headgear chatter persona adaptation across all topics & archetypes
+                var checkedPersonas = new[]
+                {
+                    NpcChatterPersona.Female,
+                    NpcChatterPersona.AnimeHoodMale,
+                    NpcChatterPersona.AnimeHoodFemale
+                };
+                foreach (var persona in checkedPersonas)
+                {
+                    foreach (var t in topics)
+                    {
+                        foreach (var mode in new[] { ProfanityMode.Clean, ProfanityMode.Mixed, ProfanityMode.HardcoreRude })
+                        {
+                            var zhLines = ChatterDatabase.GetLines(t, ModLanguage.Chinese, mode, persona);
+                            if (zhLines == null || zhLines.Length == 0)
+                                throw new Exception($"Missing persona ZH lines for {t} ({mode})");
+                            foreach (var line in zhLines)
+                            {
+                                if (line.Contains("老子") || line.Contains("你小子") || line.Contains("兄弟"))
+                                    throw new Exception($"Persona ZH macho token leaked in {t} ({mode}): {line}");
+                            }
+
+                            if (persona.IsFemale)
+                            {
+                                var ruLines = ChatterDatabase.GetLines(t, ModLanguage.Russian, mode, persona);
+                                foreach (var line in ruLines)
+                                {
+                                    if (line.Contains("братан", StringComparison.OrdinalIgnoreCase) ||
+                                        line.Contains("братуха", StringComparison.OrdinalIgnoreCase) ||
+                                        line.Contains("братва", StringComparison.OrdinalIgnoreCase) ||
+                                        line.Contains("пацан", StringComparison.OrdinalIgnoreCase) ||
+                                        line.Contains("бубенц", StringComparison.OrdinalIgnoreCase) ||
+                                        line.Contains("хуй стоял", StringComparison.OrdinalIgnoreCase) ||
+                                        line.Contains("Ебать мой хуй", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        throw new Exception($"Female RU macho token leaked in {t} ({mode}): {line}");
+                                    }
+                                }
+
+                                var enLines = ChatterDatabase.GetLines(t, ModLanguage.English, mode, persona);
+                                foreach (var line in enLines)
+                                {
+                                    if (line.Contains("brother", StringComparison.OrdinalIgnoreCase))
+                                        throw new Exception($"Female EN brother token leaked in {t} ({mode}): {line}");
+                                }
+                            }
+                        }
+                    }
+
+                    foreach (CompanionArchetype arch in Enum.GetValues(typeof(CompanionArchetype)))
+                    {
+                        foreach (var topic in new[] { ChatterTopic.AmbientBaseIdle, ChatterTopic.CampfireStory })
+                        {
+                            foreach (var mode in new[] { ProfanityMode.Clean, ProfanityMode.Mixed, ProfanityMode.HardcoreRude })
+                            {
+                                string archZh = ChatterDatabase.TryGetArchetypeBonusLine(arch, topic, ModLanguage.Chinese, mode, persona);
+                                if (!string.IsNullOrEmpty(archZh) && (archZh.Contains("老子") || archZh.Contains("你小子") || archZh.Contains("兄弟")))
+                                    throw new Exception($"Persona archetype ZH macho token leaked for {arch}: {archZh}");
+                            }
+                        }
+                    }
+                }
 
                 // Verify auto-detection of language codes
                 if (CompanionConfigStore.ResolveLanguageMode("zh-CN", SystemLanguage.English) != ModLanguage.Chinese ||
