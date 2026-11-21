@@ -159,7 +159,64 @@ namespace ZedZone.SmartCompanions.UiSmoke
                     "Removed everyday mask entry must no longer be marked protected");
             }
 
-            const string passMsg = "[UiSmoke] PASS v2.6.0 bio-mask protection, sentry sleep rotation & rare-remedy gates";
+            // 12. v3.2.1 Fever / Cold companion freeze prevention: priority clamping, idle abort & native IsSuppressed float boxing
+            AssertTrue(
+                CompanionSurvivalSystem.ComputeTeammateClearDebuffPriority(150f, hasFever: true, hasCriticalNonFever: false, inCombat: true, hasPlayerOrder: false) < 0f,
+                "High Fever (150) must be suppressed below 0 during combat so companions still aim and shoot");
+            AssertTrue(
+                CompanionSurvivalSystem.ComputeTeammateClearDebuffPriority(150f, hasFever: true, hasCriticalNonFever: false, inCombat: false, hasPlayerOrder: true) < 0f,
+                "High Fever (150) must be suppressed below 0 when the companion has an active player order");
+            AssertTrue(
+                CompanionSurvivalSystem.ComputeTeammateClearDebuffPriority(150f, hasFever: true, hasCriticalNonFever: false, inCombat: false, hasPlayerOrder: false) <= 45f,
+                "High Fever (150) out of combat must be clamped <= 45 so it never hijacks threats or urgent follow");
+            AssertTrue(
+                CompanionSurvivalSystem.ComputeTeammateClearDebuffPriority(1000f, hasFever: true, hasCriticalNonFever: true, inCombat: true, hasPlayerOrder: true) >= 1000f,
+                "Critical burning/drowning debuff must not be suppressed even if fever is also present");
+
+            AssertTrue(
+                CompanionSurvivalSystem.ShouldAbortIdleFeverClearAction(inCombat: true, hasPlayerOrder: false, hasWarmSourceCovering: true, gulpCount: 0, maxGulps: 3, hasDrinkableWater: true, elapsedSeconds: 0.2f),
+                "Combat must immediately abort GOAPAction_ClearDebuff_Fever");
+            AssertTrue(
+                CompanionSurvivalSystem.ShouldAbortIdleFeverClearAction(inCombat: false, hasPlayerOrder: true, hasWarmSourceCovering: true, gulpCount: 0, maxGulps: 3, hasDrinkableWater: true, elapsedSeconds: 0.2f),
+                "Player command must immediately abort GOAPAction_ClearDebuff_Fever");
+            AssertTrue(
+                CompanionSurvivalSystem.ShouldAbortIdleFeverClearAction(inCombat: false, hasPlayerOrder: false, hasWarmSourceCovering: false, gulpCount: 0, maxGulps: 3, hasDrinkableWater: false, elapsedSeconds: 0.6f),
+                "No drinkable water and no warm source covering must abort immediately instead of freezing for 120s");
+            AssertTrue(
+                CompanionSurvivalSystem.ShouldAbortIdleFeverClearAction(inCombat: false, hasPlayerOrder: false, hasWarmSourceCovering: false, gulpCount: 3, maxGulps: 3, hasDrinkableWater: true, elapsedSeconds: 3.1f),
+                "After finishing water gulps with no warm source covering, action must abort instead of freezing for 120s");
+            AssertFalse(
+                CompanionSurvivalSystem.ShouldAbortIdleFeverClearAction(inCombat: false, hasPlayerOrder: false, hasWarmSourceCovering: false, gulpCount: 1, maxGulps: 3, hasDrinkableWater: true, elapsedSeconds: 1.5f),
+                "While still taking quick water gulps out of combat, action may continue briefly");
+            AssertFalse(
+                CompanionSurvivalSystem.ShouldAbortIdleFeverClearAction(inCombat: false, hasPlayerOrder: false, hasWarmSourceCovering: true, gulpCount: 3, maxGulps: 3, hasDrinkableWater: false, elapsedSeconds: 5.0f),
+                "When actively standing inside a warm source radius out of combat, companion may step away from fire");
+
+            // Native IL2CPP float boxing roundtrip into GOAPGoal_ClearDebuff.IsSuppressed(agentState, 7/14)
+            var stateFixture = new GOAPAgentState();
+            AssertFalse(GOAPGoal_ClearDebuff.IsSuppressed(stateFixture, CompanionSurvivalSystem.BuffIdHighFever),
+                "Fresh GOAPAgentState must not report High Fever suppressed");
+            string suppressKey = GOAPGoal_ClearDebuff.feverSuppressedUntilKey;
+            if (string.IsNullOrEmpty(suppressKey)) suppressKey = "feverSuppressedUntil";
+            float futureUntil = UnityEngine.Time.time + 30f;
+            IntPtr fCls = Il2CppInterop.Runtime.Il2CppClassPointerStore<float>.NativeClassPtr;
+            IntPtr fPtr = System.Runtime.InteropServices.Marshal.AllocHGlobal(sizeof(float));
+            try
+            {
+                System.Runtime.InteropServices.Marshal.Copy(new[] { futureUntil }, 0, fPtr, 1);
+                IntPtr boxed = Il2CppInterop.Runtime.IL2CPP.il2cpp_value_box(fCls, fPtr);
+                stateFixture.SetState(suppressKey, new Il2CppSystem.Object(boxed));
+            }
+            finally
+            {
+                System.Runtime.InteropServices.Marshal.FreeHGlobal(fPtr);
+            }
+            AssertTrue(GOAPGoal_ClearDebuff.IsSuppressed(stateFixture, CompanionSurvivalSystem.BuffIdHighFever),
+                "Boxed Il2CppSystem.Single must make native GOAPGoal_ClearDebuff.IsSuppressed(..., 7) return true");
+            AssertTrue(GOAPGoal_ClearDebuff.IsSuppressed(stateFixture, CompanionSurvivalSystem.BuffIdLowFever),
+                "Boxed Il2CppSystem.Single must make native GOAPGoal_ClearDebuff.IsSuppressed(..., 14) return true");
+
+            const string passMsg = "[UiSmoke] PASS v2.6.0 bio-mask protection, sentry sleep rotation, rare-remedy gates & v3.2.1 fever freeze fix";
             UiSmokePlugin.Logger?.LogInfo(passMsg);
             Console.WriteLine(passMsg);
         }

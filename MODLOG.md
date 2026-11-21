@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 3.2.0 RELEASED (GitHub + Steam Workshop 3836613312 + Boosty queue; Patch 1.0.20)
+## Status: 3.2.1 VERIFIED LOCALLY (ready for GitHub + Steam Workshop 3836613312 + Boosty release; Patch 1.0.20)
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -402,3 +402,22 @@
   - **GitHub:** commit `7518cae0da1c37d293d75d132db5f770f0a0c2b2`, tag `v3.2.0`, release `https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.2.0` (`isDraft=false`, `isPrerelease=false`, uploaded asset `ZedZoneSmartCompanions-3.2.0.zip`, `3,263,158` B, `digest=sha256:5184c4055825871161cc7af638ef79480d2e6609cb6f4a3403464a391fb8109b`).
   - **Steam Workshop `3836613312`:** uploaded single-folder `workshop/Contents/SmartCompanions/` (`cad63c2b...`), `preview.png`, `EN`/`RU`/`ZH` pages (`3,712` / `5,828` / `3,583` UTF-8 bytes), dependency `3834614258` (`EResult=29`); anonymous API `GetPublishedFileDetails`: `result=1, visibility=0, banned=0, file_size=674424, time_updated=1795119229, title="ZED ZONE: Smart Companions 3.2.0"`. Refreshed local cache via `DownloadItem` (`ItemState=5`, `2.5s`) and verified 5-way DLL SHA-256 parity (`src/bin`, `workshop/Contents`, `Mods\SmartCompanions`, Steam Workshop cache `3836613312`, and ZIP embedded == `cad63c2b...`).
   - **Boosty Queue:** added `BOOSTY_3.2.0.md` via `queue.py add` and removed only superseded `BOOSTY_3.1.2.md` via `queue.py done` (remaining queued PZ posts untouched; queued for publishing automation, not yet verified published on Boosty).
+
+## 3.2.1 — Fever / Cold Companion Freeze Hotfix (2026-11-21, Patch 1.0.20)
+
+- **Root Cause (Disassembly of `GameAssembly.dll` `1.0.20`):**
+  - `GOAPGoal_ClearDebuff..ctor` (`0x8C9AD0`) assigns **priority `150.0f`** to `buffId = 7` (`HIGH FEVER`) and `30.0f` to `buffId = 14` (`LOW FEVER`), overriding combat (`GOAPGoal_EliminateThreat`), following, and player commands.
+  - Inside `GOAPAction_ClearDebuff_Fever.Execute` (`0x4461E0`), after optional clothing shedding and up to 3 water gulps, if `FindWarmSourceCovering(pos) == null`, the action returns `true` (still running) for **`giveUpSeconds = 120.0f`** seconds while standing completely still, then suppresses for `60.0f` and repeats — until the player manually administers a `Fever Reducer` (`itemId = 234`).
+  - Additionally, `CompanionSurvivalSystem.TryTreatSurvivalDebuffs` only checked `bodyTemperature > stdTemp + 1.5f` (not buff IDs `7`/`14`), only searched `cd.inventoryData` (missing `sharedInventoryData`, equipped backpack, and nested pouches), and called `ConsumeOneFood` without `AddFoodBuffs` or removing fever buffs `7`/`14`.
+- **Implemented Fix:**
+  1. `HarmonyPatches.cs` (`FeverClearDebuffPatches`):
+     - Postfix on `GOAPGoal_ClearDebuff.GetPriority`: suppresses fever priority (`-100f`) during combat or active player commands/tasks/vehicles, and clamps out-of-combat High Fever priority to `<= 45f` (never touching critical `Burning (1)` or `Drowning (25)`).
+     - Prefix + Postfix on `GOAPAction_ClearDebuff_Fever.Execute`: aborts immediately during combat or player commands, attempts immediate autonomous `Fever Reducer (234)` treatment from any companion inventory, and aborts the 120s idle freeze once water gulps are done (or no water exists) and no warm source covers the companion, setting native `feverSuppressedUntil` via IL2CPP boxed `Single`.
+     - `ExecuteNPCCommand` Prefix/Postfix immediately releases companions from any active fever freeze (`ReleaseCompanionFromFeverFreeze`).
+  2. `CombatResponse.cs`: immediately supersedes `GOAPGoal_ClearDebuff` (for fever without burning/drowning) upon threat acquisition so companions aim and shoot immediately.
+  3. `CompanionSurvivalSystem.cs`: detects buffs `7`/`14`/`6`, searches all companion inventories recursively (`CollectCompanionInventories`), prefers `Fever Reducer (234)` for fever (calling `AddFoodBuffs` + `ConsumeOneFood`, restoring `bodyTemperature`, and clearing buffs `7`/`14`), and removes broken one-shot `new GOAPAction_ClearDebuff_Fever().Execute(agent)` calls.
+- **Build & Live Engine Verification on Patch `1.0.20` (`0 warnings, 0 errors`, `8,386/8,386` `GameData` unchanged):**
+  - `SmartCompanions.dll` (`v3.2.1`): SHA-256 **`36b8136732292e3e0f1b81e4f89c7df65681dd2d76d071ca2b2eebcc60d1f1f1`** (`Assembly-CSharp AssemblyRef = 0.0.0.0`, `92` Harmony patches `failed=0`, `[SelfVerify] PASS v3.2.1`).
+  - `run_live_acceptance.py` (`backups/live-20261121-021240`, `54.8s`, `exit 0`, `0` exceptions in `Player.log`): all suites PASS including new **`V312Live (f)`** (`followPrio=45.0`, `holdPrio=-100.0`, `execAbort=True`, `IsSuppressed=True`, `sharedBagFeverReducerCured=True`).
+  - `run_ui_smoke.py` (`backups/ui321-20261121-021351`, `exit 0`, `303` screenshots): `13/13` suites PASS including new `SurvivalRegression #12` (priority clamping, idle abort & native `GOAPGoal_ClearDebuff.IsSuppressed` float-boxing roundtrip).
+  - Local install synced (`Mods\SmartCompanions\`, Steam Workshop cache `3836613312\SmartCompanions\`, `workshop\Contents\SmartCompanions\`, `ZedModKit\src\SmartCompanions\`); `modkit save-guard verify zed-zone` PASS (`8,386/8,386` unchanged, `0` temp artifacts).

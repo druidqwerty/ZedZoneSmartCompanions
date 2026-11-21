@@ -43,8 +43,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
 
             try
             {
-                Assert(SmartCompanionsPlugin.PluginVersion == "3.2.0",
-                    "Expected SmartCompanionsPlugin.PluginVersion == 3.2.0, got " + SmartCompanionsPlugin.PluginVersion);
+                Assert(SmartCompanionsPlugin.PluginVersion == "3.2.1",
+                    "Expected SmartCompanionsPlugin.PluginVersion == 3.2.1, got " + SmartCompanionsPlugin.PluginVersion);
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(npcGuid, "V312Tester");
                 st.RosterMode = CompanionRosterMode.ActiveSquad;

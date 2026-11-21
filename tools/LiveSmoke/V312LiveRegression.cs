@@ -152,8 +152,104 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             // (e) Live automatic NPC equipment & inventory repair (equipped ranged/parts/mag/broken armor + personal/shared/nested inventory + MaterialsOnly vs MaterialsOrField)
             RunLiveAutoGearRepairCheck();
 
+            // (f) Live v3.2.1 High Fever (buff 7) freeze prevention & shared-bag Fever Reducer (234) cure
+            RunLiveFeverFreezeAndMedicineCheck();
+
             // (a) Prepare equipped backpack + sharedInventoryData material unload check
             return SetupBackpackAndSharedUnloadTest(now);
+        }
+
+        private static void RunLiveFeverFreezeAndMedicineCheck()
+        {
+            var hc = _agent.humanCharacter;
+            var cd = _agent.npcData.characterData;
+            var status = cd.characterStatusData;
+            var im = ItemManager.instance;
+            var sharedInv = _agent.npcData.GetOrCreateSharedInventory();
+            if (!Il2CppSafe.IsAliveUnity(hc) || !Il2CppSafe.IsAlive(cd) || !Il2CppSafe.IsAlive(status) ||
+                !Il2CppSafe.IsAlive(im) || !Il2CppSafe.IsAlive(sharedInv))
+                throw new Exception("BLOCKED [V312Live(f)]: missing character/inventory/ItemManager.");
+
+            float origTemp = status.bodyTemperature;
+            var origOrder = _state.ActiveOrder;
+            var origAnchor = _state.OrderAnchorPos;
+            var origThreat = _agent.mostThreateningCharacter;
+            bool hadHighFever = CompanionSurvivalSystem.HasBuffSafe(cd, CompanionSurvivalSystem.BuffIdHighFever);
+            bool hadLowFever = CompanionSurvivalSystem.HasBuffSafe(cd, CompanionSurvivalSystem.BuffIdLowFever);
+            ItemData addedFeverReducer = null;
+            try
+            {
+                float worldTime = Il2CppSafe.IsAlive(GameController.instance?.gameData)
+                    ? GameController.instance.gameData.inGameTime : 1000f;
+                float stdTemp = CharacterStatusData.standardBodyTemperature > 30f
+                    ? CharacterStatusData.standardBodyTemperature : 37f;
+
+                // Clear any existing fever suppression key before testing
+                string suppressKey = GOAPGoal_ClearDebuff.feverSuppressedUntilKey;
+                if (string.IsNullOrEmpty(suppressKey)) suppressKey = "feverSuppressedUntil";
+                _agent.agentState.SetState(suppressKey, (Il2CppSystem.Object)null);
+
+                // Inflict High Fever (buffId 7) + elevated body temp
+                status.bodyTemperature = stdTemp + 2.5f;
+                hc.AddBuff(CompanionSurvivalSystem.BuffIdHighFever, worldTime + 600f);
+                if (!CompanionSurvivalSystem.HasBuffSafe(cd, CompanionSurvivalSystem.BuffIdHighFever))
+                    throw new Exception("Failed to apply native High Fever (buff 7) to companion.");
+
+                var clearGoal = new GOAPGoal_ClearDebuff();
+                // 1) Out of combat, Follow: priority must be clamped <= 45 (not vanilla 150!)
+                _state.ActiveOrder = TacticalOrderKind.Follow;
+                _agent.mostThreateningCharacter = null;
+                float followPrio = clearGoal.GetPriority(_agent.agentState);
+                if (followPrio > 45.01f)
+                    throw new Exception($"High Fever Follow priority not clamped: got {followPrio:F1} (expected <= 45).");
+
+                // 2) Under active player HoldPosition order: priority must be suppressed (< 0)
+                _state.ActiveOrder = TacticalOrderKind.HoldPosition;
+                _state.OrderAnchorPos = hc.transform.position;
+                float holdPrio = clearGoal.GetPriority(_agent.agentState);
+                if (holdPrio > 0f)
+                    throw new Exception($"High Fever under HoldPosition must be <= 0, got {holdPrio:F1}.");
+
+                // 3) GOAPAction_ClearDebuff_Fever.Execute under HoldPosition must abort immediately (return false) and set IsSuppressed
+                var feverAction = new GOAPAction_ClearDebuff_Fever();
+                feverAction.OnActionStarted(_agent);
+                bool execHold = feverAction.Execute(_agent);
+                if (execHold)
+                    throw new Exception("GOAPAction_ClearDebuff_Fever.Execute did not abort under HoldPosition.");
+                if (!GOAPGoal_ClearDebuff.IsSuppressed(_agent.agentState, CompanionSurvivalSystem.BuffIdHighFever))
+                    throw new Exception("GOAPGoal_ClearDebuff.IsSuppressed(7) was not set after aborting fever action.");
+
+                // 4) Put Fever Reducer (234) into sharedInventoryData and verify autonomous cure removes buff 7 & restores temp
+                _state.ActiveOrder = TacticalOrderKind.Follow;
+                var frAttr = im.GetItemAttrById(CompanionSurvivalSystem.ItemIdFeverReducer);
+                if (!Il2CppSafe.IsAliveUnity(frAttr))
+                    throw new Exception("ItemAttr 234 (Fever Reducer) not found in ItemManager.");
+                addedFeverReducer = im.GetRandomDataByAttr(frAttr, false, true);
+                addedFeverReducer.itemNumberFloat = 1f;
+                sharedInv.itemList.Add(addedFeverReducer);
+
+                bool cured = CompanionSurvivalSystem.TryImmediateFeverMedicine(_agent, _state);
+                bool stillHasFever = CompanionSurvivalSystem.HasBuffSafe(cd, CompanionSurvivalSystem.BuffIdHighFever);
+                if (!cured || stillHasFever || status.bodyTemperature > stdTemp + 0.05f)
+                    throw new Exception($"Autonomous Fever Reducer cure failed: cured={cured}, stillHasFever={stillHasFever}, temp={status.bodyTemperature:F2}/{stdTemp:F2}");
+
+                LiveSmokePlugin.Logger.LogInfo(
+                    $"[V312Live] PASS (f) Fever/Cold Freeze Fix: followPrio={followPrio:F1} (<=45), holdPrio={holdPrio:F1} (<=0), execAbort=True, IsSuppressed=True, sharedBagFeverReducerCured=True (temp={status.bodyTemperature:F1}).");
+            }
+            finally
+            {
+                _state.ActiveOrder = origOrder;
+                _state.OrderAnchorPos = origAnchor;
+                _agent.mostThreateningCharacter = origThreat;
+                status.bodyTemperature = origTemp;
+                if (!hadHighFever) try { hc.RemoveBuff(CompanionSurvivalSystem.BuffIdHighFever); } catch { }
+                if (!hadLowFever) try { hc.RemoveBuff(CompanionSurvivalSystem.BuffIdLowFever); } catch { }
+                if (Il2CppSafe.IsAlive(addedFeverReducer) && sharedInv.itemList.Contains(addedFeverReducer))
+                    sharedInv.itemList.Remove(addedFeverReducer);
+                string suppressKey = GOAPGoal_ClearDebuff.feverSuppressedUntilKey;
+                if (string.IsNullOrEmpty(suppressKey)) suppressKey = "feverSuppressedUntil";
+                try { _agent.agentState.SetState(suppressKey, (Il2CppSystem.Object)null); } catch { }
+            }
         }
 
         private static void RunLiveAutoGearRepairCheck()

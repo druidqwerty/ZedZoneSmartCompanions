@@ -544,7 +544,11 @@ namespace ZedZone.SmartCompanions
                 // NOTE: Do NOT call OnCompanionDismissed here in Prefix! Clearing leaderCharacterGUID before native
                 // ExecuteNPCCommand("OneTime.QuitTeam") runs prevents native QuitTeam from removing the NPC card in TeamNPCPanel!
                 if (CustomNpcCommands.ExecuteCustomCommand(__instance, commandStr))
+                {
+                    if (!string.IsNullOrEmpty(commandStr) && !commandStr.EndsWith("SafeDismissWithGear", StringComparison.OrdinalIgnoreCase))
+                        ReleaseFeverFreezeForNpcData(__instance);
                     return false;
+                }
             }
             catch { }
             return true;
@@ -565,8 +569,23 @@ namespace ZedZone.SmartCompanions
                 {
                     MultiplayerSyncSystem.OnCompanionRecruited(GameController.instance?.playerCharacter?.characterData, __instance);
                 }
+                else
+                {
+                    ReleaseFeverFreezeForNpcData(__instance);
+                }
             }
             catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ReleaseFeverFreezeForNpcData(GOAPNPCData npcData)
+        {
+            if (!Il2CppSafe.IsAlive(npcData)) return;
+            GOAPAgent agent = npcData.agentCache;
+            if (!Il2CppSafe.IsAliveUnity(agent) && GOAPNPCManager.instance?.activeNPCs != null && !string.IsNullOrEmpty(npcData.npcGUID))
+                GOAPNPCManager.instance.activeNPCs.TryGetValue(npcData.npcGUID, out agent);
+            if (Il2CppSafe.IsAliveUnity(agent))
+                CompanionSurvivalSystem.ReleaseCompanionFromFeverFreeze(agent, 25f);
         }
 
         // 12. Prevent GOAPGoal_WarningHumanEnemy (priority 100) from blocking companions from shooting hostile human NPCs
@@ -1775,6 +1794,131 @@ namespace ZedZone.SmartCompanions
         public static void Interact_NotifyFailed_Finalizer(bool __state)
         {
             try { ExitScope(__state); } catch { }
+        }
+    }
+
+    // Prevent teammates with High/Low Fever (buffs 7/14) from freezing for 120s inside GOAPAction_ClearDebuff_Fever
+    // with priority 150 (which overrides combat aiming/shooting, following, and player commands).
+    [HarmonyPatch]
+    public static class FeverClearDebuffPatches
+    {
+        [HarmonyPatch(typeof(GOAPGoal_ClearDebuff), nameof(GOAPGoal_ClearDebuff.GetPriority))]
+        [HarmonyPostfix]
+        public static void ClearDebuff_GetPriority_Postfix(GOAPGoal __instance, GOAPAgentState __0, ref float __result)
+        {
+            try
+            {
+                if (!SmartCompanionsRuntimeGate.IsGameplayWorldReady()) return;
+                if (__result <= 0f || !Il2CppSafe.IsAlive(__instance) || __instance.TryCast<GOAPGoal_ClearDebuff>() == null)
+                    return;
+                if (!Il2CppSafe.IsAlive(__0) || !Il2CppSafe.IsAlive(__0.npcData))
+                    return;
+                AdjustPriorityNoInline(__0, ref __result);
+            }
+            catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void AdjustPriorityNoInline(GOAPAgentState agentState, ref float priority)
+        {
+            var npcData = agentState.npcData;
+            GOAPAgent agent = npcData.agentCache;
+            if (!Il2CppSafe.IsAliveUnity(agent) && GOAPNPCManager.instance?.activeNPCs != null && !string.IsNullOrEmpty(npcData.npcGUID))
+                GOAPNPCManager.instance.activeNPCs.TryGetValue(npcData.npcGUID, out agent);
+            if (!Il2CppSafe.IsAliveUnity(agent) || !agent.IsPlayerTeammate())
+                return;
+
+            var cd = npcData.characterData;
+            bool hasFever = CompanionSurvivalSystem.HasFeverDebuff(cd);
+            if (!hasFever) return;
+
+            bool hasCriticalNonFever = CompanionSurvivalSystem.HasCriticalNonFeverDebuff(cd);
+            bool inCombat = CompanionSurvivalSystem.HasActiveCombatThreat(agent);
+            bool hasPlayerOrder = CompanionSurvivalSystem.HasActivePlayerOrderOrTask(agent);
+            priority = CompanionSurvivalSystem.ComputeTeammateClearDebuffPriority(
+                priority, hasFever, hasCriticalNonFever, inCombat, hasPlayerOrder);
+        }
+
+        [HarmonyPatch(typeof(GOAPAction_ClearDebuff_Fever), nameof(GOAPAction_ClearDebuff_Fever.Execute))]
+        [HarmonyPrefix]
+        public static bool ClearDebuffFever_Execute_Prefix(GOAPAction __instance, GOAPAgent __0, ref bool __result)
+        {
+            try
+            {
+                if (!SmartCompanionsRuntimeGate.IsGameplayWorldReady()) return true;
+                if (!Il2CppSafe.IsAlive(__instance)) return true;
+                var feverAction = __instance.TryCast<GOAPAction_ClearDebuff_Fever>();
+                if (feverAction == null || !Il2CppSafe.IsAliveUnity(__0) || !__0.IsPlayerTeammate())
+                    return true;
+
+                return PreExecuteFeverNoInline(__0, ref __result);
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool PreExecuteFeverNoInline(GOAPAgent agent, ref bool result)
+        {
+            if (CompanionSurvivalSystem.HasActiveCombatThreat(agent) ||
+                CompanionSurvivalSystem.HasActivePlayerOrderOrTask(agent))
+            {
+                CompanionSurvivalSystem.SuppressFeverDebuffGoal(agent, 20f);
+                result = false;
+                return false;
+            }
+
+            if (CompanionSurvivalSystem.TryImmediateFeverMedicine(agent))
+            {
+                result = false;
+                return false;
+            }
+
+            return true;
+        }
+
+        [HarmonyPatch(typeof(GOAPAction_ClearDebuff_Fever), nameof(GOAPAction_ClearDebuff_Fever.Execute))]
+        [HarmonyPostfix]
+        public static void ClearDebuffFever_Execute_Postfix(GOAPAction __instance, GOAPAgent __0, ref bool __result)
+        {
+            try
+            {
+                if (!__result || !SmartCompanionsRuntimeGate.IsGameplayWorldReady()) return;
+                if (!Il2CppSafe.IsAlive(__instance)) return;
+                var feverAction = __instance.TryCast<GOAPAction_ClearDebuff_Fever>();
+                if (feverAction == null || !Il2CppSafe.IsAliveUnity(__0) || !__0.IsPlayerTeammate())
+                    return;
+
+                PostExecuteFeverNoInline(feverAction, __0, ref __result);
+            }
+            catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void PostExecuteFeverNoInline(GOAPAction_ClearDebuff_Fever feverAction, GOAPAgent agent, ref bool result)
+        {
+            var cd = agent.npcData?.characterData;
+            if (!CompanionSurvivalSystem.HasFeverDebuff(cd))
+                return;
+
+            bool inCombat = CompanionSurvivalSystem.HasActiveCombatThreat(agent);
+            bool hasPlayerOrder = CompanionSurvivalSystem.HasActivePlayerOrderOrTask(agent);
+            Vector2 pos = Il2CppSafe.IsAliveUnity(agent.humanCharacter)
+                ? (Vector2)agent.humanCharacter.transform.position
+                : (Vector2)agent.transform.position;
+            bool warmCovering = CompanionSurvivalSystem.IsCoveredByWarmSourceSafe(pos);
+            bool hasWater = CompanionSurvivalSystem.HasDrinkableWaterWithVolume(agent);
+            float elapsed = feverAction.actionStarted ? (Time.time - feverAction.actionStartTimeFlag) : 0f;
+
+            if (CompanionSurvivalSystem.ShouldAbortIdleFeverClearAction(
+                inCombat, hasPlayerOrder, warmCovering,
+                feverAction.gulpCount, GOAPAction_ClearDebuff_Fever.maxGulps, hasWater, elapsed))
+            {
+                CompanionSurvivalSystem.SuppressFeverDebuffGoal(agent, inCombat || hasPlayerOrder ? 20f : 45f);
+                result = false;
+            }
         }
     }
 }

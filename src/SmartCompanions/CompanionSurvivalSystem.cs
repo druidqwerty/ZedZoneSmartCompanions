@@ -17,6 +17,14 @@ namespace ZedZone.SmartCompanions
         public const float RestedWakeThreshold = 0.90f;
         public const float BedReachRadius = PhysicalMovementHelper.MaxReachableInteractRadius; // 2.45m
 
+        public const int BuffIdBurning = 1;
+        public const int BuffIdHypothermia = 6;
+        public const int BuffIdHighFever = 7;
+        public const int BuffIdLowFever = 14;
+        public const int BuffIdSpore = 16;
+        public const int BuffIdDrowning = 25;
+        public const int ItemIdFeverReducer = 234;
+
         private static readonly HashSet<int> CommonRemedyIds = new HashSet<int> { 220, 222, 234, 276 };
         private static readonly HashSet<int> RareSerumIds = new HashSet<int> { 249, 250, 251, 252, 277 };
 
@@ -443,6 +451,276 @@ namespace ZedZone.SmartCompanions
             }
         }
 
+        public static float ComputeTeammateClearDebuffPriority(
+            float rawPriority, bool hasFever, bool hasCriticalNonFever, bool inCombat, bool hasPlayerOrder)
+        {
+            if (rawPriority <= 0f || hasCriticalNonFever || !hasFever)
+                return rawPriority;
+            if (inCombat || hasPlayerOrder)
+                return -100f;
+            return rawPriority > 45f ? 45f : rawPriority;
+        }
+
+        public static bool ShouldAbortIdleFeverClearAction(
+            bool inCombat, bool hasPlayerOrder, bool hasWarmSourceCovering,
+            int gulpCount, int maxGulps, bool hasDrinkableWater, float elapsedSeconds)
+        {
+            if (inCombat || hasPlayerOrder)
+                return true;
+            if (hasWarmSourceCovering)
+                return false;
+            if (elapsedSeconds >= 4.0f)
+                return true;
+            int safeMax = maxGulps > 0 ? maxGulps : 3;
+            return !hasDrinkableWater || gulpCount >= safeMax;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static bool HasBuffSafe(CharacterData cd, int buffId)
+        {
+            if (!Il2CppSafe.IsAlive(cd)) return false;
+            try
+            {
+                return HasBuffSafeNoInline(cd, buffId);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool HasBuffSafeNoInline(CharacterData cd, int buffId) =>
+            Il2CppSafe.IsAlive(cd.GetBuffDataByBuffID(buffId));
+
+        public static bool HasFeverDebuff(CharacterData cd) =>
+            HasBuffSafe(cd, BuffIdHighFever) || HasBuffSafe(cd, BuffIdLowFever);
+
+        public static bool HasCriticalNonFeverDebuff(CharacterData cd) =>
+            HasBuffSafe(cd, BuffIdBurning) || HasBuffSafe(cd, BuffIdDrowning);
+
+        public static bool IsInterruptibleClearDebuffForCombat(GOAPAgent agent)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData))
+                return false;
+            var cd = agent.npcData.characterData;
+            return HasFeverDebuff(cd) && !HasCriticalNonFeverDebuff(cd);
+        }
+
+        public static bool HasActivePlayerOrderOrTask(GOAPAgent agent, CompanionRuntimeState st = null)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData))
+                return false;
+            try
+            {
+                var hc = agent.humanCharacter;
+                if (Il2CppSafe.IsAliveUnity(hc) && (hc.isDriving || Il2CppSafe.IsAliveUnity(hc.drivingVehicle)))
+                    return true;
+
+                if (st == null && !string.IsNullOrEmpty(agent.npcData.npcGUID))
+                    CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID, out st);
+                if (st != null && (st.ActiveOrder != TacticalOrderKind.Follow || st.HasAnyPhysicalTask))
+                    return true;
+
+                if (CampGarrisonSystem.ShouldStayAnchoredBehind(agent.npcData))
+                    return true;
+
+                if (Il2CppSafe.IsAlive(agent.agentState) && !string.IsNullOrEmpty(agent.agentState.onetimeCommand))
+                    return true;
+            }
+            catch { }
+            return false;
+        }
+
+        public static bool HasActiveCombatThreat(GOAPAgent agent)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent)) return false;
+            try
+            {
+                var threat = agent.mostThreateningCharacter;
+                if (Il2CppSafe.IsAliveUnity(threat) && !threat.deadFlag && threat.enabled && threat.gameObject.activeInHierarchy)
+                    return true;
+            }
+            catch { }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void SuppressFeverDebuffGoal(GOAPAgent agent, float durationSeconds)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.agentState))
+                return;
+            try
+            {
+                SuppressFeverDebuffGoalNoInline(agent.agentState, durationSeconds);
+            }
+            catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void SuppressFeverDebuffGoalNoInline(GOAPAgentState agentState, float durationSeconds)
+        {
+            string key = GOAPGoal_ClearDebuff.feverSuppressedUntilKey;
+            if (string.IsNullOrEmpty(key)) key = "feverSuppressedUntil";
+            float until = Time.time + Mathf.Max(5f, durationSeconds);
+            IntPtr cls = Il2CppInterop.Runtime.Il2CppClassPointerStore<float>.NativeClassPtr;
+            if (cls == IntPtr.Zero) return;
+            IntPtr ptr = System.Runtime.InteropServices.Marshal.AllocHGlobal(sizeof(float));
+            try
+            {
+                System.Runtime.InteropServices.Marshal.Copy(new[] { until }, 0, ptr, 1);
+                IntPtr boxed = Il2CppInterop.Runtime.IL2CPP.il2cpp_value_box(cls, ptr);
+                if (boxed != IntPtr.Zero)
+                    agentState.SetState(key, new Il2CppSystem.Object(boxed));
+            }
+            finally
+            {
+                System.Runtime.InteropServices.Marshal.FreeHGlobal(ptr);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void ReleaseCompanionFromFeverFreeze(GOAPAgent agent, float suppressSeconds = 25f)
+        {
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData))
+                return;
+            try
+            {
+                if (!agent.IsPlayerTeammate()) return;
+                if (!IsInterruptibleClearDebuffForCombat(agent)) return;
+                SuppressFeverDebuffGoal(agent, suppressSeconds);
+                if (agent.currentGoal != null && agent.currentGoal.TryCast<GOAPGoal_ClearDebuff>() != null)
+                {
+                    agent.goalReselectDeferred = true;
+                    try { agent.SelectPriorityGoal(); } catch { }
+                }
+            }
+            catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ApplyFoodBuffsSafe(HumanCharacterController hc, ItemData item)
+        {
+            if (!Il2CppSafe.IsAliveUnity(hc) || !Il2CppSafe.IsAlive(item)) return;
+            try { ApplyFoodBuffsNoInline(hc, item); } catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void ApplyFoodBuffsNoInline(HumanCharacterController hc, ItemData item) =>
+            hc.AddFoodBuffs(item);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void RemoveBuffSafe(HumanCharacterController hc, int buffId)
+        {
+            if (!Il2CppSafe.IsAliveUnity(hc)) return;
+            try { RemoveBuffNoInline(hc, buffId); } catch { }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static void RemoveBuffNoInline(HumanCharacterController hc, int buffId) =>
+            hc.RemoveBuff(buffId);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static bool TryImmediateFeverMedicine(GOAPAgent agent, CompanionRuntimeState st = null)
+        {
+            if (MultiplayerSyncSystem.IsMultiplayerClient) return false;
+            if (!Il2CppSafe.IsAliveUnity(agent) || !Il2CppSafe.IsAlive(agent.npcData) ||
+                !Il2CppSafe.IsAliveUnity(agent.humanCharacter) || agent.humanCharacter.deadFlag)
+                return false;
+
+            var hc = agent.humanCharacter;
+            var cd = agent.npcData.characterData;
+            var status = cd?.characterStatusData;
+            if (!Il2CppSafe.IsAlive(cd) || !Il2CppSafe.IsAlive(status)) return false;
+
+            float stdTemp = CharacterStatusData.standardBodyTemperature > 30f ? CharacterStatusData.standardBodyTemperature : 37f;
+            bool hasHighFever = HasBuffSafe(cd, BuffIdHighFever);
+            bool hasLowFever = HasBuffSafe(cd, BuffIdLowFever);
+            bool feverish = hasHighFever || hasLowFever || status.bodyTemperature > stdTemp + 1.5f;
+            if (!feverish) return false;
+
+            if (st == null && !string.IsNullOrEmpty(agent.npcData.npcGUID))
+                CompanionConfigStore.CompanionStates.TryGetValue(agent.npcData.npcGUID, out st);
+
+            var invs = CollectCompanionInventories(cd, agent.npcData);
+            if (invs.Count == 0) return false;
+
+            int medUnits = 0;
+            InventoryData feverInv = null;
+            ItemData feverItem = null;
+            for (int invIdx = 0; invIdx < invs.Count; invIdx++)
+            {
+                var inv = invs[invIdx];
+                if (!Il2CppSafe.IsAlive(inv) || inv.itemList == null) continue;
+                for (int i = 0; i < inv.itemList.Count; i++)
+                {
+                    var it = inv.itemList[i];
+                    if (!Il2CppSafe.IsAlive(it) || it.itemNumberFloat < 1f) continue;
+                    if (ItemCategorizer.ClassifyItem(it) == StorageCategory.Medicine)
+                        medUnits += Mathf.Max(1, Mathf.FloorToInt(it.itemNumberFloat));
+                    if (feverItem == null && it.itemId == ItemIdFeverReducer)
+                    {
+                        feverInv = inv;
+                        feverItem = it;
+                    }
+                }
+            }
+
+            if (!Il2CppSafe.IsAlive(feverItem) || !Il2CppSafe.IsAlive(feverInv))
+                return false;
+
+            int reserveMin = st != null ? st.ReserveMedMin : 0;
+            if (!hasHighFever && medUnits <= reserveMin)
+                return false;
+
+            ApplyFoodBuffsSafe(hc, feverItem);
+            bool consumed = false;
+            try { consumed = CharacterActionManager.ConsumeOneFood(cd, feverInv, feverItem); } catch { }
+            if (!consumed) return false;
+
+            if (status.bodyTemperature > stdTemp)
+                status.bodyTemperature = stdTemp;
+            RemoveBuffSafe(hc, BuffIdHighFever);
+            RemoveBuffSafe(hc, BuffIdLowFever);
+            SuppressFeverDebuffGoal(agent, 15f);
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static bool HasDrinkableWaterWithVolume(GOAPAgent agent)
+        {
+            try
+            {
+                var drinks = TryGetAgentDrinkingItems(agent);
+                if (drinks == null || drinks.Count == 0) return false;
+                for (int i = 0; i < drinks.Count; i++)
+                {
+                    var d = drinks[i];
+                    if (!Il2CppSafe.IsAlive(d) || d.properties == null || d.properties.Length < 2) continue;
+                    if (d.properties[1] > 0.01f) return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static bool IsCoveredByWarmSourceSafe(Vector2 pos)
+        {
+            try
+            {
+                return IsCoveredByWarmSourceNoInline(pos);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static bool IsCoveredByWarmSourceNoInline(Vector2 pos) =>
+            Il2CppSafe.IsAliveUnity(GOAPAction_ClearDebuff_Fever.FindWarmSourceCovering(pos));
+
         private static void TryTreatSurvivalDebuffs(
             GOAPAgent agent, CharacterData cd, CharacterStatusData status,
             CharacterEquipmentData eq, CompanionRuntimeState st, string guid, float now)
@@ -450,49 +728,69 @@ namespace ZedZone.SmartCompanions
             if (LastRemedyAtByGuid.TryGetValue(guid, out float lastAt) && now - lastAt < 12f) return;
 
             float stdTemp = CharacterStatusData.standardBodyTemperature > 30f ? CharacterStatusData.standardBodyTemperature : 37f;
-            bool hypothermic = status.bodyTemperature > 10f && status.bodyTemperature < stdTemp - 1.5f;
-            bool feverish = status.bodyTemperature > stdTemp + 1.5f;
+            bool hasHighFever = HasBuffSafe(cd, BuffIdHighFever);
+            bool hasLowFever = HasBuffSafe(cd, BuffIdLowFever);
+            bool hasHypothermia = HasBuffSafe(cd, BuffIdHypothermia);
+            bool hypothermic = hasHypothermia || (status.bodyTemperature > 10f && status.bodyTemperature < stdTemp - 1.5f);
+            bool feverish = hasHighFever || hasLowFever || status.bodyTemperature > stdTemp + 1.5f;
             bool irradiated = status.radiationDose > BioRadiationThreshold;
             bool lifeThreatening = (status.maxhp > 1f && (status.hp / status.maxhp) < 0.38f) ||
                                    status.radiationDose > 12f ||
+                                   hasHighFever ||
                                    (status.bodyTemperature > 10f && status.bodyTemperature < stdTemp - 3.0f);
             if (!hypothermic && !feverish && !irradiated && !lifeThreatening) return;
 
             LastRemedyAtByGuid[guid] = now;
-            if (hypothermic) { try { new GOAPAction_ClearDebuff_Hypothermia().Execute(agent); } catch { } }
-            try { new GOAPAction_ClearDebuff_Burning().Execute(agent); } catch { }
-            if (CompanionConfigStore.AllowSpendRareMeds && lifeThreatening)
+            if (HasBuffSafe(cd, BuffIdBurning))
             {
-                try { new GOAPAction_ClearDebuff_Spore().Execute(agent); } catch { }
-                try { new GOAPAction_ClearDebuff_Fever().Execute(agent); } catch { }
+                try { new GOAPAction_ClearDebuff_Burning().Execute(agent); } catch { }
             }
 
-            var inv = Il2CppSafe.IsAlive(cd.inventoryData) ? cd.inventoryData : eq.backpackItemData?.inventoryData;
-            if (!Il2CppSafe.IsAlive(inv) || inv.itemList == null) return;
+            if (feverish && TryImmediateFeverMedicine(agent, st))
+                return;
+
+            if (!irradiated && !hypothermic && !lifeThreatening)
+                return;
+
+            var invs = CollectCompanionInventories(cd, agent.npcData);
+            if (invs.Count == 0) return;
 
             var medIds = new List<int>();
             int medUnits = 0;
-            for (int i = 0; i < inv.itemList.Count; i++)
+            for (int invIdx = 0; invIdx < invs.Count; invIdx++)
             {
-                var it = inv.itemList[i];
-                if (!Il2CppSafe.IsAlive(it) || it.itemNumberFloat < 1f) continue;
-                medIds.Add(it.itemId);
-                if (ItemCategorizer.ClassifyItem(it) == StorageCategory.Medicine)
-                    medUnits += Mathf.Max(1, Mathf.FloorToInt(it.itemNumberFloat));
+                var inv = invs[invIdx];
+                if (!Il2CppSafe.IsAlive(inv) || inv.itemList == null) continue;
+                for (int i = 0; i < inv.itemList.Count; i++)
+                {
+                    var it = inv.itemList[i];
+                    if (!Il2CppSafe.IsAlive(it) || it.itemNumberFloat < 1f) continue;
+                    medIds.Add(it.itemId);
+                    if (ItemCategorizer.ClassifyItem(it) == StorageCategory.Medicine)
+                        medUnits += Mathf.Max(1, Mathf.FloorToInt(it.itemNumberFloat));
+                }
             }
             if (!lifeThreatening && medUnits <= st.ReserveMedMin) return;
 
             int chosenId = ChooseDebuffRemedyItemId(medIds, CompanionConfigStore.AllowSpendRareMeds, lifeThreatening);
             if (chosenId <= 0) return;
+            // Do not waste antipyretics when not feverish, and do not waste unrelated pills on pure fever.
+            if (feverish && !irradiated && !hypothermic && chosenId != ItemIdFeverReducer) return;
 
-            for (int i = 0; i < inv.itemList.Count; i++)
+            for (int invIdx = 0; invIdx < invs.Count; invIdx++)
             {
-                var it = inv.itemList[i];
-                if (!Il2CppSafe.IsAlive(it) || it.itemId != chosenId) continue;
-                try { CharacterActionManager.ConsumeOneFood(cd, inv, it); } catch { }
-                if (irradiated) status.radiationDose = Mathf.Max(0f, status.radiationDose - (chosenId == 277 ? 15f : 4f));
-                if (hypothermic || feverish) status.bodyTemperature = Mathf.Lerp(status.bodyTemperature, stdTemp, 0.5f);
-                break;
+                var inv = invs[invIdx];
+                if (!Il2CppSafe.IsAlive(inv) || inv.itemList == null) continue;
+                for (int i = 0; i < inv.itemList.Count; i++)
+                {
+                    var it = inv.itemList[i];
+                    if (!Il2CppSafe.IsAlive(it) || it.itemId != chosenId) continue;
+                    ApplyFoodBuffsSafe(agent.humanCharacter, it);
+                    try { CharacterActionManager.ConsumeOneFood(cd, inv, it); } catch { }
+                    if (irradiated) status.radiationDose = Mathf.Max(0f, status.radiationDose - (chosenId == 277 ? 15f : 4f));
+                    if (hypothermic || feverish) status.bodyTemperature = Mathf.Lerp(status.bodyTemperature, stdTemp, 0.5f);
+                    return;
+                }
             }
         }
 

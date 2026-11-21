@@ -213,7 +213,14 @@ namespace ZedZone.SmartCompanions
                             agent.agentState.SetState("targetEnemyInSight", true);
                         }
                     }
+                    bool feverDebuffSuperseded = agent.currentGoal != null &&
+                        agent.currentGoal.TryCast<GOAPGoal_ClearDebuff>() != null &&
+                        CompanionSurvivalSystem.IsInterruptibleClearDebuffForCombat(agent);
+                    if (feverDebuffSuperseded)
+                        CompanionSurvivalSystem.SuppressFeverDebuffGoal(agent, 20f);
+
                     bool idleOrFollowSuperseded = agent.currentGoal == null ||
+                        feverDebuffSuperseded ||
                         (agent.currentGoal.TryCast<GOAPGoal_FollowLeader>() != null &&
                          RangedEngagementPolicy.CanEngage(agent, agent.agentState));
                     if (reaction.Target != targetPointer || idleOrFollowSuperseded)
