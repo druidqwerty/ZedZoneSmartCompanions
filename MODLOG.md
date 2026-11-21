@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 3.2.1 VERIFIED LOCALLY (ready for GitHub + Steam Workshop 3836613312 + Boosty release; Patch 1.0.20)
+## Status: 3.2.1 RELEASED (GitHub + Steam Workshop 3836613312 + Boosty queue; Patch 1.0.20)
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -421,3 +421,8 @@
   - `run_live_acceptance.py` (`backups/live-20261121-021240`, `54.8s`, `exit 0`, `0` exceptions in `Player.log`): all suites PASS including new **`V312Live (f)`** (`followPrio=45.0`, `holdPrio=-100.0`, `execAbort=True`, `IsSuppressed=True`, `sharedBagFeverReducerCured=True`).
   - `run_ui_smoke.py` (`backups/ui321-20261121-021351`, `exit 0`, `303` screenshots): `13/13` suites PASS including new `SurvivalRegression #12` (priority clamping, idle abort & native `GOAPGoal_ClearDebuff.IsSuppressed` float-boxing roundtrip).
   - Local install synced (`Mods\SmartCompanions\`, Steam Workshop cache `3836613312\SmartCompanions\`, `workshop\Contents\SmartCompanions\`, `ZedModKit\src\SmartCompanions\`); `modkit save-guard verify zed-zone` PASS (`8,386/8,386` unchanged, `0` temp artifacts).
+- **Publication, Packaging & Local Sync (`2026-11-21`):**
+  - **Release ZIP:** `dist/ZedZoneSmartCompanions-3.2.1.zip` (`870,115` B, SHA-256 `38728137c1f8fa4e13dcfe14af2e62732c69900b48899854e30a95e83c97b223`, `9` entries, `testzip() == None`, embedded `Mods/SmartCompanions/SmartCompanions.dll` `36b8136732292e3e0f1b81e4f89c7df65681dd2d76d071ca2b2eebcc60d1f1f1`).
+  - **GitHub:** commit `b647077`, tag `v3.2.1`, release `https://github.com/druidqwerty/ZedZoneSmartCompanions/releases/tag/v3.2.1` (`isDraft=false`, `isPrerelease=false`, asset `ZedZoneSmartCompanions-3.2.1.zip`, `870,115` B, `digest=sha256:38728137c1f8fa4e13dcfe14af2e62732c69900b48899854e30a95e83c97b223`).
+  - **Steam Workshop `3836613312`:** uploaded `workshop/Contents/SmartCompanions/` (`36b81367...`), `preview.png`, `EN`/`RU`/`ZH` pages (`3,823` / `5,518` / `3,485` UTF-8 bytes), dependency `3834614258` (`EResult=29`); anonymous API `GetPublishedFileDetails`: `result=1, visibility=0, banned=0, file_size=680056, time_updated=1795247000, title="ZED ZONE: Smart Companions 3.2.1"`. Refreshed local cache via `DownloadItem` (`ItemState=5`, `2.62s`) and verified 5-way DLL SHA-256 parity (`36b81367...`).
+  - **Boosty Queue:** added `BOOSTY_3.2.1.md` via `queue.py add` and removed superseded `BOOSTY_3.2.0.md` via `queue.py done` (queued for publishing automation, not yet verified published on Boosty).
