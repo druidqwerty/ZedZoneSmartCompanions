@@ -43,8 +43,8 @@ namespace ZedZone.SmartCompanions.UiSmoke
 
             try
             {
-                Assert(SmartCompanionsPlugin.PluginVersion == "3.2.1",
-                    "Expected SmartCompanionsPlugin.PluginVersion == 3.2.1, got " + SmartCompanionsPlugin.PluginVersion);
+                Assert(SmartCompanionsPlugin.PluginVersion == "3.2.2",
+                    "Expected SmartCompanionsPlugin.PluginVersion == 3.2.2, got " + SmartCompanionsPlugin.PluginVersion);
 
                 var st = CompanionConfigStore.GetOrCreateCompanion(npcGuid, "V312Tester");
                 st.RosterMode = CompanionRosterMode.ActiveSquad;
@@ -505,6 +505,38 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 finally
                 {
                     CompanionConfigStore.AutoRepairMode = origRepairMode;
+                }
+
+                // (j) EventLogRecorder: toggle ON, log event, MarkBugNow, verify file + privacy, ClearLogFile, toggle OFF
+                bool origLogEnabled = CompanionConfigStore.EnableEventLogging;
+                try
+                {
+                    EventLogRecorder.ClearLogFile();
+                    EventLogRecorder.SetEnabled(true, "uismoke_test");
+                    Assert(EventLogRecorder.IsEnabled, "EventLogRecorder.SetEnabled(true) did not enable logging");
+                    EventLogRecorder.Log("TEST", "UiSmoke event log verification line", immediateFlush: true);
+                    bool marked = EventLogRecorder.MarkBugNow("uismoke_bug_mark");
+                    Assert(marked, "EventLogRecorder.MarkBugNow returned false");
+                    Assert(System.IO.File.Exists(EventLogRecorder.LogFilePath), "EventLogRecorder log file was not created");
+                    string logText = System.IO.File.ReadAllText(EventLogRecorder.LogFilePath, System.Text.Encoding.UTF8);
+                    Assert(logText.Contains("UiSmoke event log verification line"), "EventLogRecorder log missing test event");
+                    Assert(logText.Contains("[BUG_MARK #"), "EventLogRecorder log missing BUG_MARK header");
+                    Assert(logText.IndexOf("C:\\Users\\", StringComparison.OrdinalIgnoreCase) < 0,
+                        "PRIVACY VIOLATION: EventLogRecorder leaked OS user path into log file!");
+
+                    string savedRules = CompanionConfigStore.BuildSaveText();
+                    Assert(savedRules.Contains("SET|EnableEventLogging|True"), "BuildSaveText did not serialize EnableEventLogging=True");
+
+                    EventLogRecorder.SetEnabled(false, "uismoke_test");
+                    Assert(!EventLogRecorder.IsEnabled, "EventLogRecorder.SetEnabled(false) did not disable logging");
+                    EventLogRecorder.ClearLogFile();
+                    Assert(!System.IO.File.Exists(EventLogRecorder.LogFilePath), "EventLogRecorder.ClearLogFile did not delete log file");
+                }
+                finally
+                {
+                    EventLogRecorder.SetEnabled(origLogEnabled, "uismoke_restore");
+                    if (!origLogEnabled)
+                        EventLogRecorder.ClearLogFile();
                 }
             }
             finally

@@ -14,6 +14,7 @@ namespace ZedZone.SmartCompanions
                 return false;
 
             PendingDismissConfirmGuid = "";
+            EventLogRecorder.Log("DISMISS", $"{EventLogRecorder.GetNpcAlias(ag.npcData.npcGUID)} StartSafeDismiss(handOverGear={handOverGear}, quiet={quiet})");
             if (st.IsSortingActive || st.IsLootingActive || st.IsChoreWalkActive)
                 BaseWorkManager.CancelWork(ag, st);
 

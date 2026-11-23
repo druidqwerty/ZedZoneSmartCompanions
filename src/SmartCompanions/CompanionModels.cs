@@ -709,6 +709,7 @@ namespace ZedZone.SmartCompanions
         public static bool ShowQuickGuide = false;
         public static bool ShowHudBadge = true;
         public static bool HudBadgeCollapsed = false;
+        public static bool EnableEventLogging = false;
         public static float BaseScanRadius = 48f;
         public static int MaxTeamSize = 0; // 0 = Auto/Vanilla/AVO Compatibility, or 4, 6, 8, 10, 12, 15
         public static bool RequireAltForRationHotkey = false;
@@ -858,6 +859,7 @@ namespace ZedZone.SmartCompanions
             AutoHarvestCrops = true;
             ActiveCommandGroup = SquadFireteam.None;
             ShowQuickGuide = false;
+            EnableEventLogging = false;
             BaseScanRadius = 48f;
             MaxTeamSize = 0;
             RequireAltForRationHotkey = false;
@@ -1113,6 +1115,7 @@ namespace ZedZone.SmartCompanions
             sb.AppendLine($"SET|AutoHarvestCrops|{AutoHarvestCrops}");
             sb.AppendLine($"SET|ShowHudBadge|{ShowHudBadge}");
             sb.AppendLine($"SET|HudBadgeCollapsed|{HudBadgeCollapsed}");
+            sb.AppendLine($"SET|EnableEventLogging|{EnableEventLogging}");
             sb.AppendLine($"SET|BaseScanRadius|{BaseScanRadius.ToString("F1", CultureInfo.InvariantCulture)}");
             sb.AppendLine($"SET|MaxTeamSize|{MaxTeamSize}");
             sb.AppendLine($"SET|RequireAltForRationHotkey|{RequireAltForRationHotkey}");
@@ -1174,7 +1177,8 @@ namespace ZedZone.SmartCompanions
                     $"  \"AutoHarvestCrops\": {AutoHarvestCrops.ToString().ToLowerInvariant()},\n" +
                     $"  \"EnableSmartFlashlight\": {EnableSmartFlashlight.ToString().ToLowerInvariant()},\n" +
                     $"  \"EnablePlayerRescue\": {EnablePlayerRescue.ToString().ToLowerInvariant()},\n" +
-                    $"  \"AutoShareFoodOnEat\": {AutoShareFoodOnEat.ToString().ToLowerInvariant()}\n" +
+                    $"  \"AutoShareFoodOnEat\": {AutoShareFoodOnEat.ToString().ToLowerInvariant()},\n" +
+                    $"  \"EnableEventLogging\": {EnableEventLogging.ToString().ToLowerInvariant()}\n" +
                     "}\n";
                 File.WriteAllText(JsonConfigFilePath, json, Encoding.UTF8);
                 _progressDirty = false;
@@ -1258,6 +1262,7 @@ namespace ZedZone.SmartCompanions
                     else if (key == "AutoHarvestCrops" && bool.TryParse(val, out var bHarvest)) AutoHarvestCrops = bHarvest;
                     else if (key == "ShowHudBadge" && bool.TryParse(val, out var b7)) ShowHudBadge = b7;
                     else if (key == "HudBadgeCollapsed" && bool.TryParse(val, out var bCol)) HudBadgeCollapsed = bCol;
+                    else if (key == "EnableEventLogging" && bool.TryParse(val, out var bEvtLog)) EnableEventLogging = bEvtLog;
                     else if (key == "BaseScanRadius" && float.TryParse(val, NumberStyles.Float, CultureInfo.InvariantCulture, out var f2)) BaseScanRadius = Mathf.Clamp(f2, 15f, 120f);
                     else if (key == "MaxTeamSize" && int.TryParse(val, out var mts)) MaxTeamSize = Mathf.Clamp(mts, 0, 30);
                     else if (key == "RequireAltForRationHotkey" && bool.TryParse(val, out var bAlt)) RequireAltForRationHotkey = bAlt;

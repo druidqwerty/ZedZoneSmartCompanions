@@ -191,6 +191,7 @@ namespace ZedZone.SmartCompanions
             }
             sb.AppendLine($"WarehouseRules: MarkedChests={markedChests} (Dropoff={dropoffChests}) | CachedNearbyContainers={BaseSortingSystem.CachedContainers.Count} | LastScanMs={LastContainerScanMs:F2}");
             sb.AppendLine($"Caches: TeammateHits={TeammateCacheHits}/{TeammateCacheHits + TeammateCacheMisses} | ItemCatMemo={ItemCategoryMemo.Count} (Hits={ItemCategoryCacheHits}) | TerrainScanHits={TerrainScanCacheHits}/{TerrainScanCacheHits + TerrainScanCacheMisses}");
+            sb.AppendLine($"EventLogging: Enabled={EventLogRecorder.IsEnabled} | SessionEvents={EventLogRecorder.SessionEventCount} | BugMarks={EventLogRecorder.BugMarkCount} | FileBytes={EventLogRecorder.CachedFileSizeBytes}");
 
             var activeSquad = SmartChatterSystem.GetActiveTeammateAgents();
             sb.AppendLine($"ActiveSquadCount: {activeSquad.Count} | StoredCompanionProfiles: {CompanionConfigStore.CompanionStates.Count}");

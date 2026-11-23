@@ -14,7 +14,7 @@ namespace ZedZone.SmartCompanions
     {
         public const string PluginGuid = "zedzone.smartcompanions";
         public const string PluginName = "ZED ZONE Smart Companions";
-        public const string PluginVersion = "3.2.1";
+        public const string PluginVersion = "3.2.2";
 
         internal static ManualLogSource Logs;
 
@@ -25,6 +25,7 @@ namespace ZedZone.SmartCompanions
 
             CompanionConfigStore.Load();
             CompanionConfigStore.ApplyMaxTeamSizeIfConfigured();
+            EventLogRecorder.OnConfigLoaded();
 
             try
             {
@@ -263,6 +264,8 @@ namespace ZedZone.SmartCompanions
                     throw new Exception("SmartCompanionsRuntimeGate.IsGameplayWorldReady() must be false during Load()!");
                 }
 
+                EventLogRecorder.SelfVerify();
+
                 LogInfo($"[SelfVerify] PASS v{PluginVersion}: {topics.Length} chatter topics ({uniqueRu.Count} unique RU lines [Rude={rudeRuCount}, Clean={cleanRuCount}], {uniqueEn.Count} unique EN lines [Rude={rudeEnCount}, Clean={cleanEnCount}], {uniqueZh.Count} unique ZH lines [Rude={rudeZhCount}, Clean={cleanZhCount}]), 12 storage categories (RU/EN/ZH), {CustomNpcCommands.AllCustomCommands.Length} custom NPC commands (RU/EN/ZH), 5 archetypes, 5 veteran ranks, MP Sync (Looter=200/Survivor=201) & Hostile Human Combat AI, RuntimeGate & ModLanguage Auto/RU/EN/ZH verified.");
             }
             catch (Exception e)
@@ -272,8 +275,16 @@ namespace ZedZone.SmartCompanions
         }
 
         public static void LogInfo(string msg) => Logs?.LogInfo(msg);
-        public static void LogWarning(string msg) => Logs?.LogWarning(msg);
-        public static void LogError(string msg) => Logs?.LogError(msg);
+        public static void LogWarning(string msg)
+        {
+            Logs?.LogWarning(msg);
+            EventLogRecorder.Log("WARN", msg);
+        }
+        public static void LogError(string msg)
+        {
+            Logs?.LogError(msg);
+            EventLogRecorder.Log("ERROR", msg, immediateFlush: true);
+        }
     }
 
     public class SmartCompanionsController : MonoBehaviour
@@ -313,6 +324,7 @@ namespace ZedZone.SmartCompanions
                     if (Input.GetKeyDown(KeyCode.F8))
                     {
                         SmartCompanionsUI.ShowMainWindow = !SmartCompanionsUI.ShowMainWindow;
+                        EventLogRecorder.Log("INPUT", $"Hotkey F8 -> ShowMainWindow={SmartCompanionsUI.ShowMainWindow}");
                         if (SmartCompanionsUI.ShowMainWindow)
                             SmartCompanionsUI.OnMainWindowOpened();
                     }
@@ -322,6 +334,7 @@ namespace ZedZone.SmartCompanions
                     if (altMod && Input.GetKeyDown(KeyCode.Alpha1))
                     {
                         CompanionConfigStore.ActiveCommandGroup = SquadFireteam.None;
+                        EventLogRecorder.Log("INPUT", "Hotkey Alt+1 -> CommandChannel=All");
                         BaseSortingSystem.SetBanner(CompanionConfigStore.L(
                             "Канал команд: Все [Alt+1]",
                             "Command channel: All [Alt+1]",
@@ -330,6 +343,7 @@ namespace ZedZone.SmartCompanions
                     if (altMod && Input.GetKeyDown(KeyCode.Alpha2))
                     {
                         CompanionConfigStore.ActiveCommandGroup = SquadFireteam.Alpha;
+                        EventLogRecorder.Log("INPUT", "Hotkey Alt+2 -> CommandChannel=Alpha");
                         BaseSortingSystem.SetBanner(CompanionConfigStore.L(
                             "Канал команд: Альфа [Alt+2]",
                             "Command channel: Alpha [Alt+2]",
@@ -338,6 +352,7 @@ namespace ZedZone.SmartCompanions
                     if (altMod && Input.GetKeyDown(KeyCode.Alpha3))
                     {
                         CompanionConfigStore.ActiveCommandGroup = SquadFireteam.Bravo;
+                        EventLogRecorder.Log("INPUT", "Hotkey Alt+3 -> CommandChannel=Bravo");
                         BaseSortingSystem.SetBanner(CompanionConfigStore.L(
                             "Канал команд: Браво [Alt+3]",
                             "Command channel: Bravo [Alt+3]",
@@ -349,6 +364,7 @@ namespace ZedZone.SmartCompanions
                         // Hotkey F7: Quick Order -> Sort Base Containers
                         if (Input.GetKeyDown(KeyCode.F7))
                         {
+                            EventLogRecorder.Log("INPUT", "Hotkey F7 -> CommandSortBase");
                             BaseSortingSystem.CommandSortBase(null, null, instant: false);
                         }
 
@@ -357,6 +373,7 @@ namespace ZedZone.SmartCompanions
                         {
                             if (!CompanionConfigStore.ShouldUseAltForRationHotkey() || altMod)
                             {
+                                EventLogRecorder.Log("INPUT", "Hotkey F6 -> ShareRationWithSquad");
                                 SmartChatterSystem.CommandShareRationWithSquad(null, fromAutoShare: false);
                             }
                         }
@@ -364,20 +381,24 @@ namespace ZedZone.SmartCompanions
                         // Hotkey F9: Quick Order -> Squad Battle Cry & Focus Assault ("Боевой клич / Штурм")
                         if (Input.GetKeyDown(KeyCode.F9))
                         {
+                            EventLogRecorder.Log("INPUT", "Hotkey F9 -> CommandSquadBattleCry");
                             SmartCombatAI.CommandSquadBattleCry(null);
                         }
 
                         // Hotkeys Alt+F / Alt+G / Alt+H: Sweep Loot, Cursor Fan & Healing Smoke
                         if (altMod && Input.GetKeyDown(KeyCode.F))
                         {
+                            EventLogRecorder.Log("INPUT", $"Hotkey Alt+F -> SweepNearbyLoot(r={CompanionConfigStore.LootSweepRadius:F0})");
                             AutoLootSystem.CommandSweepNearbyLoot(null, CompanionConfigStore.LootSweepRadius);
                         }
                         if (altMod && Input.GetKeyDown(KeyCode.G))
                         {
+                            EventLogRecorder.Log("INPUT", "Hotkey Alt+G -> IssueMoveToCursorOrder");
                             FieldTacticsSystem.IssueMoveToCursorOrder(null);
                         }
                         if (altMod && Input.GetKeyDown(KeyCode.H))
                         {
+                            EventLogRecorder.Log("INPUT", "Hotkey Alt+H -> CommandTacticalHealingSmoke");
                             FieldTacticsSystem.CommandTacticalHealingSmoke(null);
                         }
                     }
@@ -412,6 +433,7 @@ namespace ZedZone.SmartCompanions
                 }
 
                 SmartCompanionsInput.TickCursorGuard();
+                EventLogRecorder.Tick();
             }
             catch (Exception e)
             {
@@ -465,6 +487,7 @@ namespace ZedZone.SmartCompanions
             {
                 BaseSortingSystem.FlushAllCarryBuffers();
                 CompanionConfigStore.FlushPendingProgress(force: true);
+                EventLogRecorder.Flush(force: true);
             }
             catch { }
         }
@@ -475,6 +498,7 @@ namespace ZedZone.SmartCompanions
             {
                 BaseSortingSystem.FlushAllCarryBuffers();
                 CompanionConfigStore.FlushPendingProgress(force: true);
+                EventLogRecorder.Flush(force: true);
             }
             catch { }
         }

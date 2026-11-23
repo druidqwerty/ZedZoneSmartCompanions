@@ -155,8 +155,37 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             // (f) Live v3.2.1 High Fever (buff 7) freeze prevention & shared-bag Fever Reducer (234) cure
             RunLiveFeverFreezeAndMedicineCheck();
 
+            // (g) Live v3.2.2 EventLogRecorder in active Gaming world (WORLD/SQUAD/SNAP_NPC/BUG_MARK + privacy)
+            RunLiveEventLogRecorderCheck();
+
             // (a) Prepare equipped backpack + sharedInventoryData material unload check
             return SetupBackpackAndSharedUnloadTest(now);
+        }
+
+        private static void RunLiveEventLogRecorderCheck()
+        {
+            bool orig = CompanionConfigStore.EnableEventLogging;
+            try
+            {
+                EventLogRecorder.ClearLogFile();
+                EventLogRecorder.SetEnabled(true, "livesmoke_v322");
+                EventLogRecorder.Tick();
+                EventLogRecorder.Log("LIVE_TEST", "Live Gaming world event log probe", immediateFlush: true);
+                bool marked = EventLogRecorder.MarkBugNow("livesmoke_bug_mark");
+                if (!marked || !System.IO.File.Exists(EventLogRecorder.LogFilePath))
+                    throw new Exception("EventLogRecorder did not write log file in live Gaming world.");
+                string content = System.IO.File.ReadAllText(EventLogRecorder.LogFilePath, System.Text.Encoding.UTF8);
+                if (!content.Contains("[WORLD]") || !content.Contains("[SNAP_NPC]") || !content.Contains("[BUG_MARK #"))
+                    throw new Exception("EventLogRecorder live log missing expected WORLD/SNAP_NPC/BUG_MARK sections.");
+                if (content.IndexOf("C:\\Users\\", StringComparison.OrdinalIgnoreCase) >= 0)
+                    throw new Exception("EventLogRecorder leaked OS user path in live Gaming world!");
+                LiveSmokePlugin.Logger.LogInfo($"[V312Live] PASS (g) EventLogRecorder live Gaming world: bytes={content.Length}, events={EventLogRecorder.SessionEventCount}, privacy=clean.");
+            }
+            finally
+            {
+                EventLogRecorder.SetEnabled(orig, "livesmoke_restore");
+                if (!orig) EventLogRecorder.ClearLogFile();
+            }
         }
 
         private static void RunLiveFeverFreezeAndMedicineCheck()
@@ -389,10 +418,21 @@ namespace ZedZone.SmartCompanions.LiveSmoke
                 eq.backpackItemData = equippedPack;
 
                 // Phase e1: MaterialsOnly WITHOUT materials -> MUST repair 0 items
-                CompanionConfigStore.AutoRepairMode = GearAutoRepairMode.MaterialsOnly;
-                var noMatRes = CompanionGearRepairSystem.TryRunGearRepairCycleForAgent(_agent, _state, Time.unscaledTime + 100f, ignoreCooldown: true, allowSpeak: false);
-                if (noMatRes.TotalRepaired != 0 || eqArmor.durability > 0.01f)
-                    throw new Exception($"MaterialsOnly repaired without materials: count={noMatRes.TotalRepaired}, armor={eqArmor.durability:F1}");
+                // Isolate from any nearby player-marked base chests containing real materials in the live save
+                var savedCachedContainers = new List<DiscoveredContainer>(BaseSortingSystem.CachedContainers);
+                BaseSortingSystem.CachedContainers.Clear();
+                try
+                {
+                    CompanionConfigStore.AutoRepairMode = GearAutoRepairMode.MaterialsOnly;
+                    var noMatRes = CompanionGearRepairSystem.TryRunGearRepairCycleForAgent(_agent, _state, Time.unscaledTime + 100f, ignoreCooldown: true, allowSpeak: false);
+                    if (noMatRes.TotalRepaired != 0 || eqArmor.durability > 0.01f)
+                        throw new Exception($"MaterialsOnly repaired without materials: count={noMatRes.TotalRepaired}, armor={eqArmor.durability:F1}");
+                }
+                finally
+                {
+                    BaseSortingSystem.CachedContainers.Clear();
+                    BaseSortingSystem.CachedContainers.AddRange(savedCachedContainers);
+                }
 
                 // Phase e2: Add exact real repairData materials for clothingAttr into sharedInv -> MaterialsOnly MUST repair eqArmor (0 -> 100) and consume exact materials!
                 int firstMatId = clothingAttr.repairData.recipeItems[0].itemId;

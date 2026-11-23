@@ -27,6 +27,7 @@ namespace ZedZone.SmartCompanions
         public static void CycleFormation()
         {
             CompanionConfigStore.ActiveFormation = (SquadFormation)(((int)CompanionConfigStore.ActiveFormation + 1) % 5);
+            EventLogRecorder.Log("TACTICS", $"Formation -> {CompanionConfigStore.ActiveFormation}");
             CompanionConfigStore.Save();
             MultiplayerSyncSystem.SyncSquadTacticsConfig();
         }
@@ -34,6 +35,7 @@ namespace ZedZone.SmartCompanions
         public static void CycleFollowDistance()
         {
             CompanionConfigStore.FollowDistance = (FollowDistanceMode)(((int)CompanionConfigStore.FollowDistance + 1) % 4);
+            EventLogRecorder.Log("TACTICS", $"FollowDistance -> {CompanionConfigStore.FollowDistance}");
             CompanionConfigStore.Save();
             MultiplayerSyncSystem.SyncSquadTacticsConfig();
         }

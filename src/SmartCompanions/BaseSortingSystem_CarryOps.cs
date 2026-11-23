@@ -1053,6 +1053,8 @@ namespace ZedZone.SmartCompanions
         {
             LastSortStatusBanner = msg;
             LastSortStatusBannerUntil = Time.unscaledTime + seconds;
+            if (!string.IsNullOrWhiteSpace(msg))
+                EventLogRecorder.Log("BANNER", msg);
         }
     }
 }

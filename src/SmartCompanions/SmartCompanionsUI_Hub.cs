@@ -36,8 +36,9 @@ namespace ZedZone.SmartCompanions
 
             // Keep the title separate from controls; the whole free header is draggable.
             var titleDragRect = new Rect(x, y, w - 348f, 32f);
+            string recTag = EventLogRecorder.IsEnabled ? "  [REC]" : "";
             GUI.Label(titleDragRect,
-                CompanionConfigStore.L(lang, "УМНЫЕ НАПАРНИКИ", "SMART COMPANIONS", "智能队友"), _headerStyle);
+                CompanionConfigStore.L(lang, "УМНЫЕ НАПАРНИКИ", "SMART COMPANIONS", "智能队友") + recTag, _headerStyle);
             var winPos = new Vector2(_mainWinRect.x, _mainWinRect.y);
             HandleWindowDrag(1, titleDragRect, ref winPos, new Vector2(_mainWinRect.width, _mainWinRect.height), p =>
             {
@@ -1146,6 +1147,102 @@ namespace ZedZone.SmartCompanions
                 }
             }
             ly += 36f;
+
+            ly = DrawSettingsHeading(lx, ly, lw, CompanionConfigStore.L(lang,
+                "Диагностика и запись лога (баг-репорты)",
+                "Diagnostics & Event Logging (Bug Reports)",
+                "诊断与事件日志录制（Bug 反馈）"));
+
+            bool logOn = EventLogRecorder.IsEnabled;
+            if (GUI.Button(new Rect(lx, ly, lw, 30f), UiTip(
+                (logOn ? "[x] " : "[ ] ") + CompanionConfigStore.L(lang,
+                    "Записывать события мода в файл лога (для отправки автору при багах)",
+                    "Record mod events to log file (to send to author when reporting bugs)",
+                    "录制模组运行事件日志（遇到 Bug 时发送给作者排查）"),
+                CompanionConfigStore.L(lang,
+                    "Пишет приказы, переходы состояний ИИ, застревания, ошибки и снимки отряда в BepInEx/config/SmartCompanions_EventLog.log (ротация до 4 МБ, без имён и путей ПК)",
+                    "Records orders, AI state transitions, stalls, errors and squad snapshots to BepInEx/config/SmartCompanions_EventLog.log (4 MB cap, privacy-safe)",
+                    "记录指令、AI 状态切换、卡位、报错与队伍快照至 BepInEx/config/SmartCompanions_EventLog.log（上限 4 MB，不含隐私信息）")),
+                logOn ? _catOnStyle : _catOffStyle))
+            {
+                EventLogRecorder.SetEnabled(!logOn, "ui_settings");
+                BaseSortingSystem.SetBanner(EventLogRecorder.IsEnabled
+                    ? CompanionConfigStore.L(lang,
+                        "Запись лога ВКЛЮЧЕНА -> BepInEx/config/SmartCompanions_EventLog.log",
+                        "Event logging ENABLED -> BepInEx/config/SmartCompanions_EventLog.log",
+                        "事件日志录制已开启 -> BepInEx/config/SmartCompanions_EventLog.log")
+                    : CompanionConfigStore.L(lang,
+                        "Запись лога остановлена и сохранена на диск.",
+                        "Event logging stopped and flushed to disk.",
+                        "事件日志录制已停止并写入磁盘。"), 5f);
+            }
+            ly += 34f;
+
+            string sizeStr = EventLogRecorder.FormatFileSize(EventLogRecorder.CachedFileSizeBytes);
+            GUI.Box(new Rect(lx, ly, lw, 28f), GUIContent.none, _boxStyle);
+            GUI.Label(new Rect(lx + 10f, ly + 3f, lw - 20f, 22f), UiSafe(logOn
+                ? CompanionConfigStore.L(lang,
+                    $"[REC] Идёт запись  ·  Событий: {EventLogRecorder.SessionEventCount}  ·  Файл: {sizeStr}  ({EventLogRecorder.DisplayRelativePath})",
+                    $"[REC] Recording  ·  Events: {EventLogRecorder.SessionEventCount}  ·  File: {sizeStr}  ({EventLogRecorder.DisplayRelativePath})",
+                    $"[REC] 正在录制  ·  事件数：{EventLogRecorder.SessionEventCount}  ·  大小：{sizeStr}  ({EventLogRecorder.DisplayRelativePath})")
+                : CompanionConfigStore.L(lang,
+                    $"[OFF] Запись выкл.  ·  Файл: {sizeStr}  ({EventLogRecorder.DisplayRelativePath})",
+                    $"[OFF] Recording off  ·  File: {sizeStr}  ({EventLogRecorder.DisplayRelativePath})",
+                    $"[OFF] 未开启录制  ·  文件：{sizeStr}  ({EventLogRecorder.DisplayRelativePath})")), _labelStyle);
+            ly += 34f;
+
+            float logBtnW = (lw - 12f) / 3f;
+            if (GUI.Button(new Rect(lx, ly, logBtnW, 28f), UiTip(
+                CompanionConfigStore.L(lang, "[!] Метка бага", "[!] Mark Bug", "[!] 标记 Bug"),
+                CompanionConfigStore.L(lang,
+                    "Вставляет в лог яркую метку времени и полный снимок состояния отряда прямо сейчас (работает даже при выключенной записи)",
+                    "Writes a timestamped bug marker and full squad snapshot to the log right now (works even if continuous logging was off)",
+                    "立即在日志中写入 Bug 时间标记与完整队伍快照（即使未开启持续录制也可使用）")),
+                logOn ? _catOnStyle : _btnStyle))
+            {
+                bool ok = EventLogRecorder.MarkBugNow("ui_button");
+                BaseSortingSystem.SetBanner(ok
+                    ? CompanionConfigStore.L(lang,
+                        $"Метка бага #{EventLogRecorder.BugMarkCount} и снимок записаны в {EventLogRecorder.DisplayRelativePath}.",
+                        $"Bug marker #{EventLogRecorder.BugMarkCount} and snapshot saved to {EventLogRecorder.DisplayRelativePath}.",
+                        $"Bug 标记 #{EventLogRecorder.BugMarkCount} 与快照已保存至 {EventLogRecorder.DisplayRelativePath}。")
+                    : CompanionConfigStore.L(lang,
+                        "Не удалось записать метку бага на диск.",
+                        "Failed to write bug marker to disk.",
+                        "写入 Bug 标记失败。"), 5f);
+            }
+            if (GUI.Button(new Rect(lx + logBtnW + 6f, ly, logBtnW, 28f), UiTip(
+                CompanionConfigStore.L(lang, "Открыть папку логов", "Open Log Folder", "打开日志文件夹"),
+                CompanionConfigStore.L(lang,
+                    "Открывает BepInEx/config в Проводнике, чтобы быстро прикрепить файл SmartCompanions_EventLog.log к баг-репорту",
+                    "Opens BepInEx/config in Explorer so you can attach SmartCompanions_EventLog.log to a bug report",
+                    "在资源管理器中打开 BepInEx/config，方便上传 SmartCompanions_EventLog.log")), _btnStyle))
+            {
+                bool opened = EventLogRecorder.OpenLogFolder();
+                BaseSortingSystem.SetBanner(opened
+                    ? CompanionConfigStore.L(lang,
+                        "Открыта папка BepInEx/config с файлом SmartCompanions_EventLog.log.",
+                        "Opened BepInEx/config folder with SmartCompanions_EventLog.log.",
+                        "已打开 BepInEx/config 日志目录。")
+                    : CompanionConfigStore.L(lang,
+                        "Путь к файлу лога скопирован в буфер обмена.",
+                        "Log file path copied to clipboard.",
+                        "日志文件路径已复制至剪贴板。"), 4f);
+            }
+            if (GUI.Button(new Rect(lx + (logBtnW + 6f) * 2f, ly, logBtnW, 28f), UiTip(
+                CompanionConfigStore.L(lang, "Очистить лог", "Clear Log", "清空日志"),
+                CompanionConfigStore.L(lang,
+                    "Удаляет старый файл SmartCompanions_EventLog.log, чтобы записать чистый лог воспроизведения бага",
+                    "Clears SmartCompanions_EventLog.log so you can record a clean bug reproduction",
+                    "清空旧的 SmartCompanions_EventLog.log，重新录制干净的复现日志")), _btnStyle))
+            {
+                EventLogRecorder.ClearLogFile();
+                BaseSortingSystem.SetBanner(CompanionConfigStore.L(lang,
+                    "Файл лога событий очищен.",
+                    "Event log file cleared.",
+                    "事件日志文件已清空。"), 4f);
+            }
+            ly += 34f;
 
             bool avoPresent = CompanionConfigStore.IsAvoExpandedLoaded();
             string avoTag = avoPresent

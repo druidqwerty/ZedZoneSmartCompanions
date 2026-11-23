@@ -541,6 +541,10 @@ namespace ZedZone.SmartCompanions
         {
             try
             {
+                if (!string.IsNullOrEmpty(commandStr) && Il2CppSafe.IsAlive(__instance))
+                {
+                    EventLogRecorder.Log("NPC_CMD", $"{EventLogRecorder.GetNpcAlias(__instance.npcGUID)} cmd={commandStr}");
+                }
                 // NOTE: Do NOT call OnCompanionDismissed here in Prefix! Clearing leaderCharacterGUID before native
                 // ExecuteNPCCommand("OneTime.QuitTeam") runs prevents native QuitTeam from removing the NPC card in TeamNPCPanel!
                 if (CustomNpcCommands.ExecuteCustomCommand(__instance, commandStr))
