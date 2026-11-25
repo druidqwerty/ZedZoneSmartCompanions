@@ -1,6 +1,6 @@
 # ZED ZONE — Smart Companions (Умные напарники) — MODLOG
 
-## Status: 3.2.1 RELEASED (GitHub + Steam Workshop 3836613312 + Boosty queue; Patch 1.0.20)
+## Status: 3.2.3 RELEASED (GitHub + Steam Workshop 3836613312; Patch 1.0.20)
 
 - **Game:** ZED ZONE (`1211600`, Unity `2023.1.18f1` IL2CPP x64)
 - **Loader:** BepInEx `6.0.0-be.793` IL2CPP + `ZedModsLoader` `1.1.0` (Workshop `3834614258`)
@@ -436,3 +436,19 @@
   - `run_ui_smoke.py` (`backups/ui321-20261123-140438`, `exit 0`, `300/300` repaint cases, `13/13` suites PASS including new `V312Regression (j)` for `EventLogRecorder` write/mark/privacy/clear/toggle and visual PNG verification RU/EN).
   - `modkit save-guard verify zed-zone`: `8,386/8,386` `GameData` files unchanged, `0` temp artifacts.
   - Installed locally to `Mods\SmartCompanions\` and Workshop cache `3836613312\SmartCompanions\`. Not yet bumped/published.
+
+## 3.2.3 — Battery Charger & Charcoal Fuel Fix (2026-11-25, Patch 1.0.20)
+
+- **Root Cause (Disassembly of `GameAssembly.dll` `1.0.20` & live `ItemManager.instance` dump):**
+  - `ItemFeature_Battery` stores charge in `ItemData` string property `"RemainingBattery"` (Wh, defaulting to `batteryCapacityFloat` when unset), not `ItemData.durability` (casing durability). `ProductionManager.UpdateBatteryCharger` writes 2-bit cell states into `ProductionData.batteryChargeStateTemp` (`0 = noBattery`, `1 = charged/FULL`, `2 = charging`, `-1 = powerOff`). Previous code unloaded batteries on `durability >= 99.5f || state >= 2` and loaded batteries on `durability < 85f`, causing partially charged batteries to be pulled out prematurely and fully charged `Vehicle Battery` (`id=85`, `1200 Wh`) to be reloaded forever.
+  - Vanilla `1.0.20` `Charcoal` (`id=6`, `ProductionManager.ashItemId = 6`) has `ItemFeatureType.Ash (8)` and lacks `ItemFeatureType.Combustible (1)`. Furnace/StirlingGenerator fuel slots accept `[Combustible, Ash]`, so Charcoal fit into fuel slots without burning in `ProductionManager.FindLastCombustibleIndex`.
+- **Implemented Fix (`BaseIndustrySystem.cs`, `BaseSortingSystem.cs`):**
+  1. Replaced battery durability/state heuristics with native `ItemFeature_Battery.GetBatteryRemainingPower` / `batteryCapacityFloat` (`>= 99.9%` / within `0.001 Wh` full, `< 85%` depleted + `isPowerSwitchedOn && powerInputSufficientFloat > 0.001f`), excluded `TerrainObject_Production_BatteryCharger` from regular storage scanning and `FindSupplyOrDest`, and re-validated state on physical arrival.
+  2. Enforced native `ItemFeatureType.Combustible` + `PassesFeatureLimit` before approving station fuel (blocking `Charcoal` and `id=71 Wood Dagger`), mapped explicit native station slots (`StirlingGenerator`/`BatteryCharger` `inventoryData1`, `Furnace` `1/2/3`, `ElectricFurnace` output `2`), respected `isPowerSwitchedOn` / `craftFinishFlag` / destination space, and added non-combustible ash/charcoal clearing from fuel slots when space runs low.
+- **Build, Verification & Packaging (`0 warnings, 0 errors`, `-warnaserror`):**
+  - **Frozen DLL:** `src/SmartCompanions/bin/SmartCompanions.dll`, `711,168` B, SHA-256 **`0c2dae8f21d0a47e527fb53fa8b0fc67b3a8aa9636d33d09fcf3be6b420c58e7`** (`Assembly-CSharp AssemblyRef = 0.0.0.0`, `92` Harmony patches `failed=0`, `[SelfVerify] PASS v3.2.3`).
+  - `run_ui_smoke.py` (`backups/ui323-20261125-110150`): `exit 0`, `300/300` repaint cases (`303` PNGs), `13/13` suites PASS incl. live `ItemManager` `IndustryRegression` (`combustibles=17, approvedFuels=2, nonCombustibleCharcoal=1, batteries=7, vehicleBatteries=2`), `Player.log` `1,145` lines (`0` exceptions), `8,386/8,386` `GameData` unchanged.
+  - `run_live_acceptance.py` (`backups/live-20261125-110709`): `exit 0`, `53.7s`, all live suites PASS incl. **`V312Live (h)`** native `ChargeBattery`, `FindLastCombustibleIndex`, and `PassesFeatureLimit`, `Player.log` `1,505` lines (`0` exceptions), `8,386/8,386` `GameData` unchanged.
+  - `run_real_menu_load.py` (`backups/menuload-20261125-110806`): `exit 0`, `25.5s`, native load + live `F8` toggle PASS, `Player.log` `1,839` lines (`0` exceptions), `8,386/8,386` `GameData` unchanged; `modkit save-guard verify zedzone` PASS (`0` temp artifacts).
+  - **Release ZIP:** `dist/ZedZoneSmartCompanions-3.2.3.zip` (`882,953` B, SHA-256 `b585d9d3b9946588f980234b8e6251eb27e1849d75abeddd0030e23ce5616f94`, `9` entries, `testzip() == None`, embedded DLL `0c2dae8f...`).
+  - **Boosty:** pure bugfix without new features — no separate Boosty post created per `2026-11-21` single-card policy (`BOOSTY_3.2.2.md` left untouched).

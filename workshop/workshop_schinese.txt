@@ -1,17 +1,17 @@
-title=ZED ZONE: Smart Companions 3.2.2 — 智能队友
+title=ZED ZONE: Smart Companions 3.2.3 — 智能队友
 visibility=public
-description=[h1]智能队友 3.2.2[/h1]
+description=[h1]智能队友 3.2.3[/h1]
 description=[url=https://boosty.to/lrgpp][img]https://raw.githubusercontent.com/druidqwerty/ZedZoneSmartCompanions/a889f354afa76bbae9852cd8a1b46520c73ddce1/docs/banner.png[/img][/url]
 description=喜欢这个模组吗？欢迎在 Boosty 支持开发。
 description=打造可靠的幸存者小队：智能战术战斗、真实走位搜刮、基地物理搬运、装备自动维修，以及中英俄三语共 1,215 条实时台词。
-description=[h2]3.2.2 更新亮点（内置事件日志录制，方便反馈 Bug）[/h2]
-description=[list][*]在 F8 -> 设置 新增「事件日志录制」开关（默认关闭，关闭时零性能开销）：可记录玩家指令、快捷键、队友 AI 状态与目标切换、寻路卡位（[STALL]）、警告/报错与队伍快照至 BepInEx/config/SmartCompanions_EventLog.log（单文件 4 MB 自动轮转，不含电脑路径、Steam ID 与角色名等隐私信息）。[*]一键「[!] 标记 Bug」按钮：遇到问题时立即打上时间标记并导出完整队伍快照（即便未提前开启持续录制，也会附带内存环形缓冲中的近期上下文），同时提供「打开日志文件夹」、「清空日志」按钮以及 F8 标题栏 [REC] 录制指示。[*]包含 3.2.1 与 3.2.0 全部内容：发烧/感冒原地卡死修复、全背包自动服用退烧药、18 个装备槽与多级背包自动维修及 1.0.20 补丁完整适配。[/list]
+description=[h2]3.2.3 更新亮点（电池充电器与木炭燃料修复）[/h2]
+description=[list][*]修复电池充电器循环搬运问题：队友现在按实际电量（RemainingBattery 瓦时）而非外壳耐久判断，并正确读取原版充电槽位状态 —— 未充满的电池不再被提前取出，满电汽车电瓶不再被反复放回充电器，且充电器不再混入普通箱子整理。[*]修复往熔炉与发电机塞木炭的问题：在给斯特林发电机、取暖器和石质熔炉加燃料前会校验原版可燃（Combustible）属性，不再放入不可燃的木炭或木质武器，精准区分各工位的原料/成品/燃料槽位，并在空间不足时自动清理燃料槽堆积的木炭/灰烬。[*]包含 3.2.2–3.2.0 全部内容：F8 -> 设置 内置事件日志录制与一键「[!] 标记 Bug」、发烧/感冒原地卡死修复、18 个装备槽与多级背包自动维修及 1.0.20 补丁完整适配。[/list]
 description=[h2]快速上手：如何使用[/h2]
 description=[list][*]1. 按 F8 打开智能队友中心（右上 [?] 查看快速指南）。在「队伍」页配置学说、阵型、[A]/[B] 火力小组或切换「营地驻守」。[*]2. 在基地打开任意箱子（或进 F8 -> 基地页）勾选储物分类，并将一个箱子设为 [中转箱] —— 队友仅搬运玩家主动标记的箱子。[*]3. 把战利品放进 [中转箱] 后按 F7，队友会亲自走位搬进对应分类箱（绝不隔空传物）。在「工作」页套用专精与自动收获，在「设置」页随时切换队友装备自动维修模式。[*]快捷键：F8 面板 · Alt+1/2/3 全队/A组/B组 · Alt+F 搜刮附近 · F7 整理基地 · F6（与 AVO 共用 Alt+F6）分口粮 · Alt+G 扇形定点 · Alt+H 治疗烟 · F9 战吼。[/list]
 description=[h2]小队与基地[/h2]
 description=六种战术学说、最高 15 人队伍、火力小组、战地急救与弹药支援、营地自主生存与自动修装、农田发电维护及 12 类储物规则。兼容现有存档，无需重开。
 description=[h2]安装与联机提示[/h2]
-description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 3.2.2。当《ZED ZONE》更新（例如 1.0.20 补丁）后若模组未加载或启动卡住，请删除一次 <ZED ZONE>/BepInEx/interop 文件夹（或重运行 Code Mod Loader 的 install.cmd）以重建 IL2CPP interop 文件。
+description=需要第三方前置 [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3834614258]ZED ZONE Code Mod Loader[/url]（运行一次 install.cmd 后通过 Steam 启动）。加载器并非 druidqwerty 的模组。联机双方均应使用 3.2.3。当《ZED ZONE》更新（例如 1.0.20 补丁）后若模组未加载或启动卡住，请删除一次 <ZED ZONE>/BepInEx/interop 文件夹（或重运行 Code Mod Loader 的 install.cmd）以重建 IL2CPP interop 文件。
 description=联机说明：主机校验队友指令并同步倒地状态。真实双机主机 + 客户端联机会话仍待双人实测反馈，欢迎在讨论区留言。
 description=[url=https://github.com/druidqwerty/ZedZoneSmartCompanions]GitHub 源码、完整更新与验证报告[/url]
 description=Workshop ID: 3836613312

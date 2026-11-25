@@ -30,6 +30,42 @@ namespace ZedZone.SmartCompanions.UiSmoke
                 BaseIndustrySystem.IsApprovedStationFuelItem(107, StorageCategory.VehicleAndPower, "汽油桶"),
                 "Chinese gasoline canister in VehicleAndPower must be approved as station fuel");
 
+            // 1b. Native Combustible feature gate (e.g. vanilla Charcoal without ItemFeatureType.Combustible must be rejected!)
+            AssertFalse(
+                BaseIndustrySystem.IsApprovedStationFuelItem(103, StorageCategory.Materials, "charcoal", hasCombustibleFeature: false),
+                "Charcoal without native ItemFeatureType.Combustible must never be approved as station fuel");
+            AssertFalse(
+                BaseIndustrySystem.IsApprovedStationFuelItem(101, StorageCategory.Materials, "dry firewood bundle", hasCombustibleFeature: false),
+                "Any item lacking native ItemFeatureType.Combustible must be rejected");
+            AssertFalse(
+                BaseIndustrySystem.IsApprovedStationFuelItem(105, StorageCategory.VehicleAndPower, "jerrycan of gasoline", hasCombustibleFeature: false),
+                "Liquid gasoline lacking native ItemFeatureType.Combustible must not be put into solid-fuel furnaces/generators");
+
+            // 1c. Battery charge thresholds & hysteresis (RemainingBattery Wh vs capacity Wh, never durability!)
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeFull(0f, 100f), "0/100 Wh battery must not be considered full");
+            AssertTrue(BaseIndustrySystem.IsBatteryChargeDepleted(0f, 100f), "0/100 Wh battery must be considered depleted");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeFull(50f, 100f), "50/100 Wh battery must not be considered full");
+            AssertTrue(BaseIndustrySystem.IsBatteryChargeDepleted(50f, 100f), "50/100 Wh battery must be considered depleted");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeFull(84.9f, 100f), "84.9/100 Wh battery must not be considered full");
+            AssertTrue(BaseIndustrySystem.IsBatteryChargeDepleted(84.9f, 100f), "84.9/100 Wh battery must be considered depleted");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeFull(85.0f, 100f), "85/100 Wh battery must not be considered full");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeDepleted(85.0f, 100f), "85/100 Wh battery must respect hysteresis and not be depleted");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeFull(95.0f, 100f), "95/100 Wh partially charged battery must stay in charger");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeDepleted(95.0f, 100f), "95/100 Wh battery must not be pulled from chest");
+            AssertTrue(BaseIndustrySystem.IsBatteryChargeFull(99.95f, 100f), "99.95/100 Wh battery must be considered full");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeDepleted(99.95f, 100f), "99.95/100 Wh battery must never be depleted");
+            AssertTrue(BaseIndustrySystem.IsBatteryChargeFull(100f, 100f), "100/100 Wh battery must be considered full");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeDepleted(100f, 100f), "100/100 Wh battery must never be depleted");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeFull(1.58f, 1.6f), "1.58/1.6 Wh AAA battery must stay charging until full");
+            AssertTrue(BaseIndustrySystem.IsBatteryChargeFull(1.5995f, 1.6f), "1.5995/1.6 Wh AAA battery must be considered full");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeFull(0f, 0f), "Zero-capacity battery must never be considered full");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeDepleted(0f, 0f), "Zero-capacity battery must never be considered depleted");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeFull(float.NaN, 100f), "NaN remaining must not be full");
+            AssertFalse(BaseIndustrySystem.IsBatteryChargeDepleted(float.NaN, 100f), "NaN remaining must not be depleted");
+
+            // 1d. Live ItemManager verification of real game items (Charcoal, Combustibles, Batteries, Vehicle Batteries)
+            VerifyLiveGameItemCatalog();
+
             // 2. Strict rejection of weapons, armor, medicine, food, books, money, planks, batteries & rare parts
             AssertFalse(
                 BaseIndustrySystem.IsApprovedStationFuelItem(0, StorageCategory.Materials, "coal"),
@@ -82,6 +118,9 @@ namespace ZedZone.SmartCompanions.UiSmoke
             AssertFalse(
                 BaseIndustrySystem.IsApprovedStationFuelItem(407, StorageCategory.Materials, "wood plank"),
                 "Crafting wood planks must not be burned in place of firewood");
+            AssertFalse(
+                BaseIndustrySystem.IsApprovedStationFuelItem(71, StorageCategory.Materials, "wood dagger", hasCombustibleFeature: true),
+                "Wood Dagger (id=71, Material + Combustible) must never be burned as fuel");
 
             // 3. SelectNextIndustryTask: null/empty & disabled category gates
             AssertEqual(
@@ -153,9 +192,129 @@ namespace ZedZone.SmartCompanions.UiSmoke
             roleProbe.WorkRole = CompanionWorkRole.Off;
             AssertFalse(BaseIndustrySystem.AllowsIndustryRole(roleProbe), "Role Off must never auto-run industry tasks");
 
-            const string passMsg = "[UiSmoke] PASS v2.7.0 industrial fuel whitelist, station priority & zero-teleport routing";
+            const string passMsg = "[UiSmoke] PASS v2.7.0+ industrial fuel whitelist, battery charge state, station priority & zero-teleport routing";
             UiSmokePlugin.Logger?.LogInfo(passMsg);
             Console.WriteLine(passMsg);
+        }
+
+        private static void VerifyLiveGameItemCatalog()
+        {
+            var im = ItemManager.instance;
+            if (!Il2CppSafe.IsAlive(im))
+            {
+                UiSmokePlugin.Logger?.LogWarning("[IndustryRegression] ItemManager.instance unavailable in MainMenu; live item catalog checks deferred to LiveSmoke.");
+                return;
+            }
+
+            int combustibleCount = 0;
+            int approvedFuelCount = 0;
+            int charcoalChecked = 0;
+            int batteryChecked = 0;
+            int vehicleBatteryChecked = 0;
+
+            for (int id = 1; id <= 2500; id++)
+            {
+                var attr = im.GetItemAttrById(id);
+                if (!Il2CppSafe.IsAliveUnity(attr)) continue;
+
+                bool hasCombustible = attr.itemFeatures != null && attr.itemFeatures.Contains(ItemFeatureType.Combustible);
+                bool hasAsh = attr.itemFeatures != null && attr.itemFeatures.Contains(ItemFeatureType.Ash);
+                bool hasBattery = attr.itemFeatures != null && attr.itemFeatures.Contains(ItemFeatureType.Battery);
+                bool hasVehBattery = attr.itemFeatures != null && attr.itemFeatures.Contains(ItemFeatureType.VehicleBattery);
+                string en = attr.ItemName_EN ?? "";
+                string low = en.ToLowerInvariant();
+
+                if (hasCombustible || hasAsh || hasBattery || hasVehBattery || low.Contains("charcoal") || low.Contains("coal") || low.Contains("firewood") || low.Contains("battery"))
+                {
+                    float cap = 0f;
+                    if (hasBattery)
+                    {
+                        var bf = attr.GetItemFeatureByFeatureType(ItemFeatureType.Battery)?.TryCast<ItemFeature_Battery>();
+                        if (Il2CppSafe.IsAliveUnity(bf)) cap = bf.batteryCapacityFloat;
+                    }
+                    UiSmokePlugin.Logger?.LogInfo(
+                        $"[IndustryCatalog] id={id} EN='{en}' type={attr.itemType} comb={hasCombustible} ash={hasAsh} bat={hasBattery} vehBat={hasVehBattery} capWh={cap:F1}");
+                }
+
+                if (hasCombustible)
+                {
+                    combustibleCount++;
+                    var sample = im.GetRandomDataByAttr(attr, false, true);
+                    if (Il2CppSafe.IsAlive(sample) && BaseIndustrySystem.IsStationFuelData(sample))
+                        approvedFuelCount++;
+                }
+
+                if (low.Contains("charcoal") && !hasCombustible)
+                {
+                    charcoalChecked++;
+                    var ch = im.GetRandomDataByAttr(attr, false, true);
+                    AssertFalse(BaseIndustrySystem.IsNativeCombustibleData(ch), $"Non-combustible charcoal id={id} ('{en}') must not report IsNativeCombustibleData");
+                    AssertFalse(BaseIndustrySystem.IsStationFuelData(ch), $"Non-combustible charcoal id={id} ('{en}') must never be accepted as station fuel");
+                    if (hasAsh)
+                        AssertTrue(BaseIndustrySystem.IsNonCombustibleAshData(ch), $"Charcoal id={id} ('{en}') with Ash && !Combustible must report IsNonCombustibleAshData");
+                }
+
+                if (id == 71)
+                {
+                    var woodDagger = im.GetRandomDataByAttr(attr, false, true);
+                    AssertFalse(BaseIndustrySystem.IsStationFuelData(woodDagger), $"Wood Dagger id=71 ('{en}') must never be selected as station fuel");
+                }
+
+                if (hasBattery)
+                {
+                    var bf = attr.GetItemFeatureByFeatureType(ItemFeatureType.Battery)?.TryCast<ItemFeature_Battery>();
+                    if (Il2CppSafe.IsAliveUnity(bf) && bf.batteryCapacityFloat > 0.01f)
+                    {
+                        batteryChecked++;
+                        float cap = bf.batteryCapacityFloat;
+
+                        // Case A: durability == 100f (brand new casing) but only 30% charged -> MUST NOT unload from charger, MUST count as depleted
+                        var partialBat = im.GetRandomDataByAttr(attr, false, true);
+                        partialBat.durability = 100f;
+                        partialBat.SetProperty("RemainingBattery", (cap * 0.30f).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        AssertFalse(BaseIndustrySystem.IsBatteryFullyChargedData(partialBat),
+                            $"30% charged battery id={id} ('{en}') with durability=100 must NOT be considered fully charged");
+                        AssertTrue(BaseIndustrySystem.IsDepletedBatteryData(partialBat),
+                            $"30% charged battery id={id} ('{en}') with durability=100 must be considered depleted");
+
+                        // Case B: durability == 35f (worn vehicle/regular battery) but 100% charged -> MUST NOT be pulled into charger!
+                        var wornFullBat = im.GetRandomDataByAttr(attr, false, true);
+                        wornFullBat.durability = 35f;
+                        wornFullBat.SetProperty("RemainingBattery", cap.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        AssertTrue(BaseIndustrySystem.IsBatteryFullyChargedData(wornFullBat),
+                            $"100% charged battery id={id} ('{en}') with durability=35 must be considered fully charged");
+                        AssertFalse(BaseIndustrySystem.IsDepletedBatteryData(wornFullBat),
+                            $"100% charged battery id={id} ('{en}') with durability=35 must NOT be considered depleted");
+
+                        // Case C: 90% charged (hysteresis band) -> neither full nor depleted
+                        var ninetyBat = im.GetRandomDataByAttr(attr, false, true);
+                        ninetyBat.durability = 100f;
+                        ninetyBat.SetProperty("RemainingBattery", (cap * 0.90f).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        AssertFalse(BaseIndustrySystem.IsBatteryFullyChargedData(ninetyBat),
+                            $"90% charged battery id={id} ('{en}') must stay in charger until full");
+                        AssertFalse(BaseIndustrySystem.IsDepletedBatteryData(ninetyBat),
+                            $"90% charged battery id={id} ('{en}') must not be pulled from storage");
+
+                        if (hasVehBattery) vehicleBatteryChecked++;
+                    }
+                }
+                else if (hasVehBattery)
+                {
+                    vehicleBatteryChecked++;
+                    var vb = im.GetRandomDataByAttr(attr, false, true);
+                    vb.durability = 35f;
+                    AssertFalse(BaseIndustrySystem.IsDepletedBatteryData(vb),
+                        $"Non-Battery-feature vehicle battery id={id} ('{en}') must never be treated as chargeable");
+                    AssertFalse(BaseIndustrySystem.IsBatteryFullyChargedData(vb),
+                        $"Non-Battery-feature vehicle battery id={id} ('{en}') must never report fully charged");
+                }
+            }
+
+            AssertTrue(combustibleCount > 0, "Expected at least one native Combustible item in ItemManager");
+            AssertTrue(approvedFuelCount > 0, "Expected at least one approved Combustible station fuel item in ItemManager");
+            AssertTrue(batteryChecked > 0, "Expected at least one chargeable Battery item in ItemManager");
+            UiSmokePlugin.Logger?.LogInfo(
+                $"[IndustryRegression] PASS live ItemManager catalog: combustibles={combustibleCount}, approvedFuels={approvedFuelCount}, nonCombustibleCharcoal={charcoalChecked}, batteries={batteryChecked}, vehicleBatteries={vehicleBatteryChecked}");
         }
 
         private static void AssertTrue(bool condition, string message)

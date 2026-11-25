@@ -281,6 +281,9 @@ namespace ZedZone.SmartCompanions
                     return Il2CppSafe.IsAlive(inv) && inv.inventorySizeX > 0 && inv.inventorySizeY > 0 ? inv : null;
                 }
 
+                if (tobj.TryCast<TerrainObject_Production_BatteryCharger>() != null)
+                    return null;
+
                 var prodInv = tobj.TryCast<TerrainObject_Production_Inventory>();
                 if (Il2CppSafe.IsAliveUnity(prodInv) && Il2CppSafe.IsAlive(tobj.objectData.productionData))
                 {

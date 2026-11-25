@@ -158,8 +158,127 @@ namespace ZedZone.SmartCompanions.LiveSmoke
             // (g) Live v3.2.2 EventLogRecorder in active Gaming world (WORLD/SQUAD/SNAP_NPC/BUG_MARK + privacy)
             RunLiveEventLogRecorderCheck();
 
+            // (h) Live BatteryCharger charge-fraction & native Combustible fuel regression (charcoal & vehicle battery fixes)
+            RunLiveIndustryBatteryAndFuelCheck();
+
             // (a) Prepare equipped backpack + sharedInventoryData material unload check
             return SetupBackpackAndSharedUnloadTest(now);
+        }
+
+        private static void RunLiveIndustryBatteryAndFuelCheck()
+        {
+            var im = ItemManager.instance;
+            if (!Il2CppSafe.IsAlive(im))
+                throw new Exception("BLOCKED [V312Live(h)]: ItemManager.instance is null.");
+
+            // Build native-like station fuel inventory with exact vanilla feature limit [Combustible, Ash]
+            var fuelInv = new InventoryData();
+            fuelInv.inventorySize = new Vector2Int(4, 4);
+            fuelInv.itemFeatureLimit = new Il2CppSystem.Collections.Generic.List<ItemFeatureType>();
+            fuelInv.itemFeatureLimit.Add(ItemFeatureType.Combustible);
+            fuelInv.itemFeatureLimit.Add(ItemFeatureType.Ash);
+
+            // Build native-like charger inventory with exact vanilla feature limit [Battery]
+            var chargerInv = new InventoryData();
+            chargerInv.inventorySize = new Vector2Int(4, 4);
+            chargerInv.itemFeatureLimit = new Il2CppSystem.Collections.Generic.List<ItemFeatureType>();
+            chargerInv.itemFeatureLimit.Add(ItemFeatureType.Battery);
+
+            int testedBatteries = 0;
+            int testedVehicleBatteries = 0;
+            int rejectedNonCombustibleCharcoal = 0;
+            int approvedCombustibleFuels = 0;
+
+            for (int id = 1; id <= 2500; id++)
+            {
+                var attr = im.GetItemAttrById(id);
+                if (!Il2CppSafe.IsAliveUnity(attr)) continue;
+
+                bool hasCombustible = attr.itemFeatures != null && attr.itemFeatures.Contains(ItemFeatureType.Combustible);
+                bool hasBattery = attr.itemFeatures != null && attr.itemFeatures.Contains(ItemFeatureType.Battery);
+                bool hasVehBattery = attr.itemFeatures != null && attr.itemFeatures.Contains(ItemFeatureType.VehicleBattery);
+                string en = attr.ItemName_EN ?? "";
+                string low = en.ToLowerInvariant();
+
+                if (low.Contains("charcoal") && !hasCombustible)
+                {
+                    var charcoal = im.GetRandomDataByAttr(attr, false, true);
+                    if (BaseIndustrySystem.IsStationFuelData(charcoal, fuelInv))
+                        throw new Exception($"Non-combustible charcoal id={id} ('{en}') passed IsStationFuelData!");
+                    if (BaseIndustrySystem.IsNativeCombustibleData(charcoal))
+                        throw new Exception($"Non-combustible charcoal id={id} ('{en}') passed IsNativeCombustibleData!");
+                    if (attr.itemFeatures != null && attr.itemFeatures.Contains(ItemFeatureType.Ash) &&
+                        !BaseIndustrySystem.IsNonCombustibleAshData(charcoal))
+                        throw new Exception($"Charcoal id={id} ('{en}') with Ash && !Combustible did not report IsNonCombustibleAshData!");
+                    // Verify native ProductionManager.FindLastCombustibleIndex agrees that charcoal will not burn
+                    fuelInv.itemList.Clear();
+                    fuelInv.itemList.Add(charcoal);
+                    int burnIdx = ProductionManager.FindLastCombustibleIndex(fuelInv);
+                    fuelInv.itemList.Clear();
+                    if (burnIdx >= 0)
+                        throw new Exception($"Unexpected: charcoal id={id} burned in FindLastCombustibleIndex despite missing Combustible.");
+                    rejectedNonCombustibleCharcoal++;
+                }
+
+                if (id == 71)
+                {
+                    var dagger = im.GetRandomDataByAttr(attr, false, true);
+                    if (BaseIndustrySystem.IsStationFuelData(dagger, fuelInv))
+                        throw new Exception($"Wood Dagger id=71 ('{en}') wrongly passed IsStationFuelData!");
+                }
+
+                if (hasCombustible)
+                {
+                    var fuel = im.GetRandomDataByAttr(attr, false, true);
+                    if (BaseIndustrySystem.IsStationFuelData(fuel, fuelInv))
+                    {
+                        fuelInv.itemList.Clear();
+                        fuelInv.itemList.Add(fuel);
+                        int burnIdx = ProductionManager.FindLastCombustibleIndex(fuelInv);
+                        fuelInv.itemList.Clear();
+                        if (burnIdx < 0)
+                            throw new Exception($"Approved fuel id={id} ('{en}') failed native ProductionManager.FindLastCombustibleIndex!");
+                        approvedCombustibleFuels++;
+                    }
+                }
+
+                if (hasBattery)
+                {
+                    var bf = attr.GetItemFeatureByFeatureType(ItemFeatureType.Battery)?.TryCast<ItemFeature_Battery>();
+                    if (Il2CppSafe.IsAliveUnity(bf) && bf.batteryCapacityFloat > 0.01f)
+                    {
+                        float cap = bf.batteryCapacityFloat;
+                        var bat = im.GetRandomDataByAttr(attr, false, true);
+                        bat.durability = 100f;
+                        bat.SetProperty("RemainingBattery", (cap * 0.25f).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        if (BaseIndustrySystem.IsBatteryFullyChargedData(bat) || !BaseIndustrySystem.IsDepletedBatteryData(bat))
+                            throw new Exception($"Battery id={id} ('{en}') @25% charge & 100% durability misclassified.");
+
+                        // Charge halfway via native ItemFeature_Battery.ChargeBattery -> still NOT full!
+                        ItemFeature_Battery.ChargeBattery(bat, cap * 0.50f);
+                        if (BaseIndustrySystem.IsBatteryFullyChargedData(bat))
+                            throw new Exception($"Battery id={id} ('{en}') @75% charge wrongly treated as full.");
+
+                        // Charge to 100% with low durability (simulating worn Vehicle Battery!) -> MUST be full & NOT depleted!
+                        bat.durability = 40f;
+                        ItemFeature_Battery.ChargeBattery(bat, cap);
+                        if (!BaseIndustrySystem.IsBatteryFullyChargedData(bat) || BaseIndustrySystem.IsDepletedBatteryData(bat))
+                            throw new Exception($"Fully charged worn battery id={id} ('{en}', dur=40) misclassified.");
+
+                        if (!chargerInv.PassesFeatureLimit(attr))
+                            throw new Exception($"Battery id={id} ('{en}') failed charger PassesFeatureLimit.");
+
+                        testedBatteries++;
+                        if (hasVehBattery) testedVehicleBatteries++;
+                    }
+                }
+            }
+
+            if (testedBatteries == 0 || approvedCombustibleFuels == 0)
+                throw new Exception($"Incomplete live industry check: batteries={testedBatteries}, approvedFuels={approvedCombustibleFuels}");
+
+            LiveSmokePlugin.Logger.LogInfo(
+                $"[V312Live] PASS (h) Industry Battery & Fuel fixes: batteries={testedBatteries} (vehicle={testedVehicleBatteries}), rejectedNonCombustibleCharcoal={rejectedNonCombustibleCharcoal}, approvedCombustibleFuels={approvedCombustibleFuels}.");
         }
 
         private static void RunLiveEventLogRecorderCheck()
